@@ -1,0 +1,13 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_rail_measurement,rail.measurement access,model_rail_measurement,base.group_user,1,1,1,1
+access_rail_cart,chariot access,model_chariot,base.group_user,1,1,1,1
+access_rail_measurement_wizard,rail.measurement.wizard access,model_rail_measurement_wizard,base.group_user,1,1,1,1
+access_rail_cart_type,chariot.type access,model_chariot_type,base.group_user,1,1,1,1
+access_rail_measurement_wizard_line,rail.measurement.wizard.line,model_rail_measurement_wizard_chariot_type_line,base.group_user,1,1,1,1
+access_rail_measurement_assign_wizard,rail.measurement.assign.wizard,model_rail_measurement_assign_chariot_wizard,base.group_user,1,1,1,1
+access_rail_measurement_assign_line,rail.measurement.assign.line,model_rail_measurement_assign_chariot_line_wizard,base.group_user,1,1,1,1
+access_rail_wizard_line,rail.measurement.wizard.chariot.type.line,model_rail_measurement_wizard_chariot_type_line,base.group_user,1,1,1,1
+rail_measurement.access_rail_measurement_chariot_type_line,access_rail_measurement_chariot_type_line,rail_measurement.model_rail_measurement_chariot_type_line,base.group_user,1,1,1,1
+rail_measurement.access_leyfa_ligne,access_leyfa_ligne,rail_measurement.model_leyfa_ligne,base.group_user,1,1,1,1
+rail_measurement.access_leyfa_affaire_type,access_leyfa_affaire_type,rail_measurement.model_leyfa_affaire_type,base.group_user,1,1,1,1
+rail_measurement.access_leyfa_exercice_comptable,access_leyfa_exercice_comptable,rail_measurement.model_leyfa_exercice_comptable,base.group_user,1,1,1,1

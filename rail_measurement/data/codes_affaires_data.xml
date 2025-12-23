@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <!-- Type P -->
+        <record id="type_p" model="leyfa.affaire.type">
+            <field name="code">P</field>
+            <field name="name">Préparation de chantier</field>
+            <field name="description">Préparation de chantier, notamment GOP.</field>
+            <field name="sequence">10</field>
+            <field name="requires_nature" eval="True"/>
+        </record>
+
+        <!-- Type C -->
+        <record id="type_c" model="leyfa.affaire.type">
+            <field name="code">C</field>
+            <field name="name">Suivi en Phase Chantier</field>
+            <field name="description">Suivi en phase chantier, notamment des chantiers de renouvellement.</field>
+            <field name="sequence">20</field>
+            <field name="requires_nature" eval="True"/>
+        </record>
+
+        <!-- Type R -->
+        <record id="type_r" model="leyfa.affaire.type">
+            <field name="code">R</field>
+            <field name="name">Récolement post chantier</field>
+            <field name="description">Missions de récolement après travaux.</field>
+            <field name="sequence">30</field>
+            <field name="requires_nature" eval="True"/>
+        </record>
+
+        <!-- Type INS -->
+        <record id="type_ins" model="leyfa.affaire.type">
+            <field name="code">INS</field>
+            <field name="name">Inspection</field>
+            <field name="description">Inspection par exemple sur les CdF à crémaillère, sur tramway.</field>
+            <field name="sequence">40</field>
+            <field name="requires_nature" eval="False"/>
+        </record>
+
+        <!-- Type B -->
+        <record id="type_b" model="leyfa.affaire.type">
+            <field name="code">B</field>
+            <field name="name">Bourrage (Infrapôle)</field>
+            <field name="description">Intervention pour un Infrapôle : prépa bourrage avec étude et épures/carnets. Peut servir au suivi de la machine.</field>
+            <field name="sequence">50</field>
+            <field name="requires_nature" eval="False"/>
+        </record>
+
+        <!-- Type SP -->
+        <record id="type_sp" model="leyfa.affaire.type">
+            <field name="code">SP</field>
+            <field name="name">Prestation spéciale</field>
+            <field name="description">Prestations spéciales, par exemple : collage de plaquettes.</field>
+            <field name="sequence">60</field>
+            <field name="requires_nature" eval="False"/>
+        </record>
+
+        <!-- Type MOE -->
+        <record id="type_moe" model="leyfa.affaire.type">
+            <field name="code">MOE</field>
+            <field name="name">Maitrise d’œuvre</field>
+            <field name="description">Mission de maitrise d’œuvre, par exemple de Tx comme sur le chantier de l’AUBRAC.</field>
+            <field name="sequence">70</field>
+            <field name="requires_nature" eval="False"/>
+        </record>
+
+        <!-- Type TTX (Page 3) -->
+        <record id="type_ttx" model="leyfa.affaire.type">
+            <field name="code">TTX</field>
+            <field name="name">Travaux / Grandes opérations</field>
+            <field name="description">Activités de travaux et grandes opérations.</field>
+            <field name="sequence">80</field>
+            <field name="requires_nature" eval="False"/>
+        </record>
+
+        <!-- Type BML (Page 3) -->
+        <record id="type_bml" model="leyfa.affaire.type">
+            <field name="code">BML</field>
+            <field name="name">Bourrage Mécanique Lourd</field>
+            <field name="description">Bourrage Mécanique Lourd avec B20BIAC4 ou BI-3N.</field>
+            <field name="sequence">90</field>
+            <field name="requires_nature" eval="False"/>
+        </record>
+
+        <!-- Type EMV (Page 3) -->
+        <record id="type_emv" model="leyfa.affaire.type">
+            <field name="code">EMV</field>
+            <field name="name">Enregistrement Géométrie (EMV)</field>
+            <field name="description">Enregistrement et/ou traitement de la géométrie par EMV95LGV n°247.</field>
+            <field name="sequence">100</field>
+            <field name="requires_nature" eval="False"/>
+        </record>
+    </data>
+
+
+<!-- Exercice comptable -->
+
+    <data noupdate="1">
+        <!-- Exercice X (Example 1: 2018-2019) -->
+        <record id="exercice_x_2018" model="leyfa.exercice.comptable">
+            <field name="name">X</field>
+            <field name="date_start">2018-06-01</field>
+            <field name="date_end">2019-06-30</field>
+        </record>
+
+        <!-- Exercice C (Example 3: 2024) -->
+        <record id="exercice_c_2024" model="leyfa.exercice.comptable">
+            <field name="name">C</field>
+            <field name="date_start">2024-01-01</field>
+            <field name="date_end">2024-12-31</field>
+        </record>
+    </data>
+</odoo>

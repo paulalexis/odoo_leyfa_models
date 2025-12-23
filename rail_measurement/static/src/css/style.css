@@ -1,0 +1,5 @@
+/* Force l'alignement à gauche pour la colonne 'quantity' */
+.o_list_table th[data-name="quantity"],
+.o_list_table td[data-name="quantity"] {
+    text-align: left !important;
+}

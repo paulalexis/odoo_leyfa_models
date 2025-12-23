@@ -1,0 +1,506 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    
+    <!-- ========== ACTIONS ========== -->
+    <record id="action_rail_measurement" model="ir.actions.act_window">
+        <field name="name">Mesures de voie</field>
+        <field name="res_model">rail.measurement</field>
+        <!-- On ajoute 'calendar' ici -->
+        <field name="view_mode">list,calendar,form</field>
+    </record>
+
+    <!-- ========== WIZARD: Création de mesure ========== -->
+    <record id="view_rail_measurement_wizard_form" model="ir.ui.view">
+        <field name="name">rail.measurement.wizard.form</field>
+        <field name="model">rail.measurement.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Associer une mesure">
+                <sheet>
+                    <group>
+                        <field name="mode" widget="radio"/>
+                        <field name="partner_id" invisible="1"/>
+                        <field name="sale_order_line_id" invisible="1"/>
+                    </group>
+                    
+                    <!-- This part is only visible if 'Link' is selected -->
+                    <group invisible="mode != 'link'">
+                        <field name="measurement_id" 
+                            options="{'no_create': True}" 
+                            required="mode == 'link'"
+                            placeholder="Sélectionnez une mesure déjà créée..."/>
+                    </group>
+
+                    <!-- Helpful note for 'Create' mode -->
+                    <div class="alert alert-info" role="alert" invisible="mode != 'create'">
+                        <i class="fa fa-info-circle mr-1"/>
+                        En cliquant sur <b>Valider</b>, le formulaire complet de configuration LEYFA s'ouvrira dans une nouvelle fenêtre.
+                    </div>
+                </sheet>
+                <footer>
+                    <button name="action_apply" string="Valider" type="object" class="btn-primary"/>
+                    <button string="Annuler" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- ========== WIZARD: Ligne d'affectation de chariot ========== -->
+    <record id="view_assign_chariot_line_list" model="ir.ui.view">
+        <field name="name">rail.measurement.assign.chariot.line.wizard.list</field>
+        <field name="model">rail.measurement.assign.chariot.line.wizard</field>
+        <field name="arch" type="xml">
+            <list editable="bottom">
+                <field name="chariot_type_id" readonly="1"/>
+                <field name="chariot_id" 
+                       domain="[('cart_type_id', '=', chariot_type_id), ('state', '=', 'available')]"
+                       options="{'no_create': True}"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- ========== WIZARD: Affectation des chariots ========== -->
+    <record id="view_rail_measurement_assign_chariot_wizard_form" model="ir.ui.view">
+        <field name="name">rail.measurement.assign.chariot.wizard.form</field>
+        <field name="model">rail.measurement.assign.chariot.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Affecter les chariots physiques">
+                <sheet>
+                    <group>
+                        <field name="measurement_id" readonly="1"/>
+                    </group>
+
+                    <separator string="Besoins définis au devis"/>
+                    <field name="chariot_type_lines" readonly="1">
+                        <list>
+                            <field name="chariot_type_id"/>
+                            <field name="quantity"/>
+                        </list>
+                    </field>
+
+                    <separator string="Affecter les chariots physiques" class="mt-3"/>
+                    <field name="assignment_line_ids" nolabel="1"/>
+                </sheet>
+
+                <footer>
+                    <button name="action_assign" string="Affecter" type="object" class="btn-primary"/>
+                    <button string="Annuler" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- ========== VIEWS: Rail Measurement ========== -->
+    <record id="view_rail_measurement_list" model="ir.ui.view">
+        <field name="name">rail.measurement.list</field>
+        <field name="model">rail.measurement</field>
+        <field name="arch" type="xml">
+            <list string="Mesures de voie" 
+                  decoration-info="state=='draft'" 
+                  decoration-warning="state in ('confirmed', 'planned')" 
+                  decoration-success="state=='done'">
+                <field name="reference"/>
+                <field name="partner_id"/>
+                <field name="date_start"/>
+                <field name="ligne_id"/>
+                <field name="pk_initial"/>
+                <field name="pk_final"/>
+                <field name="distance"/>
+                <field name="state" widget="badge" 
+                       decoration-info="state == 'draft'"
+                       decoration-warning="state in ('confirmed', 'planned')"
+                       decoration-success="state == 'done'"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_rail_measurement_form" model="ir.ui.view">
+        <field name="name">rail.measurement.form</field>
+        <field name="model">rail.measurement</field>
+        <field name="arch" type="xml">
+            <form string="Mesure de voie">
+                <header>
+                    <!-- Buttons and Statusbar remain here -->
+                    <button name="action_confirm" string="Confirmer" type="object" invisible="state != 'draft'" class="oe_highlight"/>
+                    <button name="action_validate_assignment" string="Valider l'affectation" type="object" invisible="state != 'confirmed' or not chariots_assigned" class="oe_highlight"/>
+                    <button name="action_start" string="Démarrer" type="object" invisible="state != 'planned'" class="oe_highlight"/>
+                    <button name="action_done" string="Terminer" type="object" invisible="state != 'in_progress'" class="oe_highlight"/>
+                    <button name="action_cancel" string="Annuler" type="object" invisible="state not in ['draft', 'confirmed', 'planned', 'in_progress']"/>
+                    <button name="action_reset_to_draft" string="Remettre en brouillon" type="object" invisible="state != 'cancelled'"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,confirmed,planned,in_progress,done"/>
+                </header>
+
+                <sheet>
+                    <!-- Identification Header: Only the essential "Who" -->
+                    <div class="oe_title">
+                        <label for="reference" string="Référence Interne"/>
+                        <h1><field name="reference" readonly="1"/></h1>
+                        <label for="partner_id" string="Client"/>
+                        <h2 class="d-flex">
+                            <field name="partner_id" placeholder="Nom du client..." readonly="state != 'draft'"/>
+                        </h2>
+                    </div>
+
+                    <notebook>
+                        <!-- TAB 1: SALES / COMMERCE -->
+                        <page string="💼 Affaire &amp; Commerce" name="sales_tab">
+                            <group>
+                                <group string="CODAGE LEYFA">
+                                    <!-- Hidden logic fields -->
+                                    <field name="type_requires_nature" invisible="1"/>
+                                    <field name="last_synced_code" invisible="1"/>
+                                    <field name="state" invisible="1"/>
+
+                                    <!-- OPTION 1: QUICK ENTRY -->
+                                    <field name="code_affaire" 
+                                        string="Code Affaire"
+                                        placeholder="Entrez le code complet (ex: X650CE249)..." 
+                                        decoration-bf="1" 
+                                        class="text-primary fs-4" 
+                                        readonly="state != 'draft'" 
+                                        force_save="1"/>
+
+                                    <!-- VISUAL SEPARATOR "OU" -->
+                                    <div colspan="2" class="text-center text-muted fw-bold py-2 w-10" 
+                                        style="margin: 0 0;">
+                                        — OU —
+                                    </div>
+
+                                    <!-- OPTION 2: DETAILED ENTRY -->
+                                    <field name="exercice_id" 
+                                        string="Exercice"
+                                        options="{'no_create': True, 'no_open': True}" 
+                                        readonly="state != 'draft'"/>
+                                        
+                                    <field name="ligne_id" 
+                                        string="Ligne"
+                                        options="{'no_create': True, 'no_open': True}" 
+                                        readonly="state != 'draft'"/>
+                                        
+                                    <field name="type_affaire_id" 
+                                        string="Type d'Affaire"
+                                        options="{'no_create': True, 'no_open': True}" 
+                                        readonly="state != 'draft'"/>
+                                    
+                                    <field name="nature_mission" 
+                                        string="Nature"
+                                        widget="radio" 
+                                        options="{'horizontal': true}" 
+                                        invisible="not type_requires_nature" 
+                                        required="type_requires_nature" 
+                                        readonly="state != 'draft'"/>
+                                </group>
+
+                                <group string="VENTE &amp; FACTURATION">
+                                    <field name="sale_order_id" readonly="state != 'draft'"/>
+                                    <field name="sale_order_line_id" readonly="1"/>
+                                    <hr colspan="2"/>
+                                    <field name="price_unit" widget="monetary"/>
+                                    <field name="price_total" widget="monetary" decoration-bf="1"/>
+                                    <field name="invoiced" widget="boolean_toggle"/>
+                                </group>
+                            </group>
+                        </page>
+
+                        <!-- TAB 2: PRODUCTION / TERRAIN -->
+                        <page string="🏗️ Planification &amp; Terrain" name="production_tab">
+                            <group>
+                                <group string="LOCALISATION">
+                                    <label for="pk_initial" string="Segment (PK)"/>
+                                    <div class="o_row">
+                                        <field name="pk_initial" placeholder="Début"/> <span>à</span> <field name="pk_final" placeholder="Fin"/>
+                                    </div>
+                                    <field name="distance" string="Distance Totale (km)"/>
+                                </group>
+                                <group string="CALENDRIER &amp; ÉQUIPE">
+                                    <field name="date_start" string="Début Prévu"/>
+                                    <field name="date_end" string="Fin Prévue"/>
+                                    <!-- <field name="duration" widget="float_time"/> -->
+                                    <hr colspan="2"/>
+                                    <field name="team_leader_id" widget="many2one_avatar_user"/>
+                                    <field name="team_ids" widget="many2many_tags" options="{'color_field': 'color'}"/>
+                                </group>
+                            </group>
+                            
+                            <separator string="RESSOURCES CHARIOTS"/>
+                            <div class="alert alert-info" role="status" invisible="state != 'confirmed'">
+                                <i class="fa fa-info-circle"/> <b>Action requise :</b> Affectez les chariots physiques pour les dates sélectionnées.
+                            </div>
+                            <field name="chariot_type_lines" readonly="state in ['done', 'cancelled']">
+                                <list editable="bottom">
+                                    <field name="chariot_type_id" options="{'no_create': True}" readonly="parent.state != 'draft'"/>
+                                    <field name="quantity" readonly="parent.state != 'draft'"/>
+                                    <field name="assigned_chariot_ids" 
+                                        widget="many2many_tags" 
+                                        options="{'no_create': True, 'color_field': 'state'}"
+                                        
+                                        domain="[('cart_type_id', '=', chariot_type_id)]"
+                                        
+                                        context="{
+                                            'check_avail_start': parent.date_start,
+                                            'check_avail_end': parent.date_end,
+                                            'check_avail_id': parent.id
+                                        }"
+                                        
+                                        placeholder="Sélectionnez les chariots..."
+                                        readonly="parent.state != 'confirmed' or not parent.date_start or not parent.date_end"
+                                        />
+                                </list>
+                            </field>
+                        </page>
+
+                        <!-- TAB 3: ÉTUDES & RAPPORTS -->
+                        <page string="🔬 Études &amp; Livrables" name="studies_tab">
+                            <group>
+                                <group string="DONNÉES BRUTES">
+                                    <field name="measurement_filename" invisible="1"/>
+                                    <field name="measurement_file" filename="measurement_filename" widget="binary"/>
+                                </group>
+                            </group>
+                            <separator string="RAPPORT D'INTERVENTION"/>
+                            <field name="report" widget="html" placeholder="Saisissez ici les conclusions de l'étude..."/>
+                            <separator string="NOTES INTERNES"/>
+                            <field name="notes" placeholder="Notes diverses, incidents terrain..."/>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- ========== PRODUCT TEMPLATE VIEWS ========== -->
+    <record id="product_template_form_view_rail" model="ir.ui.view">
+        <field name="name">product.template.form.rail</field>
+        <field name="model">product.template</field>
+        <field name="inherit_id" ref="product.product_template_form_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//notebook" position="inside">
+                <page string="Mesure Ferroviaire" name="rail_measurement" invisible="not is_rail_measurement">
+                    <group>
+                        <group>
+                            <field name="is_rail_measurement"/>
+                            <field name="rail_measurement_price_per_km" invisible="not is_rail_measurement"/>
+                        </group>
+                    </group>
+
+                    <separator string="Suivi des prestations" class="mt-4"/>
+                    
+                    <div class="alert alert-info" role="alert" invisible="rail_measurement_count == 0">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div>
+                                <strong><field name="rail_measurement_count"/></strong> mesure(s) réalisée(s) avec ce produit.
+                            </div>
+                            <button name="action_view_rail_measurements" 
+                                    type="object" 
+                                    string="Voir les mesures" 
+                                    class="btn btn-primary btn-sm"
+                                    icon="fa-list"/>
+                        </div>
+                    </div>
+                    
+                    <div invisible="rail_measurement_count > 0" class="text-muted">
+                        <i>Aucune mesure enregistrée pour ce produit pour le moment.</i>
+                    </div>
+                </page>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- ========== SALE ORDER VIEWS ========== -->
+    <record id="view_order_form_rail" model="ir.ui.view">
+        <field name="name">sale.order.form.rail</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_order_form"/>
+        <field name="arch" type="xml">
+            
+            <xpath expr="//div[@name='button_box']" position="inside">
+                <button name="action_view_measurements" 
+                        type="object" 
+                        class="oe_stat_button" 
+                        icon="fa-train" 
+                        invisible="measurement_count == 0">
+                    <field name="measurement_count" widget="statinfo" string="Mesures"/>
+                </button>
+            </xpath>
+
+            <xpath expr="//field[@name='order_line']/list" position="inside">
+                <field name="is_rail_measurement" column_invisible="1"/>
+                <field name="rail_measurement_id" column_invisible="1"/>
+                
+                <button name="action_create_rail_measurement" 
+                        type="object" 
+                        icon="fa-plus-square" 
+                        title="Créer Mesure"
+                        invisible="not is_rail_measurement or rail_measurement_id"/>
+                
+                <button name="action_open_rail_measurement_form" 
+                        type="object" 
+                        icon="fa-train" 
+                        title="Ouvrir Mesure"
+                        save="0"
+                        invisible="not is_rail_measurement or not rail_measurement_id"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- ========== CHARIOT VIEWS ========== -->
+    <record id="view_chariot_list" model="ir.ui.view">
+        <field name="name">chariot.list</field>
+        <field name="model">chariot</field>
+        <field name="arch" type="xml">
+            <list string="Chariots" 
+                  decoration-success="state=='available'" 
+                  decoration-danger="state=='out_of_service'" 
+                  decoration-warning="state=='maintenance'">
+                <field name="name"/>
+                <field name="cart_type_id"/>
+                <field name="serial_number"/>
+                <field name="state" widget="badge" 
+                       decoration-success="state == 'available'"
+                       decoration-warning="state == 'maintenance'"
+                       decoration-danger="state == 'out_of_service'"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_chariot_form" model="ir.ui.view">
+        <field name="name">chariot.form</field>
+        <field name="model">chariot</field>
+        <field name="arch" type="xml">
+            <form string="Chariot">
+                <header>
+                    <field name="state" widget="statusbar" options="{'clickable': '1'}"/>
+                </header>
+                <sheet>
+                    <!-- C'est ici que manquait la "button_box" -->
+                    <div class="oe_button_box" name="button_box">
+                        <button class="oe_stat_button" type="object" 
+                                name="action_view_calendar" 
+                                icon="fa-calendar">
+                            <div class="o_stat_info">
+                                <span class="o_stat_text">Planning</span>
+                            </div>
+                        </button>
+                    </div>
+
+                    <div class="oe_title">
+                        <label for="name" class="oe_edit_only"/>
+                        <h1><field name="name" placeholder="Ex: Chariot A-12"/></h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="cart_type_id"/>
+                            <field name="serial_number"/>
+                        </group>
+                        <group>
+                            <field name="active" widget="boolean_toggle"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Historique des mesures">
+                            <field name="measurement_ids" readonly="1">
+                                <list>
+                                    <field name="reference"/>
+                                    <field name="date_start"/>
+                                    <field name="state"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Notes">
+                            <field name="notes"/>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_chariot" model="ir.actions.act_window">
+        <field name="name">Chariots</field>
+        <field name="res_model">chariot</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <!-- ========== CHARIOT TYPE VIEWS ========== -->
+    <record id="view_chariot_type_list" model="ir.ui.view">
+        <field name="name">chariot.type.list</field>
+        <field name="model">chariot.type</field>
+        <field name="arch" type="xml">
+            <list string="Types de chariots">
+                <field name="name" string="Type de chariot"/>
+                <field name="manufacturer"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_chariot_type_form" model="ir.ui.view">
+        <field name="name">chariot.type.form</field>
+        <field name="model">chariot.type</field>
+        <field name="arch" type="xml">
+            <form string="Type de chariot">
+                <sheet>
+                    <group>
+                        <field name="name"/>
+                        <field name="manufacturer"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_chariot_type" model="ir.actions.act_window">
+        <field name="name">Types de chariots</field>
+        <field name="res_model">chariot.type</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <record id="view_rail_measurement_calendar" model="ir.ui.view">
+        <field name="name">rail.measurement.calendar</field>
+        <field name="model">rail.measurement</field>
+        <field name="arch" type="xml">
+            <calendar string="Planning des mesures" 
+                      date_start="date_start" 
+                      date_stop="date_end"
+                      color="state"
+                      mode="month">
+                <field name="reference"/>
+                <field name="partner_id"/>
+                <field name="assigned_chariot_ids" widget="many2many_tags"/>
+            </calendar>
+        </field>
+    </record>
+
+    <!-- ========== MENUS ========== -->
+    <menuitem id="rail_measurement_root"
+              name="Mesure de voie"
+              web_icon="your_module,static/description/icon.png"
+              sequence="50"/>
+
+    <menuitem id="rail_measurement_menu_ops"
+              name="Opérations"
+              parent="rail_measurement_root"
+              sequence="10"/>
+
+    <menuitem id="rail_measurement_menu_action"
+              name="Mesures de voie"
+              parent="rail_measurement_menu_ops"
+              action="action_rail_measurement"
+              sequence="10"/>
+
+    <menuitem id="rail_measurement_menu_resources"
+              name="Ressources"
+              parent="rail_measurement_root"
+              sequence="20"/>
+
+    <menuitem id="chariot_type_menu"
+              name="Types de chariots"
+              parent="rail_measurement_menu_resources"
+              action="action_chariot_type"
+              sequence="10"/>
+
+    <menuitem id="chariot_menu"
+              name="Chariots physiques"
+              parent="rail_measurement_menu_resources"
+              action="action_chariot"
+              sequence="20"/>
+
+</odoo>
