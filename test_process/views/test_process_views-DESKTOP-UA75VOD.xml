@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- List View -->
+    <record id="view_test_process_list" model="ir.ui.view">
+        <field name="name">test.process.list</field>
+        <field name="model">test.process</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="name"/>
+                <field name="state" widget="badge" 
+                       decoration-info="state == 'draft'" 
+                       decoration-warning="state in ('sales', 'measurement')"
+                       decoration-success="state == 'done'"/>
+                <field name="view_level"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Form View -->
+    <record id="view_test_process_form" model="ir.ui.view">
+        <field name="name">test.process.form</field>
+        <field name="model">test.process</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_next" type="object" string="Étape Suivante" 
+                            class="btn-primary" invisible="state == 'done'"/>
+                    <field name="state" widget="statusbar" 
+                           statusbar_visible="draft,sales,measurement,done"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <label for="name"/>
+                        <h1><field name="name"/></h1>
+                    </div>
+
+                    <!-- Collapsible Flowchart Section -->
+                    <notebook>
+                        <page string="📊 Visualisation du Processus">
+                            <group>
+                                <field name="view_level" widget="radio" 
+                                       options="{'horizontal': true}"/>
+                            </group>
+                            <div style="background: white; border: 1px solid #dee2e6; 
+                                        border-radius: 8px; padding: 15px; margin-top: 10px;">
+                                <field name="mermaid_graph" widget="mermaid"/>
+                            </div>
+                        </page>
+                    </notebook>
+
+                    <!-- Configuration Section -->
+                    <group string="Configuration">
+                        <group>
+                            <field name="sales_state" readonly="1" 
+                                   invisible="view_level != 'sales_detail'"/>
+                            <field name="negotiation_needed" widget="boolean_toggle"
+                                   invisible="view_level != 'sales_detail'"/>
+                            <p class="text-muted" 
+                               invisible="view_level != 'sales_detail' or not negotiation_needed">
+                                ℹ️ Le processus passera par l'étape 'Négociation'.
+                            </p>
+                        </group>
+                        <group>
+                            <field name="measurement_state" readonly="1"
+                                   invisible="view_level != 'measurement_detail'"/>
+                            <field name="obstacle_detected" widget="boolean_toggle"
+                                   invisible="view_level != 'measurement_detail'"/>
+                            <p class="text-muted" 
+                               invisible="view_level != 'measurement_detail' or not obstacle_detected">
+                                ℹ️ Le processus passera par l'étape 'Maintenance'.
+                            </p>
+                        </group>
+                    </group>
+
+                    <!-- Info Box -->
+                    <div class="alert alert-info" role="alert" style="margin-top: 20px;">
+                        <strong>💡 Navigation:</strong>
+                        <ul>
+                            <li><strong>Vue Générale:</strong> Voir les étapes principales (Vente → Mesure)</li>
+                            <li><strong>Détail Vente:</strong> Zoomer sur le processus de vente</li>
+                            <li><strong>Détail Mesure:</strong> Zoomer sur le processus de mesurage</li>
+                        </ul>
+                        Utilisez le bouton "Étape Suivante" pour avancer dans le processus actuel.
+                    </div>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Action -->
+    <record id="action_test_process" model="ir.actions.act_window">
+        <field name="name">Processus Commercial SNCF</field>
+        <field name="res_model">test.process</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <!-- Menus -->
+    <menuitem id="menu_sncf_root" name="SNCF Processus" sequence="10"/>
+    <menuitem id="menu_sncf_main" name="Gestion Processus" 
+              parent="menu_sncf_root" action="action_test_process"/>
+</odoo>

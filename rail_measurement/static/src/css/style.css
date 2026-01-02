@@ -1,5 +1,254 @@
-/* Force l'alignement à gauche pour la colonne 'quantity' */
+/* =========================================
+   1. STRUCTURE GÉNÉRALE DU TABLEAU
+   ========================================= */
+
+.planning-grid table {
+    table-layout: fixed !important;
+    width: 595px !important; /* Augmenté pour laisser de la place aux dates */
+    border-collapse: collapse;
+    padding-right: 0 !important;
+}
+
+/* Centrage des titres et des données */
+.planning-grid thead th, 
+.planning-grid td {
+    text-align: center !important;
+    vertical-align: middle !important;
+}
+
+/* Centrage spécifique pour le conteneur Flex d'Odoo 17+ */
+.planning-grid thead th .d-flex {
+    justify-content: center !important;
+    min-height: 22px !important;
+}
+
+/* Hauteur de l'en-tête serrée */
+.planning-grid thead th {
+    padding-top: 2px !important;
+    padding-bottom: 2px !important;
+    height: 28px !important;
+}
+
+.planning-grid thead th span {
+    font-size: 0.85rem !important;
+    line-height: 1 !important;
+}
+
+/* Supprimer les icônes de tri */
+.planning-grid thead th .o_column_sortable:after { display: none !important; }
+
+/* =========================================
+   2. LARGEURS DES COLONNES (Utilisation de data-name)
+   ========================================= */
+
+/* Colonne Semaine (La première) */
+.planning-grid th[data-name="week_label"], 
+.planning-grid td[name="week_label"] { 
+    width: 80px !important; 
+}
+
+/* Colonnes Dates (Largeur 95px) */
+.planning-grid th[data-name="date_from"], 
+.planning-grid td[name="date_from"],
+.planning-grid th[data-name="date_to"], 
+.planning-grid td[name="date_to"] {
+    width: 100px !important;
+    min-width: 100px !important;
+    white-space: nowrap !important;
+}
+
+/* Colonnes Jours (Largeur 40px) */
+/* On liste les noms pour être sûr de ne pas toucher aux dates */
+.planning-grid th[data-name="mon"], .planning-grid td[name="mon"],
+.planning-grid th[data-name="tue"], .planning-grid td[name="tue"],
+.planning-grid th[data-name="wed"], .planning-grid td[name="wed"],
+.planning-grid th[data-name="thu"], .planning-grid td[name="thu"],
+.planning-grid th[data-name="fri"], .planning-grid td[name="fri"],
+.planning-grid th[data-name="sat"], .planning-grid td[name="sat"],
+.planning-grid th[data-name="sun"], .planning-grid td[name="sun"] {
+    width: 40px !important;
+    min-width: 40px !important;
+}
+
+
+/* 2. MAGIE : On garde l'en-tête (L, M, M...) visible même quand on scrolle */
+.planning-grid table thead {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background-color: #f8f9fa;
+}
+
+/* 3. Style de la barre de défilement (Scrollbar) pour qu'elle soit discrète */
+.planning-grid .o_list_renderer::-webkit-scrollbar {
+    width: 6px;
+}
+
+.planning-grid .o_list_renderer::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+.planning-grid .o_list_renderer::-webkit-scrollbar-thumb {
+    background: #ccc;
+    border-radius: 10px;
+}
+
+.planning-grid .o_list_renderer::-webkit-scrollbar-thumb:hover {
+    background: #714B67; /* Ton violet quand on survole le scroll */
+}
+
+/* =========================================
+   3. STYLES SPÉCIFIQUES (Couleurs & Muted)
+   ========================================= */
+
+/* En-têtes de dates en mode "Muted" (Gris clair) */
+.planning-grid thead th[data-name="date_from"],
+.planning-grid thead th[data-name="date_to"] {
+    color: #adb5bd !important; 
+    font-weight: 400 !important;
+    font-size: 0.75rem !important;
+    text-transform: lowercase;
+}
+
+/* COLORATION DES CELLULES (Fond complet) */
+.planning-grid .text-warning {
+    background-color: #fef3c7 !important; /* Jaune */
+    color: #92400e !important;
+    font-weight: bold;
+    display: block;
+    width: 100%;
+}
+
+.planning-grid .text-success {
+    background-color: #dcfce7 !important; /* Vert */
+    color: #166534 !important;
+    font-weight: bold;
+    display: block;
+    width: 100%;
+}
+
+/* Supprimer les marges intérieures pour la couleur bord à bord */
+.planning-grid .o_data_cell {
+    padding: 0 !important;
+}
+
+/* =========================================
+   4. NETTOYAGE UI (Actions & Réglages)
+   ========================================= */
+
+/* Cacher définitivement la colonne de réglages à droite */
+.planning-grid th.o_list_controller {
+    display: none !important;
+}
+
+/* Gérer la colonne d'action pour le bouton Copie */
+.planning-grid td.o_list_actions {
+    width: 35px !important;
+    padding: 0 !important;
+    text-align: center;
+}
+
+.btn_copy_row {
+    opacity: 0.6;
+    transition: opacity 0.2s;
+}
+
+.btn_copy_row:hover {
+    opacity: 1;
+    color: #714B67 !important;
+}
+
+.planning-grid th.o_list_button, 
+.planning-grid td.o_list_button {
+    width: 30px !important;
+    min-width: 30px !important;
+    max-width: 30px !important;
+    padding: 0 !important;
+    text-align: center !important;
+}
+
+/* Ajustement de la largeur totale du tableau pour compenser la réduction */
+/* .planning-grid table.o_list_table {
+    width: auto !important;
+} */
+
+
+
+
+/* Aligner quantité à gauche (votre règle d'origine) */
 .o_list_table th[data-name="quantity"],
 .o_list_table td[data-name="quantity"] {
     text-align: left !important;
+}
+
+
+/* 1. FORCE LE CADRE À ÉPOUSER LA LARGEUR DU TABLEAU */
+.planning-grid {
+    width: fit-content !important; /* La boîte s'arrête à la fin du tableau */
+    max-width: 100%;
+}
+
+.planning-grid .o_list_renderer {
+    width: fit-content !important; /* Le fond blanc s'arrête aussi */
+    max-height: 300px !important;
+    overflow-x: hidden !important;
+    border: 1px solid #eee;
+    border-radius: 4px;
+}
+
+/* 2. SUPPRIME LA LIGNE VIDE (FOOTER) AU BAS DU TABLEAU */
+.planning-grid table tfoot {
+    display: none !important; /* Supprime l'espace réservé au pied de tableau */
+}
+
+/* Odoo ajoute souvent un padding au bas du renderer, on le retire */
+.planning-grid .o_list_table {
+    margin-bottom: 0 !important;
+    width: 595px !important; /* Doit correspondre à la somme de vos colonnes */
+}
+
+/* 3. AJUSTEMENT DE LA COLONNE BOUTON (POUR ÉVITER LE VIDE À DROITE) */
+/* On cible la cellule de bouton d'action finale */
+.planning-grid th.o_list_actions_header, 
+.planning-grid td.o_list_actions {
+    width: 35px !important;
+    min-width: 35px !important;
+    max-width: 35px !important;
+    padding: 0 !important;
+}
+
+/* On cache l'en-tête de la colonne bouton pour qu'il soit blanc comme les autres */
+.planning-grid th.o_list_actions_header {
+    background-color: #f8f9fa !important;
+    border-left: none !important;
+}
+
+
+/* 1. Supprime les lignes "fantômes" ajoutées par Odoo pour remplir le vide */
+.planning-grid .o_list_table tr:not(.o_data_row):not(thead tr) {
+    display: none !important;
+}
+
+/* 2. Supprime le pied de tableau (tfoot) qui contient souvent l'espace "Ajouter une ligne" */
+.planning-grid .o_list_table tfoot {
+    display: none !important;
+}
+
+/* 3. Force le conteneur blanc à s'adapter à la hauteur réelle des lignes */
+.planning-grid .o_list_renderer {
+    height: auto !important;
+    min-height: 0 !important;
+    width: fit-content !important; /* Ajuste la largeur à la table */
+    padding-bottom: 0 !important;
+}
+
+/* 4. On s'assure que la table elle-même n'a pas de hauteur minimale */
+.planning-grid .o_list_table {
+    height: auto !important;
+    margin-bottom: 0 !important;
+    width: 595px !important; /* Largeur totale calculée précédemment */
+}
+
+.planning-grid .o_data_row:last-child td {
+    border-bottom: 1px solid #dee2e6 !important;
 }

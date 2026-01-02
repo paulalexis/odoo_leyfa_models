@@ -16,6 +16,7 @@ class TypeAffaire(models.Model):
         help="Si coché, l'utilisateur devra choisir entre Relevé (R) ou Étude (E) pour le code."
     )
 
-    _sql_constraints = [
-        ('code_unique', 'unique(code)', 'Le code du type d\'affaire doit être unique !')
-    ]
+    _code_unique = models.Constraint(
+        'unique(code)', 
+        "Le code du type d'affaire doit être unique !"
+    )

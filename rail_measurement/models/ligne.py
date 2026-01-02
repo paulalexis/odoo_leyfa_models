@@ -1,4 +1,4 @@
-from odoo import models, fields
+from odoo import models, fields, api
 
 class Ligne(models.Model):
     _name = 'leyfa.ligne'
@@ -19,7 +19,41 @@ class Ligne(models.Model):
     
     active = fields.Boolean(default=True)
 
-    _sql_constraints = [
-        ('name_unique', 'unique(name)', 'Le nom de la ligne doit être unique !'),
-        ('surnom_unique', 'unique(surnom)', 'Le surnom de la ligne doit être unique !')
-    ]
+    _name_unique = models.Constraint(
+        'unique(name)', 
+        'Le nom de la ligne doit être unique !'
+    )
+    
+    _surnom_unique = models.Constraint(
+        'unique(surnom)', 
+        'Le surnom de la ligne doit être unique !'
+    )
+
+
+class TypeVoie(models.Model):
+    _name = 'leyfa.type.voie'
+    _description = 'Type de Voie de circulation'
+    _order = 'sequence, name'
+
+    name = fields.Char(string="Code", required=True, help="Ex: V1, V2, VU, VC")
+    description = fields.Char(string="Description", help="Ex: Voie 1, Voie Unique")
+    sequence = fields.Integer(string="Séquence", default=10)
+    
+    color = fields.Integer(string='Couleur Index')
+    
+    active = fields.Boolean(default=True)
+
+    _name_unique = models.Constraint(
+        'unique(name)', 
+        'Ce code de voie existe déjà !'
+    )
+    
+    def name_get(self):
+        result = []
+        for voie in self:
+            if voie.description:
+                name = f"{voie.name} - {voie.description}"
+            else:
+                name = voie.name
+            result.append((voie.id, name))
+        return result

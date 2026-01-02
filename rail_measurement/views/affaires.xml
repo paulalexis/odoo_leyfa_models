@@ -1,6 +1,57 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <!-- Vue Liste (List) -->
+    <!-- VUES POUR TYPE DE VOIE   -->
+    <!-- ======================== -->
+
+    <!-- Vue Liste des Types de Voie -->
+    <record id="view_leyfa_type_voie_list" model="ir.ui.view">
+        <field name="name">leyfa.type.voie.list</field>
+        <field name="model">leyfa.type.voie</field>
+        <field name="arch" type="xml">
+            <list string="Types de Voies" editable="bottom">
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="description"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Vue Formulaire des Types de Voie -->
+    <record id="view_leyfa_type_voie_form" model="ir.ui.view">
+        <field name="name">leyfa.type.voie.form</field>
+        <field name="model">leyfa.type.voie</field>
+        <field name="arch" type="xml">
+            <form string="Type de Voie">
+                <sheet>
+                    <widget name="web_ribbon" title="Archivé" bg_color="bg-danger" invisible="active"/>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="name" placeholder="Code (ex: V1, VU, VC)"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="description" placeholder="Description du type de voie"/>
+                            <field name="sequence"/>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Action pour Types de Voie -->
+    <record id="action_leyfa_type_voie" model="ir.actions.act_window">
+        <field name="name">Types de Voies</field>
+        <field name="res_model">leyfa.type.voie</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <!-- ======================== -->
+    <!-- VUES POUR LIGNE          -->
+    <!-- ======================== -->
+
+    <!-- Vue Liste des Lignes -->
     <record id="view_leyfa_ligne_list" model="ir.ui.view">
         <field name="name">leyfa.ligne.list</field>
         <field name="model">leyfa.ligne</field>
@@ -15,7 +66,7 @@
         </field>
     </record>
 
-    <!-- Vue Formulaire (Form) -->
+    <!-- Vue Formulaire des Lignes -->
     <record id="view_leyfa_ligne_form" model="ir.ui.view">
         <field name="name">leyfa.ligne.form</field>
         <field name="model">leyfa.ligne</field>
@@ -47,19 +98,28 @@
         </field>
     </record>
 
-    <!-- Action pour le menu -->
+    <!-- Action pour Lignes -->
     <record id="action_leyfa_ligne" model="ir.actions.act_window">
         <field name="name">Lignes Ferroviaires</field>
         <field name="res_model">leyfa.ligne</field>
         <field name="view_mode">list,form</field>
     </record>
 
-    <!-- Menu pour les Lignes (à ajouter sous le menu Ressources) -->
+    <!-- ======================== -->
+    <!-- MENUS                    -->
+    <!-- ======================== -->
+
     <menuitem id="ligne_menu"
               name="Lignes Ferroviaires"
               parent="rail_measurement_menu_resources"
               action="action_leyfa_ligne"
               sequence="30"/>
+
+    <menuitem id="type_voie_menu"
+              name="Types de Voies"
+              parent="rail_measurement_menu_resources"
+              action="action_leyfa_type_voie"
+              sequence="31"/>
 
 
 <!-- Affaires -->

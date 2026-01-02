@@ -26,6 +26,7 @@ dans les devis, puis de les configurer avec tous les détails techniques nécess
         'product',
         'hr',
         'uom',
+        'web_widget_mermaid_field'
     ],
     'data': [
         'security/ir.model.access.csv',

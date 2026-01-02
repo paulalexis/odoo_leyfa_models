@@ -1,0 +1,28 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Run Odoo Script",
+            "type": "shell",
+            "command": "py",
+            "args": [
+                "-3.12",
+                "odoo-bin",
+                "-d",
+                "odoo19",
+                "-u",
+                "rail_measurement"
+            ],
+            "options": {
+                "cwd": "C:\\Program Files\\Odoo 19.0.20251229\\server"
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": true,
+                "panel": "shared"
+            }
+        }
+
+    ]
+}

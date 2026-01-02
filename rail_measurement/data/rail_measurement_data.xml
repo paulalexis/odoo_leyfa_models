@@ -1,48 +1,46 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <data noupdate="1">
-        
-        <!-- Séquence -->
-        <record id="seq_rail_measurement" model="ir.sequence">
-            <field name="name">Mesure de voie</field>
-            <field name="code">rail.measurement</field>
-            <field name="prefix">MES</field>
-            <field name="padding">5</field>
-            <field name="number_increment">1</field>
-            <field name="implementation">standard</field>
-        </record>
 
-        <!-- Catégorie: Removed parent_id to avoid the error -->
-        <record id="product_category_rail_measurement" model="product.category">
-            <field name="name">Mesures Ferroviaires</field>
-            <!-- <field name="parent_id" ref="product.product_category_all"/> -->
-        </record>
+    <!-- Séquence -->
+    <record id="seq_rail_measurement" model="ir.sequence">
+        <field name="name">Mesure de voie</field>
+        <field name="code">rail.measurement</field>
+        <field name="prefix">MES</field>
+        <field name="padding">5</field>
+        <field name="number_increment">1</field>
+        <field name="implementation">standard</field>
+    </record>
 
-        <!-- Produit Standard -->
-        <record id="product_rail_measurement_standard" model="product.product">
-            <field name="name">Mesure de voie ferrée - Standard</field>
-            <field name="type">service</field>
-            <field name="categ_id" ref="product_category_rail_measurement"/>
-            <field name="list_price">150.00</field>
-            <field name="standard_price">100.00</field>
-            <field name="uom_id" ref="uom.product_uom_km"/>
-            <field name="is_rail_measurement" eval="True"/>
-            <field name="rail_measurement_price_per_km">150.00</field>
-            <field name="invoice_policy">order</field>
-        </record>
+    <!-- Catégorie produit -->
+    <record id="product_category_rail_measurement" model="product.category">
+        <field name="name">Mesures Ferroviaires</field>
+    </record>
 
-        <!-- Produit Précision -->
-        <record id="product_rail_measurement_precision" model="product.product">
-            <field name="name">Mesure de voie ferrée - Haute Précision</field>
-            <field name="type">service</field>
-            <field name="categ_id" ref="product_category_rail_measurement"/>
-            <field name="list_price">250.00</field>
-            <field name="standard_price">180.00</field>
-            <field name="uom_id" ref="uom.product_uom_km"/>
-            <field name="is_rail_measurement" eval="True"/>
-            <field name="rail_measurement_price_per_km">250.00</field>
-            <field name="invoice_policy">order</field>
-        </record>
+    <!-- Unité de Mesure Période -->
+    <!-- Note: uom.category is gone. symbol and uom_type are gone. -->
+    <record id="product_uom_periode" model="uom.uom">
+        <field name="name">pér.</field>
+        <field name="relative_factor">1.0</field>
+        <field name="rounding">0.01</field>
+    </record>
+    <record id="uom_none" model="uom.uom">
+        <field name="name"> </field>
+        <field name="relative_factor">1.0</field>
+        <field name="rounding">1.0</field>
+    </record>
 
-    </data>
+    <!-- Produit -->
+    <record id="product_rail_measurement_standard" model="product.product">
+        <field name="name">Mesure de voie ferrée</field>
+        <field name="type">service</field>
+        <field name="list_price">0.0</field>
+        <field name="categ_id" ref="product_category_rail_measurement"/>
+        <field name="uom_id" ref="product_uom_periode"/>
+        <!-- no tax -->
+        <field name="taxes_id" eval="[(6, 0, [])]"/>        
+        <!-- uom_po_id is removed in Odoo 19. It is now handled via Vendor Pricelists. -->
+        <field name="is_rail_measurement" eval="True"/>
+        <field name="invoice_policy">order</field>
+    </record>
+
 </odoo>

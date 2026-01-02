@@ -109,5 +109,40 @@
             <field name="date_start">2024-01-01</field>
             <field name="date_end">2024-12-31</field>
         </record>
+        <record id="exercice_d_2024" model="leyfa.exercice.comptable">
+            <field name="name">D</field>
+            <field name="date_start">2025-01-01</field>
+            <field name="date_end">2025-12-31</field>
+        </record>
+
+        <record id="type_voie_v1" model="leyfa.type.voie">
+            <field name="name">V1</field>
+            <field name="description">Voie 1</field>
+            <field name="sequence">10</field>
+        </record>
+
+        <record id="type_voie_v2" model="leyfa.type.voie">
+            <field name="name">V2</field>
+            <field name="description">Voie 2</field>
+            <field name="sequence">20</field>
+        </record>
+
+        <record id="type_voie_v1bis" model="leyfa.type.voie">
+            <field name="name">V1Bis</field>
+            <field name="description">Voie 1 Bis</field>
+            <field name="sequence">30</field>
+        </record>
+
+        <record id="type_voie_v2bis" model="leyfa.type.voie">
+            <field name="name">V2Bis</field>
+            <field name="description">Voie 2 Bis</field>
+            <field name="sequence">40</field>
+        </record>
+
+        <record id="type_voie_vu" model="leyfa.type.voie">
+            <field name="name">VU</field>
+            <field name="description">Voie Unique</field>
+            <field name="sequence">50</field>
+        </record>
     </data>
 </odoo>

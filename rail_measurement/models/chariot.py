@@ -39,9 +39,10 @@ class Chariot(models.Model):
     notes = fields.Text()
     active = fields.Boolean(default=True)
 
-    _sql_constraints = [
-        ('serial_unique', 'unique(serial_number)', 'Le numéro de série doit être unique.')
-    ]
+    _serial_unique = models.Constraint(
+        'unique(serial_number)', 
+        'Le numéro de série doit être unique.'
+    )
 
     # === ACTION POUR VOIR LE CALENDRIER ===
     def action_view_calendar(self):

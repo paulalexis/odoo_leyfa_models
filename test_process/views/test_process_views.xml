@@ -1,18 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <!-- List View -->
-    <record id="view_test_process_list" model="ir.ui.view">
-        <field name="name">test.process.list</field>
+    <record id="view_test_process_tree" model="ir.ui.view">
+        <field name="name">test.process.tree</field>
         <field name="model">test.process</field>
         <field name="arch" type="xml">
             <list>
                 <field name="name"/>
-                <field name="state" widget="badge" decoration-info="state == 'draft'" decoration-success="state == 'done'"/>
-                <field name="obstacle_detected"/>
+                <field name="state" widget="badge" decoration-info="state == 'production'" decoration-success="state == 'done'"/>
             </list>
         </field>
     </record>
 
-    <!-- Form View -->
     <record id="view_test_process_form" model="ir.ui.view">
         <field name="name">test.process.form</field>
         <field name="model">test.process</field>
@@ -20,43 +18,42 @@
             <form>
                 <header>
                     <button name="action_next" type="object" string="Étape Suivante" class="btn-primary" invisible="state == 'done'"/>
-                    <field name="state" widget="statusbar"/>
+                    <field name="state" widget="statusbar" statusbar_visible="production,measure,study,done"/>
                 </header>
                 <sheet>
                     <div class="oe_title">
                         <label for="name"/>
                         <h1><field name="name"/></h1>
                     </div>
-
-                    <!-- Full Flowchart Container -->
-                    <div class="o_horizontal_separator mt-4 mb-3" style="font-weight: bold; color: #714B67;">
-                        Flux de Travail du Mesurage
-                    </div>
-                    <div style="background: white; border: 1px solid #dee2e6; border-radius: 8px; padding: 15px;">
-                        <field name="mermaid_graph" widget="mermaid"/>
-                    </div>
-
                     <group>
                         <group string="Configuration">
-                            <field name="obstacle_detected" widget="boolean_toggle"/>
-                            <p class="text-muted" invisible="not obstacle_detected">
-                                ℹ️ Le chemin passera par l'étape 'Maintenance'.
-                            </p>
+                            <field name="view_level" widget="selection"/>
+                            <field name="urgent_material_needed" widget="boolean_toggle" invisible="state != 'production'"/>
+                        </group>
+                        <group string="Sous-étapes">
+                            <field name="prod_substate" invisible="state != 'production'" readonly="1"/>
+                            <field name="measure_substate" invisible="state != 'measure'" readonly="1"/>
+                            <field name="study_substate" invisible="state != 'study'" readonly="1"/>
                         </group>
                     </group>
+
+                    <div class="o_horizontal_separator mt-4 mb-3" style="font-weight: bold; color: #714B67;">
+                        Visualisation du Processus
+                    </div>
+                    <div style="background: white; border: 1px solid #dee2e6; border-radius: 8px; padding: 20px;">
+                        <field name="mermaid_graph" widget="mermaid" nolabel="1"/>
+                    </div>
                 </sheet>
             </form>
         </field>
     </record>
 
-    <!-- Action -->
     <record id="action_test_process" model="ir.actions.act_window">
-        <field name="name">Mesurage SNCF</field>
+        <field name="name">Processus Opérationnel</field>
         <field name="res_model">test.process</field>
         <field name="view_mode">list,form</field>
     </record>
 
-    <!-- Menus -->
-    <menuitem id="menu_sncf_root" name="Mesurage SNCF" sequence="10"/>
-    <menuitem id="menu_sncf_main" name="Processus" parent="menu_sncf_root" action="action_test_process"/>
+    <menuitem id="menu_test_root" name="Opérations SNCF" sequence="10"/>
+    <menuitem id="menu_test_process" name="Missions" parent="menu_test_root" action="action_test_process"/>
 </odoo>
