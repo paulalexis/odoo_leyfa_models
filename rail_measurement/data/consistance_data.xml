@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+<record id="nature_rvb" model="rail.nature.travaux"><field name="name">RVB</field></record>
+<record id="nature_rvb_hs" model="rail.nature.travaux"><field name="name">RVB - HS</field></record>
+<record id="nature_rav" model="rail.nature.travaux"><field name="name">RAV</field></record>
+<record id="nature_rb" model="rail.nature.travaux"><field name="name">RB</field></record>
+<record id="nature_rt" model="rail.nature.travaux"><field name="name">RT</field></record>
+<record id="nature_rr" model="rail.nature.travaux"><field name="name">RR</field></record>
+<record id="nature_rb_rt" model="rail.nature.travaux"><field name="name">RB + RT</field></record>
+<record id="nature_rr_rb" model="rail.nature.travaux"><field name="name">RR + RB</field></record>
+
+<record id="ac_alignement" model="rail.type.alignement.courbe"><field name="name">Alignement</field></record>
+<record id="ac_courbe" model="rail.type.alignement.courbe"><field name="name">Courbe</field></record>
+
+</odoo>

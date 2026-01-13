@@ -12,8 +12,7 @@ class Ligne(models.Model):
         ('metrique', 'Voie Métrique (1000mm)')
     ], string="Type de voie", default='normale')
     
-    gare_depart = fields.Char(string="Gare de début")
-    gare_fin = fields.Char(string="Gare de fin")
+    gares = fields.Char(string="Gares")
     
     longueur = fields.Float(string="Longueur (km)", digits=(10, 3))
     
@@ -28,6 +27,18 @@ class Ligne(models.Model):
         'unique(surnom)', 
         'Le surnom de la ligne doit être unique !'
     )
+
+    def name_get(self):
+        result = []
+        for rec in self:
+            name = rec.name or ''
+            surnom = rec.surnom or ''
+            if surnom:
+                display = f"{name} ({surnom})"
+            else:
+                display = name
+            result.append((rec.id, display))
+        return result
 
 
 class TypeVoie(models.Model):

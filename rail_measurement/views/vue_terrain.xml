@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_rail_measurement_form_inherit_terrain" model="ir.ui.view">
+        <field name="name">rail.measurement.form.inherit.terrain</field>
+        <field name="model">rail.measurement</field>
+        <field name="inherit_id" ref="rail_measurement.view_rail_measurement_form"/>
+        <field name="arch" type="xml">
+            
+            <!-- We target the notebook in the main view -->
+            <xpath expr="//page[@name='terrain_tab']" position="inside">
+                <label for="avancement_start" string="Réalisé (Fichier)"/>
+                <group string="AVANCEMENT">
+                    <!-- On utilise un seul bloc vertical pour tout le contenu de droite -->
+                    <label for="avancement_start" string="Suivi Terrain"/>
+                    <div class="d-flex flex-column">
+                        
+                        <!-- LIGNE 1 : LES PK -->
+                        <div class="d-flex align-items-center mb-2">
+                            <field name="avancement_start" readonly="1" class="oe_inline m-0 fw-bold"/> 
+                            <span class="mx-2 text-muted">→</span> 
+                            <field name="avancement_end" readonly="1" class="oe_inline m-0 fw-bold"/>
+                            <span class="text-muted small ms-2">(PK couverts)</span>
+                        </div>
+
+                        <!-- LIGNE 2 : LA BARRE -->
+                        <div class="d-flex align-items-center">
+                            <field name="avancement_pourcentage" 
+                                widget="progressbar" 
+                                nolabel="1" 
+                                class="oe_inline m-0" 
+                                style="width: 180px !important;"/>
+                            <span class="ms-2 text-muted small fw-bold">Progression</span>
+                        </div>
+                        
+                    </div>
+
+                </group>
+                <group string="DONNÉES BRUTES" name="raw_data_group">
+                    <!-- nolabel="1" : supprime la colonne de gauche -->
+                    <!-- colspan="2" : utilise toute la largeur du groupe -->
+                    <field name="day_file_ids" 
+                        nolabel="1" 
+                        colspan="2" 
+                        class="w-100 o_full_width_table">
+                        <list decoration-info="day in ['sat', 'sun']" create="0" edit="0" delete="1" open_form_view="0">
+                            <field name="week_number" string="Semaine"/>
+                            <field name="day" string="Jour" widget="badge" 
+                                decoration-success="day in ['mon','tue','wed','thu','fri']"
+                                decoration-warning="day in ['sat','sun']"/>
+                            <field name="file" widget="binary" filename="file_name" string="Télécharger"/>
+                            <field name="create_date" string="Date d'import" widget="datetime"/>
+                        </list>
+                    </field>
+                </group>
+            </xpath>
+
+        </field>
+    </record>
+</odoo>

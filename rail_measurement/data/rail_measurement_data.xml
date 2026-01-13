@@ -23,6 +23,16 @@
         <field name="relative_factor">1.0</field>
         <field name="rounding">0.01</field>
     </record>
+    <record id="product_uom_week" model="uom.uom">
+        <field name="name">semaine(s)</field>
+        <field name="relative_factor">1.0</field>
+        <field name="rounding">1</field>
+    </record>
+    <record id="product_uom_km" model="uom.uom">
+        <field name="name">km</field>
+        <field name="relative_factor">1.0</field>
+        <field name="rounding">0.01</field>
+    </record>
     <record id="uom_none" model="uom.uom">
         <field name="name"> </field>
         <field name="relative_factor">1.0</field>

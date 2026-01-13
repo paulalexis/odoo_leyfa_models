@@ -1,4 +1,4 @@
-from odoo import models, fields, api, exceptions, _
+from odoo import models, fields, api, exceptions, _, Command
 from datetime import datetime
 import logging
 from odoo.exceptions import UserError, ValidationError
@@ -10,7 +10,15 @@ class RailMeasurement(models.Model):
     _description = 'Prestation de mesure de voie ferrée'
     _rec_name = 'reference'
     _order = 'date_start desc'
-    _inherit = ['mail.thread', 'mail.activity.mixin'] 
+    _inherit = ['mail.thread', 'mail.activity.mixin']
+
+    def _compute_display_name(self):
+        for record in self:
+            name = record.reference or ""
+            if record.code_affaire:
+                record.display_name = f"[{record.code_affaire}] {name}"
+            else:
+                record.display_name = name
 
     name = fields.Char(string='Name', required=True, default='New Measurement')
     reference = fields.Char(
@@ -50,48 +58,48 @@ class RailMeasurement(models.Model):
 
     type_requires_nature = fields.Boolean(string="Nécessite Nature", default=False)
 
-
     ## Champs additionnels pour le marché (Excel)
     desc_typologie_detail = fields.Selection([
-            ('gop', 'GOP'),
-            ('modernisation', 'MODERNISATION'),
-            ('patrimonial', 'PATRIMONIAL'),
-            ('bdml', 'BDML'),
-            ('oge', 'OGE')
-        ], string="Typologie détail")
+        ('gop', 'GOP'),
+        ('modernisation', 'MODERNISATION'),
+        ('patrimonial', 'PATRIMONIAL'),
+        ('bdml', 'BDML'),
+        ('oge', 'OGE')
+    ], string="Typologie détail", tracking=True)
     
     desc_nature_travaux = fields.Selection([
         ('rvb', 'RVB'),
+        ('rvb_hs', 'RVB - HS'),
         ('rav', 'RAV'),
         ('rb', 'RB'),
         ('rt', 'RT'),
         ('rr', 'RR'),
         ('rb_rt', 'RB+RT'),
         ('rr_rb', 'RR+RB'),
+        ('rrn_hs', 'RRN - HS'),
         ('rb_relevage', 'RB+ RELEVAGE'),
-        ('entretien', 'ENTRETIEN'),
-        ('supp_defauts', 'SUPP. DEFAUTS'),
-        ('pb_gabarits', 'PB GABARITS'),
-        ('epure_carnet', 'EPURE - CARNET'),
         ('rr_rt', 'RR+RT'),
         ('rt_relevage', 'RT + RELEVAGE'),
-    ], string="Nature des travaux")
+    ], string="Nature des travaux", tracking=True)
 
     desc_methodologie = fields.Selection([
-        ('sr_nat', 'SR NAT'),
-        ('sr_zd', 'SR ZD'),
+        ('sr_hp', 'SR Haute Performance'),
+        ('sr_hr', 'SR Haut Rendement'),
+        ('sr_hc', 'SR Haute Contrainte'),
         ('hors_suite', 'HORS SUITE'),
         ('archive', 'ARCHIVE'),
         ('base_absolue', 'BASE ABSOLUE'),
         ('base_relative', 'BASE RELATIVE'),
         ('mrt', 'MRT'),
-    ], string="Méthodologie")
+    ], string="Méthodologie", tracking=True)
 
     desc_annee = fields.Integer(
         string="Année", 
         default=lambda self: fields.Date.today().year,
-        help="Année de référence du projet"
+        help="Année de référence du projet",
+        tracking=True
     )
+    desc_observations = fields.Text(string="Observations", tracking=True)
 
     @api.onchange('type_affaire_id')
     def _onchange_type_affaire_id(self):
@@ -113,7 +121,7 @@ class RailMeasurement(models.Model):
         # We search for the highest code starting with prefix + 3 digits
         # We ignore the current record (self._origin.id) to avoid self-collision
         domain = [
-            ('code_affaire', '=like', prefix + '___'),
+            # ('code_affaire', '=like', prefix + '___'), On ne cherche pas à ce que les affaires soient regroupé... étrange mais process actuel
             ('id', '!=', self._origin.id if hasattr(self, '_origin') else False)
         ]
         existing = self.env['rail.measurement'].search(domain, order='code_affaire desc', limit=1)
@@ -142,50 +150,57 @@ class RailMeasurement(models.Model):
         # 2. Case A: Manual Code Entry
         if is_manual_code_edit and self.code_affaire:
             logger = logging.getLogger(__name__)
-            logger.info(f"&&&&&&&&&&&&& {self.last_synced_code} vs {self.code_affaire} &&&&&&&&&&&&&")
             self.last_synced_code = self.code_affaire
-            logger.info(f"&&&&&&&&&&&&& {self.last_synced_code} vs {self.code_affaire} &&&&&&&&&&&&&")
             code = self.code_affaire.strip().upper()
             if len(code) >= 5:
                 # A1. Parse Exercice
                 ex = self.env['leyfa.exercice.comptable'].search([('name', '=', code[0:1])], limit=1)
                 if ex: self.exercice_id = ex
+                print(f"Parsed Exercice: {ex.name if ex else 'None'}")
                 
                 # A2. Parse Middle & Nature
-                middle = code[1:-3]
-                if middle.endswith(('R', 'E')):
+                middle = code[1:] if code[-3:].isdigit() is False else code[1:-3]
+                if middle.endswith(('R', 'E')) and not middle[-3] == 'MOE':
                     self.nature_mission = middle[-1]
                     middle = middle[:-1]
                 else:
                     self.nature_mission = False
+                print(f"Parsed Middle: {middle}, Nature: {self.nature_mission}")
                 
                 # A3. Parse Ligne & Type
                 lines = self.env['leyfa.ligne'].search([])
                 for line in lines:
-                    if line.surnom and middle.startswith(line.surnom.upper()):
+                    if line.surnom and middle[0:len(line.surnom)] == line.surnom.upper():
                         self.ligne_id = line
                         type_code = middle[len(line.surnom):]
                         ty = self.env['leyfa.affaire.type'].search([('code', '=', type_code)], limit=1)
                         if ty: self.type_affaire_id = ty
+                        print(f"Parsed Ligne: {line.surnom}, Type: {type_code}")
                         break
 
                 # A4. Collision Check: Does this specific code already exist?
                 # We check the database for the exact code entered
-                collision = self.env['rail.measurement'].search_count([
-                    ('code_affaire', '=', code),
-                    ('id', '!=', self._origin.id if hasattr(self, '_origin') else False)
-                ])
                 
-                if collision > 0:
-                    prefix = code[:-3]
-                    new_code = self._get_next_available_code(prefix)
-                    warning_msg = {
-                        'title': _("Code déjà utilisé"),
-                        'message': _("Le code %s existe déjà. Le système a automatiquement généré le numéro suivant : %s.") % (code, new_code)
-                    }
+
+                if code[-3:].isdigit() is False:
+                    new_code = self._get_next_available_code(code)
                     self.code_affaire = new_code
                 else:
-                    self.code_affaire = code
+                    collision = self.env['rail.measurement'].search_count([
+                        ('code_affaire', '=', code),
+                        ('id', '!=', self._origin.id if hasattr(self, '_origin') else False)
+                    ])
+                    
+                    if collision > 0:
+                        prefix = code[:-3]
+                        new_code = self._get_next_available_code(prefix)
+                        warning_msg = {
+                            'title': _("Code déjà utilisé"),
+                            'message': _("Le code %s existe déjà. Le système a automatiquement généré le numéro suivant : %s.") % (code, new_code)
+                        }
+                        self.code_affaire = new_code
+                    else:
+                        self.code_affaire = code
             
             self.last_synced_code = self.code_affaire
 
@@ -253,14 +268,12 @@ class RailMeasurement(models.Model):
             record.code_affaire = f"{prefix}{str(next_number).zfill(3)}"
 
     # Informations client et commande
-    partner_id = fields.Many2one('res.partner', string='Client', required=True)
+    partner_id = fields.Many2one('res.partner', string='Client', required=True, tracking=True)
     sale_order_id = fields.Many2one(
         'sale.order', 
         string='Bon de commande',
         domain="[('partner_id', '=', partner_id)]"
     )
-    sale_order_line_id = fields.Many2one('sale.order.line', string='Ligne de commande', readonly=True)
-    sale_order_line_etudes_id = fields.Many2one('sale.order.line', string='Ligne de commande études', readonly=True)
 
     ## Voie
     voie_ids = fields.Many2many(
@@ -268,7 +281,8 @@ class RailMeasurement(models.Model):
         'rail_measurement_voie_rel', # NOM DE LA TABLE DE LIAISON (à ajouter)
         'measurement_id',            # Colonne 1 (ID de ce modèle)
         'voie_id',                   # Colonne 2 (ID du type de voie)
-        string="Voies de circulation"
+        string="Voies de circulation",
+        tracking=True
     )
     voie_count = fields.Integer(string="Nombre de voies", compute='_compute_voie_count')
     
@@ -278,8 +292,8 @@ class RailMeasurement(models.Model):
             ligne.voie_count = len(ligne.voie_ids)
 
     # Informations sur la prestation
-    date_start = fields.Date(string='Date de début')
-    date_end = fields.Date(string='Date de fin')
+    date_start = fields.Date(string='Date de début', tracking=True)
+    date_end = fields.Date(string='Date de fin', tracking=True)
 
     @api.onchange('date_start', 'date_end')
     def _onchange_dates_week_rounding(self):
@@ -307,22 +321,21 @@ class RailMeasurement(models.Model):
     
 
     # Localisation
-    pk_initial = fields.Float(string='PK Initial (km)', digits=(10, 0), default=None)
-    pk_final = fields.Float(string='PK Final (km)', digits=(10, 0), default=None)
+    pk_initial = fields.Float(string='PK Initial (km)', digits=(10, 0), default=None, tracking=True)
+    pk_final = fields.Float(string='PK Final (km)', digits=(10, 0), default=None, tracking=True)
 
     lineaire = fields.Float(
-        string='Linéaire', digits=(10, 0), store=True, readonly=False
+        string='Linéaire', digits=(10, 0), store=True, readonly=False, tracking=True
     )
     lineaire_releve = fields.Float(
-        string='Linéaire relevé', digits=(10, 0), store=True, readonly=False
+        string='Linéaire relevé', digits=(10, 0), store=True, readonly=False, tracking=True
     )
     lineaire_etudes = fields.Float(
-        string='Linéaire études', digits=(10, 0), store=True, readonly=False
+        string='Linéaire études', digits=(10, 0), store=True, readonly=False, tracking=True
     )
 
     # Facturation
     invoiced = fields.Boolean(string='Facturé', default=False)
-    currency_id = fields.Many2one('res.currency', default=lambda self: self.env.company.currency_id)
 
     # PRIX UNITAIRE : calculé si KM ou TOTAL changent
     price_unit = fields.Monetary(
@@ -333,13 +346,13 @@ class RailMeasurement(models.Model):
     # PRIX TOTAL : calculé si PRIX UNITAIRE change
     currency_id = fields.Many2one('res.currency', default=lambda self: self.env.company.currency_id)
     price_releve = fields.Monetary(
-        string='Montant relevé', store=True, readonly=False
+        string='Montant relevé', store=True, readonly=False, tracking=True
     )
     price_etudes = fields.Monetary(
-        string='Montant études', store=True, readonly=False
+        string='Montant études', store=True, readonly=False, tracking=True
     )
     price_total = fields.Monetary(
-        string='Prix total', store=True, readonly=False, compute='_compute_price_total'
+        string='Prix total', store=True, readonly=False, compute='_compute_price_total', tracking=True
     )
     @api.depends('price_releve', 'price_etudes', 'nature_mission')
     def _compute_price_total(self):
@@ -427,7 +440,7 @@ class RailMeasurement(models.Model):
     # État et suivi
     state = fields.Selection([
         ('presale', 'Pré-vente'),
-        ('production', 'Production'),
+        ('production', 'Planification'),
         ('measure', 'Mesure'),
         ('study', 'Études'),
         ('invoicing', 'Facturation'),
@@ -455,6 +468,7 @@ class RailMeasurement(models.Model):
             elif so_state in ['sale', 'done']:
                 if record.state in ['presale', 'cancelled']:
                     record.state = 'production'
+                    record.prod_substate = 'mission'
             
             # Sinon, on garde l'état actuel (pour ne pas écraser l'avancement "planned", "measured", etc.)
             else:
@@ -480,16 +494,18 @@ class RailMeasurement(models.Model):
 
     prod_substate = fields.Selection([
         ('mission', 'Réception Mission'),
-        ('team', 'Constitution Équipe'),
         ('urgence', 'Vérification Urgence'),
         ('material', 'Vérification Matériel'),
         ('assigned', 'Chariots Affectés')
     ], string="Étape Production")
     
     measure_substate = fields.Selection([
-        ('daily', 'Production Terrain'),
-        ('checking', 'Contrôle Avancement'),
-        ('files', 'Génération Fichiers')
+        ('waiting_prod', 'En Attente'),
+        ('reperage', 'Repérage'),
+        ('geometrie', 'Mesure Géométrie'),
+        ('position', 'Mesure Position'),
+        ('catenaire', 'Mesure Caténaire'),
+        ('done', 'Mesure Terminée'),
     ], string="Étape Mesure")
 
     study_substate = fields.Selection([
@@ -501,7 +517,7 @@ class RailMeasurement(models.Model):
     view_level = fields.Selection([
         ('overview', 'Vue Macro (Global)'),
         ('sale_detail', 'Détail : Vente'),
-        ('prod_detail', 'Détail : Production'),
+        ('prod_detail', 'Détail : Planification'),
         ('measure_detail', 'Détail : Mesure'),
         ('study_detail', 'Détail : Études')
     ], default='overview', string="Niveau de Vue")
@@ -530,9 +546,11 @@ class RailMeasurement(models.Model):
             "classDef invisible fill:none,stroke:none,color:none",
             "",
             "  %% Ligne 1 : Flux nominal",
-            "  PRESALE[Pré-Vente] --> PROD[Production]",
+            "  PRESALE[Pré-Vente] --> PROD[Planification]",
+            "  subgraph Production",
             "  PROD --> MEASURE[Mesure]",
             "  MEASURE --> STUDY[Études]",
+            "  end",
             "  STUDY --> INV[Facturation]",
             "  INV --> DONE((Fin))",
             "",
@@ -605,16 +623,16 @@ class RailMeasurement(models.Model):
     def _generate_prod_micro(self):
         lines = ["graph LR", "classDef active fill:#714B67,color:#fff,stroke:#333,stroke-width:2px",
                  "classDef done fill:#e2e2e2,color:#999,stroke:#ccc",
-                 "M1(Mission) --> M2[Équipe]", "M2 --> M3{Matériel?}", "M3 -- Non --> M3_U[Urgence]", "M3_U --> M4[Chariots]", "M3 -- Oui --> M4", "M4 --> M5((Prêt))"]
-        mapping = {'mission': 'M1', 'team': 'M2', 'material': 'M3', 'urgence': 'M3_U', 'assigned': 'M4', 'final': 'M5'}
-        return self._apply_styles(lines, mapping, self.prod_substate, ['mission', 'team', 'material', 'urgence', 'assigned'])
+                 "M1[Fiche Mission] --> M2{Matériel ?}", "M2 -- Non --> M2_U[Demande de matériel]", "M2_U --> M2", "M2 -- Oui --> M3([Chariots réservés])", "M3 -.-> M4[Production quotidienne]"]
+        mapping = {'mission': 'M1', 'material': 'M2', 'urgence': 'M2_U', 'assigned': 'M3', 'final': 'M4'}
+        return self._apply_styles(lines, mapping, self.prod_substate, ['mission', 'material', 'urgence', 'assigned'])
 
     def _generate_measure_micro(self):
         lines = ["graph LR", "classDef active fill:#714B67,color:#fff,stroke:#333,stroke-width:2px",
                  "classDef done fill:#e2e2e2,color:#999,stroke:#ccc",
-                 "ME1[Terrain] --> ME2{Fini?}", "ME2 -- Non --> ME1", "ME2 -- Oui --> ME3[Fichiers]", "ME3 --> ME4((OK))"]
-        mapping = {'daily': 'ME1', 'checking': 'ME2', 'files': 'ME3', 'final': 'ME4'}
-        return self._apply_styles(lines, mapping, self.measure_substate, ['daily', 'checking', 'files'])
+                 "ME1[En attente] --> ME2[Repérage]", "subgraph Production quotidienne", "ME2 --> ME3[Mesure Géométrie]", "ME3 --> ME4[Mesure Position]", "ME4 --> ME5[Mesure Caténaire]", "end", "ME5 --> ME6((Fin))"]
+        mapping = {'waiting_prod': 'ME1', 'reperage': 'ME2', 'geometrie': 'ME3', 'position': 'ME4', 'catenaire': 'ME5', 'done': 'ME6'}
+        return self._apply_styles(lines, mapping, self.measure_substate, ['waiting_prod', 'reperage', 'geometrie', 'position', 'catenaire', 'done'])
 
     def _generate_study_micro(self):
         lines = ["graph LR", "classDef active fill:#714B67,color:#fff,stroke:#333,stroke-width:2px",
@@ -645,29 +663,30 @@ class RailMeasurement(models.Model):
         # Dictionnaire des conseils par sous-état
         tips = {
             # Vente (sale_substate) - Quand state == 'presale'
-            'waiting': """<b>Action :</b> Aucun devis n'est lié à cette mesure. Ajoutez un produit de mesure ferroviaire à un devis et liez cette mesure à ce dernier
+            'presale_waiting': """<b>Action :</b> Aucun devis n'est lié à cette mesure. Ajoutez un produit de mesure ferroviaire à un devis et liez cette mesure à ce dernier
                         en cliquant sur le bouton <b>+</b> sur la ligne du devis.
                         <br/><i>Note : Le client du devis doit être identique à celui de la mesure.</i>""",
-            'draft': """<b>Devis :</b> Le devis est en cours de rédaction. Renseignez tous les champs nécessaires à son élaboration, puis envoyez-le au client ou 
+            'presale_draft': """<b>Devis :</b> Le devis est en cours de rédaction. Renseignez tous les champs nécessaires à son élaboration, puis envoyez-le au client ou 
                         confirmez-le directement.""",
-            'sent': "📧 <b>En attente :</b> Le devis a été envoyé au client. En attente de signature pour lancer la production.",
-            'sale': "🚀 <b>Confirmé :</b> La vente est validée ! Le pôle Production peut maintenant prendre le relais.",
+            'presale_sent': "<b>En attente :</b> Le devis a été envoyé au client. En attente de signature pour lancer la production.",
+            'presale_sale': "<b>Confirmé :</b> La vente est validée ! Le pôle Production peut maintenant prendre le relais.",
             
             # Production (prod_substate) - Quand state == 'production'
-            'mission': "📄 <b>Fiche Mission :</b> Vérifiez que les accès aux emprises ferroviaires sont bien autorisés pour ces PK.",
-            'team': "👷 <b>Équipe :</b> Assurez-vous que les agents possèdent les habilitations sécurité requises.",
-            'material': "🔧 <b>Matériel :</b> Vérifiez l'étalonnage des capteurs laser et la charge des batteries.",
-            'assigned': "🚛 <b>Logistique :</b> Les chariots sont affectés. Le départ terrain est prêt.",
+            'production_mission': "<b>Fiche Mission :</b> Complétez et vérifiez la fiche mission. Pensez à ajouter les agents (et leur planning) et le matériel nécessaire. Ensuite, confirmez.",
+            'production_material': "<b>Affectation des chariots :</b> Répondez aux besoins définis dans la fiche mission en affectant les chariots.",
+            'production_assigned': "<b>Plannifié :</b> Les chariots sont affectés et la mesure a été ajoutée à la production quotidienne.",
+            'production_urgence': "<b>En attente de chariots :</b> Libérez des chariots ailleurs pour répondre à la demande en matériel (pas encore codé).",
 
             # Mesure (measure_substate) - Quand state == 'measure'
-            'daily': "🛰️ <b>Terrain :</b> Saisie des données brutes en cours. Veillez à la stabilité du signal GNSS.",
-            'checking': "🧐 <b>Contrôle :</b> Vérification de la cohérence des courbes de mesure avant de quitter le site.",
-            'files': "💾 <b>Fichiers :</b> Génération des fichiers .csv et .raw pour le pôle Études.",
+            'measure_waiting_prod': f"<b>En attente :</b> La mesure n'a pas encore commencé. Elle commencera le {self.date_start.strftime('%d/%m/%Y')}." if self.date_start else "",
+            'measure_daily': "🛰️ <b>Terrain :</b> Saisie des données brutes en cours. Veillez à la stabilité du signal GNSS.",
+            'measure_checking': "🧐 <b>Contrôle :</b> Vérification de la cohérence des courbes de mesure avant de quitter le site.",
+            'measure_files': "💾 <b>Fichiers :</b> Génération des fichiers .csv et .raw pour le pôle Études.",
 
             # Étude (study_substate) - Quand state == 'study'
-            'reception': "📥 <b>Réception :</b> Intégration des fichiers terrain dans le logiciel d'analyse.",
-            'analysis': "📉 <b>Analyse :</b> Calcul des flèches et des dévers. Identification des points hors tolérance.",
-            'validation': "⚖️ <b>Expertise :</b> Validation finale par l'expert technique avant facturation.",
+            'study_reception': "📥 <b>Réception :</b> Intégration des fichiers terrain dans le logiciel d'analyse.",
+            'study_analysis': "📉 <b>Analyse :</b> Calcul des flèches et des dévers. Identification des points hors tolérance.",
+            'study_validation': "⚖️ <b>Expertise :</b> Validation finale par l'expert technique avant facturation.",
             
             # Autres
             'invoicing': "💰 <b>Facturation :</b> Les livrables sont envoyés. La facture peut être émise.",
@@ -681,13 +700,13 @@ class RailMeasurement(models.Model):
             # Sélection de la clé de message appropriée
             key = False
             if record.state == 'presale':
-                key = record.sale_substate
+                key = record.state + '_' + record.sale_substate
             elif record.state == 'production':
-                key = record.prod_substate
+                key = record.state + '_' + record.prod_substate
             elif record.state == 'measure':
-                key = record.measure_substate
+                key = record.state + '_' + record.measure_substate
             elif record.state == 'study':
-                key = record.study_substate
+                key = record.state + '_' + record.study_substate
             else:
                 key = record.state
 
@@ -701,6 +720,98 @@ class RailMeasurement(models.Model):
                     <div class="flex-grow-1">{msg}</div>
                 </div>
             '''
+
+    show_chatter = fields.Boolean(string='Afficher le suivi', default=False)
+
+    ### VENTE & DEVIS ###
+    ## Consistance
+    # Tableau 1
+    consistance_lines = fields.One2many(
+        'rail.measurement.consistance.line',
+        'measurement_id',
+        string='Consistance de la mesure'
+    )
+
+    total_theo_consistance = fields.Float(string="Total Théorique", compute="_compute_consistance_totals", digits=(7, 0))
+    total_releve_consistance = fields.Float(string="Total Relevé", compute="_compute_consistance_totals", digits=(7, 0))
+
+    @api.depends('consistance_lines.pkd', 'consistance_lines.pkf', 'consistance_lines.maj_deb', 'consistance_lines.maj_fin')
+    def _compute_consistance_totals(self):
+        for reg in self:
+            theo = 0.0
+            releve = 0.0
+            for line in reg.consistance_lines:
+                diff = abs(line.pkf - line.pkd)
+                theo += diff
+                releve += (diff + line.maj_deb + line.maj_fin)
+            reg.total_theo_consistance = theo
+            reg.total_releve_consistance = releve
+
+    # Tableau 2 (cibles et plaquettes provisoires)
+    cible_line_ids = fields.One2many(
+        'rail.measurement.cible.line', 
+        'measurement_id', 
+        string='Matériel de repérage'
+    )
+
+    @api.onchange('type_affaire_id')
+    def _onchange_cibles_logic(self):
+        # On définit les types attendus selon le code 
+        surnom = self.type_affaire_id.code if self.type_affaire_id else False
+        
+        target_types = ['cible']  # Toujours présent
+        if surnom == 'P': 
+            target_types.append('prov')
+        if surnom in ['R', 'C']: 
+            target_types.append('courbe')
+
+        commands = []
+        seen_types = set()
+        
+        # 1. NETTOYAGE : On parcourt les lignes actuelles
+        for line in self.cible_line_ids:
+            # Si le type n'est plus voulu OU si c'est un doublon d'un type déjà traité
+            if line.line_type not in target_types or line.line_type in seen_types:
+                # Récupération de l'ID réel pour la suppression en onchange
+                real_id = line._origin.id if hasattr(line, '_origin') else line.id
+                if real_id:
+                    commands.append(Command.delete(real_id))
+                else:
+                    # Pour les lignes pas encore sauvées en base
+                    commands.append(Command.clear()) # Ou simplement ignorer
+            else:
+                seen_types.add(line.line_type)
+
+        # 2. AJOUT : On ajoute uniquement ce qui manque
+        for t in target_types:
+            if t not in seen_types:
+                name = ""
+                if t == 'cible': name = 'Cibles MT40174'
+                elif t == 'prov': name = 'Plaquettes provisoires de chainage'
+                elif t == 'courbe': name = 'Plaquettes courbe définitives (MT00275)'
+                
+                commands.append(Command.create({
+                    'name': name,
+                    'line_type': t,
+                    'qty': 0
+                }))
+
+        # On applique toutes les modifications d'un coup
+        if commands:
+            self.cible_line_ids = commands
+
+    ##### PRODUCTION & PLANIFICATION #####
+    existing_chariot_type_ids = fields.Many2many(
+        'chariot.type', 
+        compute='_compute_existing_chariot_types',
+        string="Types déjà utilisés"
+    )
+
+    @api.depends('chariot_type_lines.chariot_type_id')
+    def _compute_existing_chariot_types(self):
+        for rec in self:
+            # On récupère tous les IDs sélectionnés dans les lignes
+            rec.existing_chariot_type_ids = rec.chariot_type_lines.mapped('chariot_type_id')
 
     ### PLANNING ###
     planning_ids = fields.One2many('rail.measurement.planning', 'measurement_id', string="Planning Hebdomadaire")
@@ -742,14 +853,14 @@ class RailMeasurement(models.Model):
         existing_keys = {(p.year, p.week_number) for p in self.planning_ids}
         new_vals = []
         
-        for year, week, date_from in target_weeks:
+        for year, week, date_start in target_weeks:
             if (year, week) not in existing_keys:
                 new_vals.append({
                     'measurement_id': self.id,
                     'year': year,
                     'week_number': week,
-                    'date_from': date_from,
-                    'date_to': date_from + timedelta(days=6),
+                    'date_start': date_start,
+                    'date_end': date_start + timedelta(days=6),
                     # Les jours J/N restent à 'none' par défaut
                 })
 
@@ -787,16 +898,57 @@ class RailMeasurement(models.Model):
             else:
                 rec.display_weeks = "Choisir les dates..."
 
+    ### MESURES
+    reperage_file = fields.Binary(string='Fichier de mesure -- Repérage')
+    reperage_filename = fields.Char(string='Nom du fichier -- Repérage')
+    report = fields.Html(string='Rapport')
+    notes = fields.Text(string='Notes')
 
+    day_file_ids = fields.One2many(
+        'rail.measurement.day.file', 
+        'measurement_id', 
+        string="Fichiers terrain"
+    )
+
+    avancement_start = fields.Float(string='PK début relevé (km)', digits=(10, 3))
+    avancement_end = fields.Float(string='PK fin relevé (km)', digits=(10, 3))
+    
+    avancement_pourcentage = fields.Float(
+        string='Progression',
+        compute='_compute_avancement_pourcentage',
+        store=True
+    )
+
+    @api.depends('avancement_start', 'avancement_end', 'pk_initial', 'pk_final')
+    def _compute_avancement_pourcentage(self):
+        for rec in self:
+            total_dist = abs(rec.pk_final - rec.pk_initial)
+            if total_dist > 0:
+                progress_dist = abs(rec.avancement_end - rec.avancement_start)
+                percentage = (progress_dist / total_dist) * 100
+                rec.avancement_pourcentage = min(percentage, 100.0)
+            else:
+                rec.avancement_pourcentage = 0.0
+    
+    @api.model
+    def action_upload_measurement_file(self):
+        logging.getLogger(__name__).info("Opening measurement file import wizard")
+        return {
+            'name': 'Importer un fichier de mesure',
+            'type': 'ir.actions.act_window',
+            'res_model': 'rail.file.import.wizard',
+            'view_mode': 'form',
+            # 'views': [[ID_DE_LA_VUE, 'TYPE']] 
+            # Utiliser False permet de prendre la vue par défaut
+            'views': [[False, 'form']], 
+            'target': 'new',
+            'context': self.env.context,
+        }
 
 
 
     ###########
     # Résultats
-    measurement_file = fields.Binary(string='Fichier de mesure')
-    measurement_filename = fields.Char(string='Nom du fichier')
-    report = fields.Html(string='Rapport')
-    notes = fields.Text(string='Notes')
 
     @api.depends('assigned_chariot_ids')
     def _compute_chariots_assigned(self):
@@ -833,54 +985,54 @@ class RailMeasurement(models.Model):
         
         return "\n".join(details)
 
-    def update_sale_order_line(self):
-        """Met à jour les DEUX lignes de commande liées (Relevé et Études)"""
-        for record in self:
-            # On ne synchronise que si le devis est en brouillon
-            if record.sale_order_id and record.sale_order_id.state == 'draft':                
-                # --- LIGNE 1 : RELEVÉ (sale_order_line_id) ---
-                if record.sale_order_line_id:
-                    # On ajoute une mention [RELEVÉ] pour la clarté sur le devis
-                    new_name = f"[RELEVÉ {record.reference}]\n\n{record._get_measurement_details()}"
-                    unit = self.env.ref('rail_measurement.product_uom_periode', raise_if_not_found=False) if record.total_nb_periods > 0 else self.env.ref('rail_measurement.uom_none', raise_if_not_found=False)
+    # def update_sale_order_line(self):
+    #     """Met à jour les DEUX lignes de commande liées (Relevé et Études)"""
+    #     for record in self:
+    #         # On ne synchronise que si le devis est en brouillon
+    #         if record.sale_order_id and record.sale_order_id.state == 'draft':                
+    #             # --- LIGNE 1 : RELEVÉ (sale_order_line_id) ---
+    #             # if record.sale_order_line_id:
+    #             #     # On ajoute une mention [RELEVÉ] pour la clarté sur le devis
+    #             #     new_name = f"[RELEVÉ {record.reference}]\n\n{record._get_measurement_details()}"
+    #             #     unit = self.env.ref('rail_measurement.product_uom_periode', raise_if_not_found=False) if record.total_nb_periods > 0 else self.env.ref('rail_measurement.uom_none', raise_if_not_found=False)
 
-                    record.sale_order_line_id.with_context(from_measurement_module=True).write({
-                        'name': new_name,
-                        'product_uom_qty': record.total_nb_periods if record.total_nb_periods > 0 else 1.0,
-                        'price_unit': record.price_releve_daily if record.total_nb_periods > 0 else record.price_releve,
-                        'product_uom_id': unit,
-                    })
+    #             #     record.sale_order_line_id.with_context(from_measurement_module=True).write({
+    #             #         'name': new_name,
+    #             #         'product_uom_qty': record.total_nb_periods if record.total_nb_periods > 0 else 1.0,
+    #             #         'price_unit': record.price_releve_daily if record.total_nb_periods > 0 else record.price_releve,
+    #             #         'product_uom_id': unit,
+    #             #     })
                 
-                # Si le type a changé et ne demande plus de ligne études, on la supprime
-                if record.sale_order_line_etudes_id and (record.nature_mission == 'R' or not record.nature_mission):
-                    line_to_delete = record.sale_order_line_etudes_id
-                    record.sale_order_line_etudes_id = False 
-                    # On appelle unlink avec le contexte qui "donne la permission"
-                    line_to_delete.with_context(allow_study_deletion=True).unlink()
+    #             # Si le type a changé et ne demande plus de ligne études, on la supprime
+    #             if record.sale_order_line_etudes_id and (record.nature_mission == 'R' or not record.nature_mission):
+    #                 line_to_delete = record.sale_order_line_etudes_id
+    #                 record.sale_order_line_etudes_id = False 
+    #                 # On appelle unlink avec le contexte qui "donne la permission"
+    #                 line_to_delete.with_context(allow_study_deletion=True).unlink()
                 
-                if not self.env.context.get('delete_study_line') and record.nature_mission == 'E' and not record.sale_order_line_etudes_id:
-                    etudes_sol = self.env['sale.order.line'].create({
-                        'order_id': record.sale_order_id.id,
-                        'product_id': record.sale_order_line_id.product_id.id,
-                        'rail_measurement_id': record.id, # Pour garder la trace
-                        # On peut initialiser le nom ici, mais update_sale_order_line le fera proprement
-                    })
-                    record.sale_order_line_etudes_id = etudes_sol.id
+    #             if not self.env.context.get('delete_study_line') and record.nature_mission == 'E' and not record.sale_order_line_etudes_id:
+    #                 etudes_sol = self.env['sale.order.line'].create({
+    #                     'order_id': record.sale_order_id.id,
+    #                     'product_id': record.sale_order_line_id.product_id.id,
+    #                     'rail_measurement_id': record.id, # Pour garder la trace
+    #                     # On peut initialiser le nom ici, mais update_sale_order_line le fera proprement
+    #                 })
+    #                 record.sale_order_line_etudes_id = etudes_sol.id
 
-                # --- LIGNE 2 : ÉTUDES (sale_order_line_etudes_id) ---
-                if record.sale_order_line_etudes_id:
-                    # On ajoute une mention [ÉTUDES]
-                    new_name_etudes = f"[ÉTUDES {record.reference}]"
-                    unit = self.env.ref('rail_measurement.product_uom_periode', raise_if_not_found=False) if record.total_nb_periods > 0 else self.env.ref('rail_measurement.uom_none', raise_if_not_found=False)
-                    logger = logging.getLogger(__name__)
-                    logger.info(f"Updating study line for measurement {record.reference} with unit {unit.name} and qty {record.total_nb_periods}")
+    #             # --- LIGNE 2 : ÉTUDES (sale_order_line_etudes_id) ---
+    #             if record.sale_order_line_etudes_id:
+    #                 # On ajoute une mention [ÉTUDES]
+    #                 new_name_etudes = f"[ÉTUDES {record.reference}]"
+    #                 unit = self.env.ref('rail_measurement.product_uom_periode', raise_if_not_found=False) if record.total_nb_periods > 0 else self.env.ref('rail_measurement.uom_none', raise_if_not_found=False)
+    #                 logger = logging.getLogger(__name__)
+    #                 logger.info(f"Updating study line for measurement {record.reference} with unit {unit.name} and qty {record.total_nb_periods}")
 
-                    record.sale_order_line_etudes_id.with_context(from_measurement_module=True).write({
-                        'name': new_name_etudes,
-                        'product_uom_qty': record.total_nb_periods if record.total_nb_periods > 0 else 1.0,
-                        'price_unit': record.price_etudes_daily if record.total_nb_periods > 0 else record.price_etudes,
-                        'product_uom_id': unit,
-                    })
+    #                 record.sale_order_line_etudes_id.with_context(from_measurement_module=True).write({
+    #                     'name': new_name_etudes,
+    #                     'product_uom_qty': record.total_nb_periods if record.total_nb_periods > 0 else 1.0,
+    #                     'price_unit': record.price_etudes_daily if record.total_nb_periods > 0 else record.price_etudes,
+    #                     'product_uom_id': unit,
+    #                 })
                 
 
     @api.model_create_multi
@@ -889,12 +1041,15 @@ class RailMeasurement(models.Model):
         for vals in vals_list:
             if vals.get('reference', 'New') == 'New':
                 vals['reference'] = self.env['ir.sequence'].next_by_code('rail.measurement') or 'New'
-
+            
         # 2. Création des enregistrements
         records = super(RailMeasurement, self).create(vals_list)
 
+        if records.sale_order_id:
+            records.sale_order_id.measurement_id = records.id
+        
         # 3. Lien inverse et mise à jour de la description de la ligne de commande
-        records.update_sale_order_line()
+        # records.update_sale_order_line()
         return records
 
     def write(self, vals):
@@ -902,7 +1057,9 @@ class RailMeasurement(models.Model):
         result = super(RailMeasurement, self).write(vals)
 
         # Si on modifie des champs qui impactent la description ou le lien
-        self.update_sale_order_line()
+        # if self.state == 'presale':
+        #     self.update_sale_order_line()
+        
         return result
     
     def unlink(self):
@@ -910,16 +1067,16 @@ class RailMeasurement(models.Model):
         Lors de la suppression d'une mesure, on remet la description 
         standard sur la ligne de commande liée avant de supprimer.
         """
-        for record in self:
-            if record.sale_order_line_id:
-                standard_desc = record.sale_order_line_id.product_id.get_product_multiline_description_sale()
-                record.sale_order_line_id.with_context(from_measurement_module=True).write({
-                    'name': standard_desc,
-                    'product_uom_qty': 1.0,
-                    'price_unit': 0.0,
-                    'product_uom_id': self.env.ref('rail_measurement.uom_none', raise_if_not_found=False),
-                })
-                record.sale_order_line_etudes_id.with_context(allow_study_deletion=True).unlink()
+        # for record in self:
+            # if record.sale_order_line_id:
+            #     standard_desc = record.sale_order_line_id.product_id.get_product_multiline_description_sale()
+            #     record.sale_order_line_id.with_context(from_measurement_module=True).write({
+            #         'name': standard_desc,
+            #         'product_uom_qty': 1.0,
+            #         'price_unit': 0.0,
+            #         'product_uom_id': self.env.ref('rail_measurement.uom_none', raise_if_not_found=False),
+            #     })
+            #     record.sale_order_line_etudes_id.with_context(allow_study_deletion=True).unlink()
         return super(RailMeasurement, self).unlink()
 
     # @api.constrains('pk_initial', 'pk_final')
@@ -939,75 +1096,98 @@ class RailMeasurement(models.Model):
                 if record.date_end < record.date_start:
                     raise exceptions.ValidationError("La date de fin ne peut pas être antérieure à la date de début.")
 
-    def action_confirm(self):
-        """Confirme la mesure - vérifie que les types de chariots sont définis"""
-        for record in self:
-            if not record.chariot_type_lines:
-                raise exceptions.ValidationError("Vous devez définir les types de chariots nécessaires avant de confirmer.")
-            record.state = 'confirmed'
-
     def action_validate_assignment(self):
-            """
-            Valide l'affectation en vérifiant les quantités et les conflits de calendrier.
-            Ne modifie PAS l'état physique du chariot (qui reste 'available'),
-            mais verrouille la mesure en état 'planned'.
-            """
-            for record in self:
-                # 1. Vérifications de base
-                if not record.date_start or not record.date_end:
-                    raise exceptions.ValidationError("Veuillez définir les dates de début et de fin avant de valider.")
+        self.ensure_one()
+        
+        # --- 1. BLOCAGES STRICTS (Ne peuvent pas être ignorés) ---
+        if not self.date_start or not self.date_end:
+            raise exceptions.UserError("Veuillez définir les dates de début et de fin.")
+        if not self.chariot_type_lines:
+            raise exceptions.UserError("Aucun besoin en chariots défini.")
 
-                if not record.chariot_type_lines:
-                    raise exceptions.ValidationError("Aucun besoin en chariots défini.")
+        soft_errors = [] # Liste pour le wizard
 
-                # 2. Vérification ligne par ligne
-                for line in record.chariot_type_lines:
-                    # A. Vérification de la Quantité
-                    assigned_qty = len(line.assigned_chariot_ids)
-                    if assigned_qty != line.quantity:
-                        raise exceptions.ValidationError(
-                            f"Type {line.chariot_type_id.name} : Vous devez affecter exactement "
-                            f"{line.quantity} chariot(s). Actuellement : {assigned_qty}."
-                        )
+        for line in self.chariot_type_lines:
+            # A. Vérification Quantité (STRICT)
+            if len(line.assigned_chariot_ids) != line.quantity:
+                raise exceptions.UserError(f"Type {line.chariot_type_id.name} : Quantité incorrecte.")
 
-                    # B. Vérification de l'état PHYSIQUE (Maintenance, etc.)
-                    # Un chariot peut être libre au calendrier mais en panne physiquement
-                    broken_carts = line.assigned_chariot_ids.filtered(lambda c: c.state != 'available')
-                    if broken_carts:
-                        names = ", ".join(broken_carts.mapped('name'))
-                        raise exceptions.ValidationError(
-                            f"Impossible de valider : les chariots suivants ne sont pas en état de marche "
-                            f"(Maintenance ou Hors service) : {names}"
-                        )
+            # B. Vérification État PHYSIQUE (SOUPLE)
+            broken = line.assigned_chariot_ids.filtered(lambda c: c.state != 'available')
+            if broken:
+                soft_errors.append(f"⚠️ Matériel indisponible : {', '.join(broken.mapped('name'))}")
 
-                    # C. Vérification ultime du CALENDRIER (Conflits)
-                    # On s'assure que personne n'a réservé ces chariots sur ces dates entre temps
-                    for chariot in line.assigned_chariot_ids:
-                        conflicts = self.env['rail.measurement'].search([
-                            ('id', '!=', record.id),                    # Pas moi-même
-                            ('state', 'not in', ['presale', 'cancelled']), # Mesures actives
-                            ('date_start', '<', record.date_end),       # Chevauchement temporel...
-                            ('date_end', '>', record.date_start),       # ...stricte
-                            # On regarde si ce chariot est utilisé dans les lignes de l'autre mesure
-                            ('chariot_type_lines.assigned_chariot_ids', 'in', chariot.id) 
-                        ])
+            # C. Vérification CONFLITS PLANNING (SOUPLE)
+            for chariot in line.assigned_chariot_ids:
+                conflicts = self.env['rail.measurement'].search([
+                    ('id', '!=', self.id),
+                    ('state', 'not in', ['draft', 'cancelled']),
+                    ('date_start', '<', self.date_end),
+                    ('date_end', '>', self.date_start),
+                    ('chariot_type_lines.assigned_chariot_ids', 'in', chariot.id)
+                ])
+                if conflicts:
+                    soft_errors.append(f"⚠️ Conflit planning pour {chariot.name} avec {conflicts[0].reference}")
 
-                        if conflicts:
-                            conflict_list = "\n".join([
-                                f"- {c.reference} ({c.date_start} au {c.date_end})" 
-                                for c in conflicts
-                            ])
-                            raise exceptions.ValidationError(
-                                f"CONFLIT DE PLANNING :\n"
-                                f"Le chariot '{chariot.name}' ne peut pas être validé car il est déjà réservé "
-                                f"sur cette période par :\n{conflict_list}"
-                            )
+        # --- 2. DÉCISION FINALE ---
+        if soft_errors:
+            # On ouvre le wizard pour demander si on passe en mode URGENCE
+            return {
+                'name': 'Conflits détectés : Passer en mode Urgence ?',
+                'type': 'ir.actions.act_window',
+                'res_model': 'rail.urgent.assignment.wizard',
+                'view_mode': 'form',
+                'target': 'new',
+                'context': {
+                    'default_measurement_id': self.id,
+                    'default_message': "\n".join(soft_errors) + "\n\nVoulez-vous passer ce dossier en 'Demande Matériel - Urgence' ?",
+                }
+            }
+    
+        self.prod_substate = 'assigned'
+        self.state = 'measure'
+        self.measure_substate = 'waiting_prod'
 
-                # 3. Validation réussie
-                # On ne touche PAS au state du chariot (il reste 'available' pour le filtre de base)
-                # La réservation est actée par l'existence de cette mesure en état 'planned'
-                record.state = 'planned'
+        return True
 
+    def action_modifier_fiche(self):
+        self.ensure_one()
+
+        for line in self.chariot_type_lines:
+            line.assigned_chariot_ids = [(5, 0, 0)]  # Détache tous les chariots
+
+        self.prod_substate = 'mission'
+
+        return True
+    
+    def action_confirm_fiche_mission(self):
+        """Confirme la mesure - vérifie les dates et les types de chariots"""
+        for record in self:
+            # 1. Vérifier si les dates sont remplies
+            if not record.date_start or not record.date_end:
+                raise UserError("✋ Action impossible : Veuillez définir les dates de début et de fin de mission.")
+
+            # 2. Vérifier la cohérence chronologique
+            if record.date_end < record.date_start:
+                raise UserError("✋ Erreur de saisie : La date de fin ne peut pas être antérieure à la date de début.")
+
+            # 3. Vérifier qu'il y a au moins une ligne de besoin chariot
+            if not record.chariot_type_lines:
+                raise UserError("✋ Action requise : Vous devez définir au moins un type de chariot pour cette mission.")
+
+            # Si tout est OK, on passe à l'étape suivante
+            record.prod_substate = 'material'
+    
+    def action_demande_matériel(self):
+        """Passe à l'étape de demande de matériel"""
+        for record in self:
+            record.prod_substate = 'urgence'
+    
+    def action_matériel_recu(self):
+        """Passe à l'étape d'affectation des chariots"""
+        for record in self:
+            record.prod_substate = 'material'
+    
     # --- MODIFIEZ action_done et action_cancel ---
     # Pour libérer les chariots, il faut boucler sur les lignes
     def action_done(self):
@@ -1054,7 +1234,7 @@ class RailMeasurementChariotTypeLine(models.Model):
 
     measurement_id = fields.Many2one('rail.measurement', required=True, ondelete='cascade')
     chariot_type_id = fields.Many2one('chariot.type', string='Type requis', required=True)
-    quantity = fields.Integer(string='Qté requise', required=True, default=1)
+    quantity = fields.Integer(string='Quantité', required=True, default=1)
     
     assigned_chariot_ids = fields.Many2many(
         'chariot',
@@ -1071,7 +1251,8 @@ class RailMeasurementChariotTypeLine(models.Model):
         Met à jour le domaine pour n'afficher que les chariots libres
         sur la période de la mesure parente.
         """
-        if self.measurement_id.state != 'presale' and (not self.env.context.get('check_avail_start') or not self.env.context.get('check_avail_end')):
+        if self.measurement_id.state and (not self.env.context.get('check_avail_start') or not self.env.context.get('check_avail_end')):
+            if self.measurement_id.state != 'presale' and (self.measurement_id.state != 'production' or not self.measurement_id.prod_substate in ['mission', 'material']):
                     raise UserError(
                         "✋ Action impossible !\n\n"
                         "Veuillez d'abord définir la 'Date de début' et la 'Date de fin' "
@@ -1108,6 +1289,34 @@ class RailMeasurementChariotTypeLine(models.Model):
             }
         }
     
+    # === FILTRAGE DES TYPES DÉJÀ UTILISÉS ===
+    @api.onchange('measurement_id')
+    def _onchange_chariot_type_id_domain(self):
+        """
+        Filtre le dropdown 'Type requis' pour ne proposer que les types
+        qui ne sont pas encore présents dans le tableau.
+        """
+        # 1. On récupère les IDs de tous les types déjà sélectionnés dans les lignes
+        # Note : self.measurement_id.chariot_type_lines contient toutes les lignes (y compris l'actuelle)
+        already_selected_ids = self.measurement_id.chariot_type_lines.mapped('chariot_type_id').ids
+        
+        # 2. Si on est en train de modifier une ligne existante, 
+        # on doit autoriser son propre type dans la liste (sinon il disparaît du dropdown)
+        if self.chariot_type_id:
+            already_selected_ids = [tid for tid in already_selected_ids if tid != self.chariot_type_id._origin.id]
+        
+        logger = logging.getLogger(__name__)
+        logger.info(f"Already selected chariot type IDs: {already_selected_ids}")
+
+        # 3. On retourne le domaine filtré
+        return {'domain': {'chariot_type_id': [('id', 'not in', already_selected_ids)]}}
+
+    # === SÉCURITÉ ABSOLUE (Contrainte SQL Odoo 19) ===
+    _unique_type_per_measurement = models.Constraint(
+        'unique(measurement_id, chariot_type_id)',
+        '✋ Erreur : Ce type de chariot est déjà présent dans le tableau.'
+    )
+    
     # === SÉCURITÉ CÔTÉ SERVEUR ===
     # Au cas où l'utilisateur force la saisie ou change les dates après coup
     @api.constrains('assigned_chariot_ids')
@@ -1130,7 +1339,8 @@ class RailMeasurementChariotTypeLine(models.Model):
                     dates = f"{conflicts[0].date_start} - {conflicts[0].date_end}"
                     raise exceptions.ValidationError(
                         f"Le chariot {chariot.name} est déjà réservé sur la mesure "
-                        f"{conflicts[0].reference} ({dates})."
+                        f"{conflicts[0].reference} ({dates}).\n"
+                        f"Si aucun chariot n'est disponible, et que vous souhaitez forcer l'affectation, passez la mesure en mode 'Demande Matériel - Urgence'."
                     )
     
     @api.constrains('quantity')
@@ -1231,11 +1441,12 @@ class RailMeasurementWizard(models.TransientModel):
     measurement_id = fields.Many2one(
         'rail.measurement',
         string='Mesure existante',
-        domain="[('sale_order_line_id','=',False), ('partner_id', '=', partner_id), ('state', 'in', ['presale'])]",
+        # domain="[('sale_order_line_id','=',False), ('partner_id', '=', partner_id), ('state', 'in', ['presale'])]",
+        domain="[('sale_order_id','=',False), ('partner_id', '=', partner_id), ('state', 'in', ['presale'])]",
     )
 
     # Technical fields to pass context
-    sale_order_line_id = fields.Many2one('sale.order.line', string='Ligne de commande')
+    sale_order_id = fields.Many2one('sale.order', string='Ligne de commande')
     partner_id = fields.Many2one('res.partner', string='Client')
 
     def action_apply(self):
@@ -1246,20 +1457,19 @@ class RailMeasurementWizard(models.TransientModel):
                 raise exceptions.UserError("Veuillez sélectionner une mesure existante.")
             
             measurement = self.measurement_id
-            main_sol = self.sale_order_line_id
-            quotation = main_sol.order_id
+            quotation = self.sale_order_id
 
             # 1. Lien de la mesure à la ligne principale (Relevé) et au devis
             measurement.write({
-                'sale_order_line_id': main_sol.id,
                 'sale_order_id': quotation.id,
             })
+
             
             # 2. Lien inverse sur la SOL principale
-            main_sol.rail_measurement_id = measurement.id
+            quotation.measurement_id = measurement.id
 
             # 4. Synchronisation des noms, prix et quantités pour les deux lignes
-            measurement.update_sale_order_line()
+            # measurement.update_sale_order_line()
 
             return {'type': 'ir.actions.act_window_close'}
 
@@ -1272,10 +1482,8 @@ class RailMeasurementWizard(models.TransientModel):
                 'view_mode': 'form',
                 'target': 'new', # Opens in a popup/sub-window
                 'context': {
-                    'default_sale_order_line_id': self.sale_order_line_id.id,
                     'default_partner_id': self.partner_id.id,
-                    'default_sale_order_id': self.sale_order_line_id.order_id.id,
-                    'default_price_unit': self.sale_order_line_id.price_unit,
+                    'default_sale_order_id': self.sale_order_id.id,
                 }
             }
 
@@ -1287,16 +1495,6 @@ class ProductTemplate(models.Model):
         string='Prestation de mesure ferroviaire',
         help='Cochez cette case pour les produits de type mesure de voie ferrée'
     )
-    rail_measurement_count = fields.Integer(
-        string='Nombre de mesures',
-        compute='_compute_rail_measurement_count'
-    )
-
-    def _compute_rail_measurement_count(self):
-        for tmpl in self:
-            tmpl.rail_measurement_count = self.env['rail.measurement'].search_count([
-                ('sale_order_line_id.product_id.product_tmpl_id', '=', tmpl.id)
-            ])
 
     def action_view_rail_measurements(self):
         self.ensure_one()
@@ -1305,7 +1503,6 @@ class ProductTemplate(models.Model):
             'type': 'ir.actions.act_window',
             'res_model': 'rail.measurement',
             'view_mode': 'list,form',
-            'domain': [('sale_order_line_id.product_id.product_tmpl_id', '=', self.id)],
             'context': {'create': False}
         }
 
@@ -1313,13 +1510,7 @@ class ProductTemplate(models.Model):
 class SaleOrder(models.Model):
     _inherit = 'sale.order'
 
-    measurement_ids = fields.One2many('rail.measurement', 'sale_order_id', string='Mesures de voie')
-    measurement_count = fields.Integer(string='Nombre de mesures', compute='_compute_measurement_count')
-
-    @api.depends('measurement_ids')
-    def _compute_measurement_count(self):
-        for order in self:
-            order.measurement_count = len(order.measurement_ids)
+    measurement_id = fields.Many2one('rail.measurement', string='Mesures de voie')
 
     def action_view_measurements(self):
         self.ensure_one()
@@ -1335,110 +1526,8 @@ class SaleOrder(models.Model):
             }
         }
     
-
-
-class SaleOrderLine(models.Model):
-    _inherit = 'sale.order.line'
-
-    rail_measurement_id = fields.Many2one('rail.measurement', string='Mesure de voie', copy=False)
-    is_rail_measurement = fields.Boolean(related='product_id.is_rail_measurement', string='Est une mesure ferroviaire')
-
-    is_main_measurement_line = fields.Boolean(
-        compute="_compute_is_main_measurement_line",
-        string="Est la ligne de mesure principale"
-    )
-
-    @api.depends('rail_measurement_id.sale_order_line_id')
-    def _compute_is_main_measurement_line(self):
-        for line in self:
-            # On vérifie si cette ligne est bien celle enregistrée comme 'principale' sur la mesure
-            if line.rail_measurement_id and line.rail_measurement_id.sale_order_line_id.id == line._origin.id:
-                line.is_main_measurement_line = True
-            else:
-                line.is_main_measurement_line = False
-    
-    def action_open_rail_measurement_form(self):
-        self.ensure_one()
-        if not self.rail_measurement_id:
-            return
-        
-        return {
-            'type': 'ir.actions.act_window',
-            'name': 'Mesure de voie',
-            'res_model': 'rail.measurement',
-            'res_id': self.rail_measurement_id.id,
-            'view_mode': 'form',
-            'target': 'new',
-            'context': dict(self.env.context),
-        }
-
-    def action_remove_rail_measurement(self):
-        self.ensure_one()
-        if self.rail_measurement_id:
-            # On supprime la ligne d'étude si elle existe
-            if self.rail_measurement_id.sale_order_line_etudes_id:
-                etudes_line = self.rail_measurement_id.sale_order_line_etudes_id
-                etudes_line.with_context(allow_study_deletion=True).unlink()
-            
-            # 1. On nettoie d'abord la fiche de mesure
-            # On lui retire les liens vers la vente et on peut aussi forcer le contexte ici
-            self.rail_measurement_id.with_context(delete_study_line=True).write({
-                'sale_order_id': False,
-                'sale_order_line_id': False,
-                'sale_order_line_etudes_id': False,
-            })
-
-            # 2. On nettoie la ligne de commande actuelle (self)
-            # On utilise le contexte pour autoriser la modification du nom/prix/qté
-            standard_name = self.product_id.get_product_multiline_description_sale()
-            
-            self.with_context(from_measurement_module=True).write({
-                'rail_measurement_id': False,
-                'name': standard_name,
-                'product_uom_qty': 1.0,
-                'price_unit': self.product_id.list_price,
-            })
-        
-        return {
-            'type': 'ir.actions.client',
-            'tag': 'reload',
-        }
-
-    def unlink(self):
-        # On vérifie si on n'est pas dans un "unlink automatique" autorisé
-        if not self.env.context.get('allow_study_deletion'):
-            for line in self:
-                # Si la ligne est liée à une mesure EN TANT QUE ligne d'études
-                m = line.rail_measurement_id
-                if m and line.id == m.sale_order_line_etudes_id.id:
-                    raise exceptions.UserError(_(
-                        "Action impossible : La ligne d'études est gérée automatiquement par le formulaire mesure.\n"
-                        "👉 Pour la retirer, annulez les modifications apportées au devis et modifiez la 'Nature de la mission' sur la fiche de mesure associée."
-                    ))
-                
-        for line in self:
-            # On récupère la mesure liée
-            m = line.rail_measurement_id
-            if m:
-                if line.id == m.sale_order_line_id.id:
-                    m.with_context(delete_study_line=True).write({
-                        'state': 'presale',
-                        'sale_order_id': False,
-                        'sale_order_line_id': False,
-                        'sale_order_line_etudes_id': False,
-                        'sale_substate': 'waiting'
-                    })
-                    line.rail_measurement_id = False
-                elif line.id == m.sale_order_line_etudes_id.id:
-                    m.with_context(delete_study_line=True).write({'sale_order_line_etudes_id': False})
-
-        return super(SaleOrderLine, self).unlink()
-
     def action_create_rail_measurement(self):
         self.ensure_one()
-        
-        if not self.product_id.is_rail_measurement:
-            raise exceptions.UserError("Ce produit n'est pas une prestation de mesure ferroviaire.")
         
         return {
             'type': 'ir.actions.act_window',
@@ -1447,35 +1536,162 @@ class SaleOrderLine(models.Model):
             'view_mode': 'form',
             'target': 'new',
             'context': {
-                'default_sale_order_id': self.order_id.id,
-                'default_sale_order_line_id': self.id,
-                'default_partner_id': self.order_id.partner_id.id,
-                'default_price_unit': self.price_unit,
+                'default_sale_order_id': self.id,
+                'default_partner_id': self.partner_id.id,
             }
         }
     
-    # Sécurité côté serveur pour empêcher la modification directe de la quantité ou du prix
-    def write(self, vals):
-        # 1. On vérifie si l'utilisateur essaie de toucher au prix ou à la quantité
-        restricted_fields = ['product_uom_qty', 'price_unit']
+    def action_update_sale_order_from_measurement(self):
+        pass
 
-        if any(field in vals for field in restricted_fields):
-            # 2. On vérifie si la modification vient du module (via le contexte)
-            if self.is_rail_measurement and not self.env.context.get('from_measurement_module'):
-                for line in self:
-                    # 3. Si la ligne est liée à une mesure, on bloque
-                    if line.rail_measurement_id:
-                        raise exceptions.UserError(_(
-                            "Action impossible : La quantité et le prix de cette ligne sont synchronisés avec le module de mesure.\n"
-                            "👉 Pour modifier ces valeurs, annulez les modifications apportées au devis et modifiez directement la fiche de mesure associée."
-                        ))
-                    else:
-                        raise exceptions.UserError(_(
-                            "Action impossible : La quantité et le prix de cette ligne sont synchronisés avec un module de mesure.\n"
-                            "👉 Pour modifier ces valeurs, annulez les modifications apportées au devis et liez une fiche de mesure à cette ligne de devis."
-                        ))
+    def action_remove_measurement(self):
+        self.ensure_one()
+        if self.measurement_id:
+            # 1. Détachement de la mesure
+            measurement = self.measurement_id
+            measurement.with_context(delete_study_line=True).write({
+                'sale_order_id': False,
+            })
+            self.measurement_id = False
         
-        return super(SaleOrderLine, self).write(vals)
+            # 2. Reset complet du devis
+            # On supprime toutes les lignes actuelles (le (5, 0, 0) vide la One2many)
+            self.write({
+                'order_line': [(5, 0, 0)],
+                'sale_order_template_id': False
+            })
+
+            # 3. Ré-application du modèle SNCF
+            template = self.env.ref('rail_measurement.template_bordereau_sncf_complet', raise_if_not_found=False)
+            if template:
+                self.sale_order_template_id = template
+                self._onchange_sale_order_template_id()
+
+        return {
+            'type': 'ir.actions.client',
+            'tag': 'reload',
+        }
+    
+# class SaleOrderLine(models.Model):
+#     _inherit = 'sale.order.line'
+
+#     rail_measurement_id = fields.Many2one('rail.measurement', string='Mesure de voie', copy=False)
+#     is_rail_measurement = fields.Boolean(related='product_id.is_rail_measurement', string='Est une mesure ferroviaire')
+
+#     is_main_measurement_line = fields.Boolean(
+#         compute="_compute_is_main_measurement_line",
+#         string="Est la ligne de mesure principale"
+#     )
+
+#     @api.depends('rail_measurement_id.sale_order_line_id')
+#     def _compute_is_main_measurement_line(self):
+#         for line in self:
+#             # On vérifie si cette ligne est bien celle enregistrée comme 'principale' sur la mesure
+#             if line.rail_measurement_id and line.rail_measurement_id.sale_order_line_id.id == line._origin.id:
+#                 line.is_main_measurement_line = True
+#             else:
+#                 line.is_main_measurement_line = False
+    
+#     def action_open_rail_measurement_form(self):
+#         self.ensure_one()
+#         if not self.rail_measurement_id:
+#             return
+        
+#         return {
+#             'type': 'ir.actions.act_window',
+#             'name': 'Mesure de voie',
+#             'res_model': 'rail.measurement',
+#             'res_id': self.rail_measurement_id.id,
+#             'view_mode': 'form',
+#             'target': 'new',
+#             'context': dict(self.env.context),
+#         }
+
+#     def action_remove_rail_measurement(self):
+#         self.ensure_one()
+#         if self.rail_measurement_id:
+#             # On supprime la ligne d'étude si elle existe
+#             if self.rail_measurement_id.sale_order_line_etudes_id:
+#                 etudes_line = self.rail_measurement_id.sale_order_line_etudes_id
+#                 etudes_line.with_context(allow_study_deletion=True).unlink()
+            
+#             # 1. On nettoie d'abord la fiche de mesure
+#             # On lui retire les liens vers la vente et on peut aussi forcer le contexte ici
+#             self.rail_measurement_id.with_context(delete_study_line=True).write({
+#                 'sale_order_id': False,
+#                 'sale_order_line_id': False,
+#                 'sale_order_line_etudes_id': False,
+#             })
+
+#             # 2. On nettoie la ligne de commande actuelle (self)
+#             # On utilise le contexte pour autoriser la modification du nom/prix/qté
+#             standard_name = self.product_id.get_product_multiline_description_sale()
+            
+#             self.with_context(from_measurement_module=True).write({
+#                 'rail_measurement_id': False,
+#                 'name': standard_name,
+#                 'product_uom_qty': 1.0,
+#                 'price_unit': self.product_id.list_price,
+#             })
+        
+#         return {
+#             'type': 'ir.actions.client',
+#             'tag': 'reload',
+#         }
+
+#     def unlink(self):
+#         # On vérifie si on n'est pas dans un "unlink automatique" autorisé
+#         if not self.env.context.get('allow_study_deletion'):
+#             for line in self:
+#                 # Si la ligne est liée à une mesure EN TANT QUE ligne d'études
+#                 m = line.rail_measurement_id
+#                 if m and line.id == m.sale_order_line_etudes_id.id:
+#                     raise exceptions.UserError(_(
+#                         "Action impossible : La ligne d'études est gérée automatiquement par le formulaire mesure.\n"
+#                         "👉 Pour la retirer, annulez les modifications apportées au devis et modifiez la 'Nature de la mission' sur la fiche de mesure associée."
+#                     ))
+                
+#         for line in self:
+#             # On récupère la mesure liée
+#             m = line.rail_measurement_id
+#             if m:
+#                 if line.id == m.sale_order_line_id.id:
+#                     m.with_context(delete_study_line=True).write({
+#                         'state': 'presale',
+#                         'sale_order_id': False,
+#                         'sale_order_line_id': False,
+#                         'sale_order_line_etudes_id': False,
+#                         'sale_substate': 'waiting'
+#                     })
+#                     line.rail_measurement_id = False
+#                 elif line.id == m.sale_order_line_etudes_id.id:
+#                     m.with_context(delete_study_line=True).write({'sale_order_line_etudes_id': False})
+
+#         return super(SaleOrderLine, self).unlink()
+    
+#     # Sécurité côté serveur pour empêcher la modification directe de la quantité ou du prix
+#     def write(self, vals):
+#         # 1. On vérifie si l'utilisateur essaie de toucher au prix ou à la quantité
+#         restricted_fields = ['product_uom_qty', 'price_unit']
+
+#         if any(field in vals for field in restricted_fields):
+#             # 2. On vérifie si la modification vient du module (via le contexte)
+#             if self.is_rail_measurement and not self.env.context.get('from_measurement_module'):
+#                 for line in self:
+#                     # 3. Si la ligne est liée à une mesure, on bloque
+#                     if line.rail_measurement_id:
+#                         raise exceptions.UserError(_(
+#                             "Action impossible : La quantité et le prix de cette ligne sont synchronisés avec le module de mesure.\n"
+#                             "👉 Pour modifier ces valeurs, annulez les modifications apportées au devis et modifiez directement la fiche de mesure associée."
+#                         ))
+#                     else:
+#                         raise exceptions.UserError(_(
+#                             "Action impossible : La quantité et le prix de cette ligne sont synchronisés avec un module de mesure.\n"
+#                             "👉 Pour modifier ces valeurs, annulez les modifications apportées au devis et liez une fiche de mesure à cette ligne de devis."
+#                         ))
+        
+#         return super(SaleOrderLine, self).write(vals)
+
 
 class RailMeasurementPlanning(models.Model):
     _name = 'rail.measurement.planning'
@@ -1488,8 +1704,8 @@ class RailMeasurementPlanning(models.Model):
     year = fields.Integer("Année")
     week_number = fields.Integer("Semaine")
     week_label = fields.Char("S", compute="_compute_week_label")
-    date_from = fields.Date("Du")
-    date_to = fields.Date("Au")
+    date_start = fields.Date("Du")
+    date_end = fields.Date("Au")
 
     # Slots de travail (J/N)
     PLAN_OPT = [('none', '-'), ('day', 'J'), ('night', 'N')]
@@ -1528,7 +1744,7 @@ class RailMeasurementPlanning(models.Model):
             other_weeks.write(vals)
         
         self._compute_nb_periods()
-        self.measurement_id.update_sale_order_line()
+        # self.measurement_id.update_sale_order_line()
 
         return True
     
@@ -1542,3 +1758,144 @@ class RailMeasurementPlanning(models.Model):
                     count += 1
             rec.nb_periods = count
     
+    # Champs techniques pour compter les fichiers par jour
+    mon_has_file = fields.Boolean(compute='_compute_files_presence')
+    tue_has_file = fields.Boolean(compute='_compute_files_presence')
+    wed_has_file = fields.Boolean(compute='_compute_files_presence')
+    thu_has_file = fields.Boolean(compute='_compute_files_presence')
+    fri_has_file = fields.Boolean(compute='_compute_files_presence')
+    sat_has_file = fields.Boolean(compute='_compute_files_presence')
+    sun_has_file = fields.Boolean(compute='_compute_files_presence')
+
+    day_file_ids = fields.One2many('rail.measurement.day.file', 'planning_id', string="Fichiers de la semaine")
+
+    def _compute_files_presence(self):
+        for rec in self:
+            # On vérifie la présence de fichiers pour chaque jour de la semaine
+            days_with_files = rec.day_file_ids.mapped('day')
+            rec.mon_has_file = 'mon' in days_with_files
+            rec.tue_has_file = 'tue' in days_with_files
+            rec.wed_has_file = 'wed' in days_with_files
+            rec.thu_has_file = 'thu' in days_with_files
+            rec.fri_has_file = 'fri' in days_with_files
+            rec.sat_has_file = 'sat' in days_with_files
+            rec.sun_has_file = 'sun' in days_with_files
+
+    def action_view_day_files(self):
+        """ 
+        Ouvre une vue avec les fichiers de la semaine. 
+        On pourrait pousser le vice à filtrer par jour, 
+        mais voir tous les fichiers de la semaine est plus simple.
+        """
+        return {
+            'name': 'Fichiers de la semaine',
+            'type': 'ir.actions.act_window',
+            'res_model': 'rail.measurement.day.file',
+            'view_mode': 'list,form',
+            'domain': [('planning_id', '=', self.id)],
+            'context': {'default_planning_id': self.id},
+            'target': 'new',
+        }
+
+class RailMeasurementDayFile(models.Model):
+    _name = 'rail.measurement.day.file'
+    _description = 'Fichier de mesure journalier'
+
+    planning_id = fields.Many2one('rail.measurement.planning', string="Semaine", ondelete='cascade')
+    day = fields.Selection([
+        ('mon', 'Lundi'), ('tue', 'Mardi'), ('wed', 'Mercredi'),
+        ('thu', 'Jeudi'), ('fri', 'Vendredi'), ('sat', 'Samedi'), ('sun', 'Dimanche')
+    ], string="Jour")
+    week_number = fields.Integer(
+        related='planning_id.week_number', 
+        string="N° Semaine", 
+        readonly=True, 
+        store=True
+    )
+    
+    file = fields.Binary(string="Fichier", required=True)
+    file_name = fields.Char(string="Nom du fichier")
+    
+    # Lien technique vers la mesure parente pour faciliter les recherches
+    measurement_id = fields.Many2one('rail.measurement', related='planning_id.measurement_id', store=True)
+
+class RailUrgentAssignmentWizard(models.TransientModel):
+    _name = 'rail.urgent.assignment.wizard'
+    _description = 'Confirmation de demande urgente'
+
+    measurement_id = fields.Many2one('rail.measurement', string="Mesure")
+    message = fields.Text(string="Alertes détectées", readonly=True)
+
+    def action_confirm(self):
+        """L'utilisateur a cliqué sur OUI : On passe en mode URGENCE"""
+        self.measurement_id.prod_substate = 'urgence'
+        return {'type': 'ir.actions.act_window_close'}
+
+class ConsistanceLine(models.Model):
+    _name = 'rail.measurement.consistance.line'
+    _description = 'Ligne de consistance pour une mesure'
+
+    measurement_id = fields.Many2one('rail.measurement', ondelete='cascade')
+    ligne_id = fields.Many2one('leyfa.ligne', string='Ligne')
+    voie_id = fields.Many2one('leyfa.type.voie', string="Voie")
+    desc_nature_travaux = fields.Many2one('rail.nature.travaux', string="Type Tx")
+
+    # Localisation
+    zone_debut = fields.Many2one('rail.type.alignement.courbe', string="Début zone sur")
+    pkd = fields.Float(string="PKD", digits=(7, 0))
+    pkf = fields.Float(string="PKF", digits=(7, 0))
+    zone_fin = fields.Many2one('rail.type.alignement.courbe', string="Fin zone sur")
+
+    # Calculs automatiques
+    
+    maj_deb = fields.Float(string="Maj. Début", digits=(7, 0))
+    maj_fin = fields.Float(string="Maj. Fin", digits=(7, 0))
+    
+
+    # Limites et détails
+    nombre_courbes = fields.Integer(string="Nb Courbes")
+    longueur_courbes = fields.Float(string="Long. Courbes", digits=(7, 0))
+    nombres_quais = fields.Integer(string="Nb Quais")
+    longueur_quais = fields.Float(string="Long. Quais", digits=(7, 0))
+    observations = fields.Text(string="Observations")
+
+    limite_amont = fields.Float(string="Limite Amont", digits=(7, 0), compute='_compute_limites')
+    limite_aval = fields.Float(string="Limite Aval", digits=(7, 0), compute='_compute_limites')
+    
+    @api.onchange('pkd', 'pkf', 'maj_deb', 'maj_fin')
+    def _compute_limites(self):
+        for rec in self:
+            rec.limite_amont = rec.pkd - rec.maj_deb
+            rec.limite_aval = rec.pkf + rec.maj_fin
+
+# Les fields.selections sont ici des classe au cas où il y aurait nouveauté ou changement de nom etc
+
+class RailNatureTravaux(models.Model):
+    _name = 'rail.nature.travaux'
+    _description = 'Nature des travaux'
+    _order = 'name'
+
+    name = fields.Char(string="Code", required=True)
+    description = fields.Char(string="Description")
+
+class TypeAlignementCourbe(models.Model):
+    _name = 'rail.type.alignement.courbe'
+    _description = 'Type d\'alignement ou de courbe'
+    _order = 'name'
+
+    name = fields.Char(string="Type", required=True)
+
+# Nécessaire pour le tableau 2 de consistance
+class RailMeasurementCibleLine(models.Model):
+    _name = 'rail.measurement.cible.line'
+    _description = 'Ligne de cible pour une mesure'
+
+    measurement_id = fields.Many2one('rail.measurement', ondelete='cascade')
+    name = fields.Char(string="Désignation", required=True) # Ce champ causait l'erreur
+    qty = fields.Integer(string="Quantité")
+    observation = fields.Char(string="Observations")
+    line_type = fields.Selection([
+        ('cible', 'Cible'),
+        ('prov', 'Provisoire'),
+        ('courbe', 'Courbe')
+    ], string="Type", hidden=True)

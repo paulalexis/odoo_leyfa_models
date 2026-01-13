@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates>
+    <!-- On hérite du template des boutons de la vue liste -->
+    <t t-name="rail_measurement.ListButtons" t-inherit="web.ListView.Buttons" t-inherit-mode="extension">
+        <!-- '.' cible l'élément racine (le div class="o_list_buttons") -->
+        <xpath expr="." position="inside">
+            <t t-if="props.resModel === 'rail.measurement'">
+                <button type="button" 
+                        class="btn btn-secondary ms-1" 
+                        t-on-click="() => this.onUploadButtonClick()">
+                    <i class="fa fa-upload me-1"/> Mesure
+                </button>
+            </t>
+        </xpath>
+    </t>
+</templates>

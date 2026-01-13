@@ -1,0 +1,217 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_rail_measurement_form_inherit_prevente" model="ir.ui.view">
+        <field name="name">rail.measurement.form.inherit.prevente</field>
+        <field name="model">rail.measurement</field>
+        <field name="inherit_id" ref="rail_measurement.view_rail_measurement_form"/>
+        <field name="arch" type="xml">
+            
+            <!-- We target the notebook in the main view -->
+            <xpath expr="//page[@name='sales_tab']" position="inside">
+
+                <notebook position="inside">
+                    <page string="Informations Générales" name="general_info_subtab">
+                        <div class="row mt-n2" style="margin-top: 0px !important;">
+                            
+                            <!-- COLONNE GAUCHE -->
+                            <div class="col-lg-6 col-md-12">
+                                <group string="CODAGE LEYFA" name="codage_leyfa">
+                                    <field name="type_requires_nature" invisible="1"/>
+                                    <field name="state" invisible="1"/>
+                                    <field name="last_synced_code" invisible="1" force_save="1"/>
+
+                                    <field name="code_affaire" 
+                                        string="Code Affaire"
+                                        placeholder="Entrez le code affaire..." 
+                                        decoration-bf="1" 
+                                        class="text-primary fs-4" 
+                                        readonly="state != 'presale'" 
+                                        force_save="1"/>
+
+                                    <div colspan="2" class="text-center text-muted fw-bold py-2">
+                                        — OU —
+                                    </div>
+
+                                    <field name="exercice_id" options="{'no_create': True, 'no_open': True}" readonly="state != 'presale'" placeholder="Exercice"/>
+                                    <label for="ligne_id" string="Ligne / Voies"/>
+                                    <div class="o_row">
+                                        <field name="ligne_id" 
+                                            options="{'no_create': True, 'no_open': True}" 
+                                            readonly="state != 'presale'"
+                                            placeholder="Sélectionnez la ligne..."/>
+                                        
+                                        <field name="voie_ids" 
+                                            widget="many2many_tags" 
+                                            options="{'color_field': 'color', 'no_create_edit': False}"
+                                            placeholder="Voies..."
+                                            readonly="state != 'presale'"
+                                            context="{'default_active': True}"/>
+                                    </div>
+                                    <field name="type_affaire_id" options="{'no_create': True, 'no_open': True}" readonly="state != 'presale'"/>
+                                    <field name="nature_mission" widget="radio" options="{'horizontal': true}" 
+                                        invisible="not type_requires_nature" required="type_requires_nature" readonly="state != 'presale'"/>
+
+                                    <label for="desc_typologie_detail" string="Typologie / Travaux"/>
+                                    <div class="o_row">
+                                        <field name="desc_typologie_detail" placeholder="Typologie..." readonly="state != 'presale'"/>
+                                        <field name="desc_nature_travaux" placeholder="Nature des travaux..." readonly="state != 'presale'"/>
+                                    </div>
+
+                                    <label for="desc_methodologie" string="Méthodo / Année"/>
+                                    <div class="o_row">
+                                        <field name="desc_methodologie" placeholder="Méthodologie..." readonly="state != 'presale'"/>
+                                        <field name="desc_annee" options="{'format': false}" placeholder="Année" 
+                                            widget="char" readonly="state != 'presale'"/>
+                                    </div>
+                                </group>
+                            </div>
+
+                            <!-- COLONNE DROITE -->
+                            <div class="col-lg-6 col-md-12">
+                                <group string="LOCALISATION" name="localisation_group">
+                                    <label for="pk_initial" string="Segment (PK)"/>
+                                    <div class="o_row">
+                                        <field name="pk_initial" placeholder="Début" readonly="state != 'presale'"/>
+                                        <span>à</span>
+                                        <field name="pk_final" placeholder="Fin" readonly="state != 'presale'"/>
+                                    </div>
+                                    <label for="lineaire_releve" string="Linéaire relevé"/>
+                                    <div class="o_row">
+                                        <field name="lineaire_releve" 
+                                            placeholder="Métrage..."
+                                            readonly="state != 'presale'"
+                                            class="oe_inline"
+                                            style="width: 100px !important;"/>
+                                    </div>
+                                    <label for="lineaire_etudes" string="Linéaire études" invisible="nature_mission != 'E'"/>
+                                    <div class="o_row">
+                                        <field name="lineaire_etudes" 
+                                            placeholder="Métrage..."
+                                            readonly="state not in ['presale', 'study']"
+                                            class="oe_inline"
+                                            style="width: 100px !important;"
+                                            invisible="nature_mission != 'E'"/>
+                                    </div>
+                                </group>
+
+                                <group string="VENTE" name="ventes_group">
+                                    <div colspan="2" class="text-muted mb-2 d-flex align-items-center" 
+                                        style="font-size: 0.72rem; border-bottom: 1px solid #eee; padding-bottom: 5px; white-space: nowrap; overflow: hidden;" 
+                                        invisible="not sale_order_id">
+                                        <div class="d-flex align-items-center me-2">
+                                            <span class="fw-bold me-1">Réf :</span>
+                                            <field name="sale_order_id" readonly="1" nolabel="1" class="oe_inline m-0"/>
+                                        </div>
+                                    </div>
+                                    <field name="currency_id" invisible="1"/>
+                                    <field name="total_nb_periods" invisible="1"/>
+
+                                    <label for="price_releve"/>
+                                    <div class="d-flex align-items-baseline">
+                                        <field name="price_releve" widget="monetary" class="oe_inline fw-bold"
+                                            readonly="state != 'presale'" options="{'currency_field': 'currency_id'}"/>
+                                        <div class="text-muted small ms-2" invisible="total_nb_periods == 0">
+                                            <span>(</span>
+                                            <field name="price_releve_daily" widget="monetary" class="oe_inline"/>
+                                            <span> / pér.)</span>
+                                        </div>
+                                    </div>
+
+                                    <label for="price_etudes" invisible="nature_mission != 'E'"/>
+                                    <div class="d-flex align-items-baseline" invisible="nature_mission != 'E'">
+                                        <field name="price_etudes" widget="monetary" class="oe_inline fw-bold"
+                                            readonly="state != 'presale'" options="{'currency_field': 'currency_id'}"/>
+                                        <div class="text-muted small ms-2" invisible="total_nb_periods == 0">
+                                            <span>(</span>
+                                            <field name="price_etudes_daily" widget="monetary" class="oe_inline"/>
+                                            <span> / pér.)</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <label for="price_total" string="Total Mission" invisible="nature_mission != 'E'"/>
+                                    <div class="d-flex align-items-baseline" invisible="nature_mission != 'E'">
+                                        <field name="price_total" widget="monetary" class="oe_inline fw-bold text-primary"
+                                            readonly="1" options="{'currency_field': 'currency_id'}"/>
+                                        <div class="text-primary small ms-2" invisible="total_nb_periods == 0">
+                                            <span class="fw-bold">(Σ </span>
+                                            <field name="price_total_daily" widget="monetary" class="oe_inline"/>
+                                            <span> / pér.)</span>
+                                        </div>
+                                    </div>
+                                </group>
+                            </div>
+                        </div>
+                        <separator string="OBSERVATIONS / INFORMATIONS SUPPLÉMENTAIRES"/>
+                        <field name="desc_observations" placeholder="Observations..."/>
+                    </page>
+
+                    <!-- Second Page included in this file -->
+                    <page string="Consistance" name="consistency_subtab">
+                        <field name="consistance_lines" context="{'default_ligne_id': ligne_id}">
+                            <list editable="bottom" class="o_rail_wrap_header">
+                                <!-- On utilise des strings longs pour forcer la compréhension -->
+                                <field name="ligne_id" string="Ligne Ferroviaire" options="{'no_create': True, 'no_create_edit': True, 'no_open': True, 'no_quick_create': True}"/>
+                                <field name="voie_id" string="Voie" domain="[('id', 'in', parent.voie_ids)]" options="{'no_create': True, 'no_create_edit': True, 'no_open': True, 'no_quick_create': True}"/>
+                                <field name="desc_nature_travaux" string="Type de travaux" options="{'no_create': True, 'no_create_edit': True, 'no_open': True, 'no_quick_create': True}"/>
+
+                                <!-- PKD et PKF restent courts comme demandé -->
+                                <field name="zone_debut" string="Début zone sur" options="{'no_create': True, 'no_create_edit': True, 'no_open': True, 'no_quick_create': True}"/>
+                                <field name="pkd" string="PKD"/>
+                                <field name="pkf" string="PKF"/>
+                                <field name="zone_fin" string="Fin zone sur" options="{'no_create': True, 'no_create_edit': True, 'no_open': True, 'no_quick_create': True}"/>
+
+                                <!-- Noms complets pour les majorations -->
+                                <field name="maj_deb" string="Majoration début"/>
+                                <field name="maj_fin" string="Majoration fin"/>
+
+                                <!-- S9 et détails -->
+                                <field name="limite_amont" string="Limite amont" optional="hide"/>
+                                <field name="limite_aval" string="Limite aval" optional="hide"/>
+
+                                <field name="nombre_courbes" string="Nb de Courbes" optional="show"/>
+                                <field name="longueur_courbes" string="Long. Tot. Courbes" optional="show"/>
+                                <field name="nombres_quais" string="Nb de Quais" optional="show"/>
+                                <field name="longueur_quais" string="Long. Tot. Quais" optional="show"/>
+
+                                <field name="observations" string="Observations" optional="show"/>
+                            </list>
+                        </field>
+
+                        <group class="mt-0">
+                            <group class="mb-2">
+                                <div class="o_row">
+                                    <span class="text-primary fw-bold">Total linéaire théorique :</span>
+                                    <field name="total_theo_consistance" nolabel="1" readonly="1" class="fw-bold text-primary"/>
+                                    
+                                    <span class="ms-4 text-danger fw-bold">Total linéaire relevé :</span>
+                                    <field name="total_releve_consistance" nolabel="1" readonly="1" class="fw-bold text-danger"/>
+                                </div>
+                            </group>
+                        </group>
+                        <!-- <div style="font-size: 0.85rem;">
+                            <i>Toutes les distances sont en mètre (m).</i>
+                        </div> -->
+                        <group col="2">
+                            <group string="Matériel de repérage">
+                                <field name="cible_line_ids" nolabel="1" class="w-100">
+                                    <list editable="bottom" create="0" delete="0">
+                                        <field name="name" readonly="1" force_save="1" style="min-width: 200px !important;"/>
+                                        <field name="qty" string="Qté"/>
+                                        <field name="observation" string="Observations"/>
+                                    </list>
+                                </field>
+                            </group>
+
+                            <group string="Autre matériel / Notes">
+                                <!-- Placez ici votre deuxième tableau ou d'autres champs -->
+                                <p class="text-muted fst-italic">Emplacement pour le second tableau...</p>
+                            </group>
+
+                        </group>
+                    </page>
+                </notebook>
+            </xpath>
+
+        </field>
+    </record>
+</odoo>

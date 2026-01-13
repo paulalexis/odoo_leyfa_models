@@ -67,14 +67,14 @@ class Chariot(models.Model):
         start_date = self.env.context.get('check_avail_start')
         end_date = self.env.context.get('check_avail_end')
         current_measure_id = self.env.context.get('check_avail_id')
-        
+
         # 2. Pré-calcul des chariots occupés (Performance)
         booked_cart_ids = []
         if start_date and end_date:
             # On cherche toutes les mesures confirmées/planifiées qui chevauchent
             conflicts = self.env['rail.measurement'].search([
                 ('id', '!=', current_measure_id),             # Pas celle-ci
-                ('state', 'in', ['planned', 'in_progress']),  # Mesures actives
+                ('prod_substate', '=', ['assigned']),  # Mesures actives
                 ('date_start', '<', end_date),                # Chevauchement
                 ('date_end', '>', start_date),
             ])
@@ -105,6 +105,5 @@ class Chariot(models.Model):
                 suffix = "" # Pas de suffixe, c'est le cas normal
             
             # Construction du nom final
-            # Ex: "🟢 LYNX1" ou "⚠️ LYNX2 (Déjà réservé)"
             record.display_name = f"{prefix} {name}{suffix}"
             

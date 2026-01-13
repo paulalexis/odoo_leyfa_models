@@ -54,6 +54,6 @@
         <field name="view_mode">list,form</field>
     </record>
 
-    <menuitem id="menu_test_root" name="Opérations SNCF" sequence="10"/>
-    <menuitem id="menu_test_process" name="Missions" parent="menu_test_root" action="action_test_process"/>
+    <!-- <menuitem id="menu_test_root" name="Opérations SNCF" sequence="10"/>
+    <menuitem id="menu_test_process" name="Missions" parent="menu_test_root" action="action_test_process"/> -->
 </odoo>

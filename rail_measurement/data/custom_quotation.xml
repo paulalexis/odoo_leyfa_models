@@ -1,0 +1,626 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <!-- Unités de mesure personnalisées -->
+        <record id="product_uom_periode" model="uom.uom">
+            <field name="name">pér.</field>
+            <field name="category_id" ref="uom.product_uom_categ_unit"/>
+            <field name="factor">1.0</field>
+            <field name="rounding">0.01</field>
+            <field name="uom_type">reference</field>
+        </record>
+        
+        <record id="uom_none" model="uom.uom">
+            <field name="name">u</field>
+            <field name="category_id" ref="uom.product_uom_categ_unit"/>
+            <field name="factor">1.0</field>
+            <field name="rounding">1.0</field>
+            <field name="uom_type">reference</field>
+        </record>
+
+        <!-- Catégorie de produit -->
+        <record id="cat_rail_measurement" model="product.category">
+            <field name="name">Mesurage Ferroviaire</field>
+        </record>
+
+        <!-- Taxe -->
+        <!-- <record id="tax_sale_20" model="account.tax">
+            <field name="name">TVA 20%</field>
+            <field name="amount">20.0</field>
+            <field name="amount_type">percent</field>
+            <field name="type_tax_use">sale</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record> -->
+
+        <!-- === FORFAIT === -->
+        <record id="prod_rail_forfait" model="product.template">
+            <field name="name">Déplacement - Forfait hebdomadaire</field>
+            <field name="default_code">FORFAIT</field>
+            <field name="list_price">1771.00</field>
+            <field name="type">service</field>
+            <field name="uom_id" ref="product_uom_week"/>
+            <field name="categ_id" ref="cat_rail_measurement"/>
+            <!-- <field name="taxes_id" eval="[(6, 0, [ref('tax_sale_20')])]"/> -->
+        </record>
+
+        <!-- === 1. REPERAGE === -->
+        <record id="prod_rail_1_1" model="product.template">
+            <field name="name">Chainage décamétrique</field>
+            <field name="default_code">1.1</field>
+            <field name="list_price">253.00</field>
+            <field name="type">service</field>
+            <field name="uom_id" ref="uom.product_uom_km"/>
+            <field name="categ_id" ref="cat_rail_measurement"/>
+            <field name="uom_id" ref="product_uom_periode"/>
+            <!-- <field name="taxes_id" eval="[(6, 0, [ref('tax_sale_20')])]"/> -->
+        </record>
+
+        <record id="prod_rail_1_2" model="product.template">
+            <field name="name">Pose plaquettes matérialisation chainage</field>
+            <field name="default_code">1.2</field>
+            <field name="list_price">5.50</field>
+            <field name="type">service</field>
+            <field name="uom_id" ref="uom.product_uom_unit"/>
+            <field name="categ_id" ref="cat_rail_measurement"/>
+            <!-- <field name="taxes_id" eval="[(6, 0, [ref('tax_sale_20')])]"/> -->
+        </record>
+
+        <record id="prod_rail_1_3" model="product.template">
+            <field name="name">Géo-localisation du repérage</field>
+            <field name="default_code">1.3</field>
+            <field name="list_price">5.50</field>
+            <field name="type">service</field>
+            <field name="uom_id" ref="uom.product_uom_unit"/>
+            <field name="categ_id" ref="cat_rail_measurement"/>
+            <!-- <field name="taxes_id" eval="[(6, 0, [ref('tax_sale_20')])]"/> -->
+        </record>
+
+        <record id="prod_rail_1_4" model="product.template">
+            <field name="name">Pose plaques repères sur points fixes/obstacles (Mire)</field>
+            <field name="default_code">1.4</field>
+            <field name="list_price">5.50</field>
+            <field name="type">service</field>
+            <field name="uom_id" ref="uom.product_uom_unit"/>
+            <field name="categ_id" ref="cat_rail_measurement"/>
+            <!-- <field name="taxes_id" eval="[(6, 0, [ref('tax_sale_20')])]"/> -->
+        </record>
+
+        <record id="prod_rail_1_5" model="product.template">
+            <field name="name">Fourniture des cibles ou plaquettes</field>
+            <field name="default_code">1.5</field>
+            <field name="list_price">10.00</field>
+            <field name="type">service</field>
+            <field name="uom_id" ref="uom.product_uom_unit"/>
+            <field name="categ_id" ref="cat_rail_measurement"/>
+            <!-- <field name="taxes_id" eval="[(6, 0, [ref('tax_sale_20')])]"/> -->
+        </record>
+
+        <record id="prod_rail_1_6_a" model="product.template">
+            <field name="name">Repérage des Quais / OA MT 40174 (100 à 400m)</field>
+            <field name="default_code">1.6a</field>
+            <field name="list_price">87.91</field>
+            <field name="type">service</field>
+            <field name="uom_id" ref="uom.product_uom_unit"/>
+            <field name="categ_id" ref="cat_rail_measurement"/>
+            <!-- <field name="taxes_id" eval="[(6, 0, [ref('tax_sale_20')])]"/> -->
+        </record>
+
+        <record id="prod_rail_1_6_b" model="product.template">
+            <field name="name">Repérage des Quais / OA MT 40174 (au-delà de 400m)</field>
+            <field name="default_code">1.6b</field>
+            <field name="list_price">30.00</field>
+            <field name="type">service</field>
+            <field name="uom_id" ref="uom.product_uom_unit"/>
+            <field name="categ_id" ref="cat_rail_measurement"/>
+            <!-- <field name="taxes_id" eval="[(6, 0, [ref('tax_sale_20')])]"/> -->
+        </record>
+
+        <!-- === 2. GEOMETRIE VOIE === -->
+        <record id="prod_rail_2_1" model="product.template">
+            <field name="name">Flèches, dévers équidistance de 10m</field>
+            <field name="default_code">2.1</field>
+            <field name="list_price">597.00</field>
+            <field name="type">service</field>
+            <field name="uom_id" ref="uom.product_uom_km"/>
+            <field name="categ_id" ref="cat_rail_measurement"/>
+            <field name="uom_id" ref="product_uom_periode"/>
+            <!-- <field name="taxes_id" eval="[(6, 0, [ref('tax_sale_20')])]"/> -->
+        </record>
+
+        <record id="prod_rail_2_2" model="product.template">
+            <field name="name">Flèches, dévers en continu</field>
+            <field name="default_code">2.2</field>
+            <field name="list_price">770.00</field>
+            <field name="type">service</field>
+            <field name="uom_id" ref="uom.product_uom_km"/>
+            <field name="categ_id" ref="cat_rail_measurement"/>
+            <field name="uom_id" ref="product_uom_periode"/>
+            <!-- <field name="taxes_id" eval="[(6, 0, [ref('tax_sale_20')])]"/> -->
+        </record>
+
+        <record id="prod_rail_2_3" model="product.template">
+            <field name="name">Nivellement (détermination caractéristiques RC)</field>
+            <field name="default_code">2.3</field>
+            <field name="list_price">165.00</field>
+            <field name="type">service</field>
+            <field name="uom_id" ref="uom.product_uom_km"/>
+            <field name="categ_id" ref="cat_rail_measurement"/>
+            <field name="uom_id" ref="product_uom_periode"/>
+            <!-- <field name="taxes_id" eval="[(6, 0, [ref('tax_sale_20')])]"/> -->
+        </record>
+
+        <record id="prod_rail_2_4" model="product.template">
+            <field name="name">Paramètres Mauzin Classique (sortie G+N)</field>
+            <field name="default_code">2.4</field>
+            <field name="list_price">165.00</field>
+            <field name="type">service</field>
+            <field name="uom_id" ref="uom.product_uom_km"/>
+            <field name="categ_id" ref="cat_rail_measurement"/>
+            <field name="uom_id" ref="product_uom_periode"/>
+            <!-- <field name="taxes_id" eval="[(6, 0, [ref('tax_sale_20')])]"/> -->
+        </record>
+
+        <record id="prod_rail_2_5" model="product.template">
+            <field name="name">Supplément Base longue</field>
+            <field name="default_code">2.5</field>
+            <field name="list_price">55.00</field>
+            <field name="type">service</field>
+            <field name="uom_id" ref="uom.product_uom_km"/>
+            <field name="categ_id" ref="cat_rail_measurement"/>
+            <field name="uom_id" ref="product_uom_periode"/>
+            <!-- <field name="taxes_id" eval="[(6, 0, [ref('tax_sale_20')])]"/> -->
+        </record>
+
+        <!-- === 3. POSITIONNEMENT === -->
+        <record id="prod_rail_3_1" model="product.template">
+            <field name="name">Implantation voies contigues (entraxes)</field>
+            <field name="default_code">3.1</field>
+            <field name="list_price">253.00</field>
+            <field name="type">service</field>
+            <field name="uom_id" ref="uom.product_uom_km"/>
+            <field name="categ_id" ref="cat_rail_measurement"/>
+            <field name="uom_id" ref="product_uom_periode"/>
+            <!-- <field name="taxes_id" eval="[(6, 0, [ref('tax_sale_20')])]"/> -->
+        </record>
+
+        <record id="prod_rail_3_2" model="product.template">
+            <field name="name">Implantation (points fixes et obstacles)</field>
+            <field name="default_code">3.2</field>
+            <field name="list_price">253.00</field>
+            <field name="type">service</field>
+            <field name="uom_id" ref="uom.product_uom_km"/>
+            <field name="categ_id" ref="cat_rail_measurement"/>
+            <field name="uom_id" ref="product_uom_periode"/>
+            <!-- <field name="taxes_id" eval="[(6, 0, [ref('tax_sale_20')])]"/> -->
+        </record>
+
+        <record id="prod_rail_3_3" model="product.template">
+            <field name="name">Contrôle du débouché en Temps Réel</field>
+            <field name="default_code">3.3</field>
+            <field name="list_price">152.00</field>
+            <field name="type">service</field>
+            <field name="uom_id" ref="uom.product_uom_km"/>
+            <field name="categ_id" ref="cat_rail_measurement"/>
+            <field name="uom_id" ref="product_uom_periode"/>
+            <!-- <field name="taxes_id" eval="[(6, 0, [ref('tax_sale_20')])]"/> -->
+        </record>
+
+        <!-- === 4. CATENAIRE === -->
+        <record id="prod_rail_4_1" model="product.template">
+            <field name="name">Mesure hauteur/désaxement (supports)</field>
+            <field name="default_code">4.1</field>
+            <field name="list_price">188.00</field>
+            <field name="type">service</field>
+            <field name="uom_id" ref="uom.product_uom_km"/>
+            <field name="categ_id" ref="cat_rail_measurement"/>
+            <field name="uom_id" ref="product_uom_periode"/>
+            <!-- <field name="taxes_id" eval="[(6, 0, [ref('tax_sale_20')])]"/> -->
+        </record>
+
+        <record id="prod_rail_4_2" model="product.template">
+            <field name="name">Mesure hauteur/désaxement à mi-portée</field>
+            <field name="default_code">4.2</field>
+            <field name="list_price">188.00</field>
+            <field name="type">service</field>
+            <field name="uom_id" ref="uom.product_uom_km"/>
+            <field name="categ_id" ref="cat_rail_measurement"/>
+            <field name="uom_id" ref="product_uom_periode"/>
+            <!-- <field name="taxes_id" eval="[(6, 0, [ref('tax_sale_20')])]"/> -->
+        </record>
+
+        <record id="prod_rail_4_3" model="product.template">
+            <field name="name">Libre passage sous PRO</field>
+            <field name="default_code">4.3</field>
+            <field name="list_price">47.00</field>
+            <field name="type">service</field>
+            <field name="uom_id" ref="uom.product_uom_km"/>
+            <field name="categ_id" ref="cat_rail_measurement"/>
+            <field name="uom_id" ref="product_uom_periode"/>
+            <!-- <field name="taxes_id" eval="[(6, 0, [ref('tax_sale_20')])]"/> -->
+        </record>
+
+        <record id="prod_rail_4_4" model="product.template">
+            <field name="name">Prise de photo des armements</field>
+            <field name="default_code">4.4</field>
+            <field name="list_price">186.00</field>
+            <field name="type">service</field>
+            <field name="uom_id" ref="uom.product_uom_km"/>
+            <field name="categ_id" ref="cat_rail_measurement"/>
+            <field name="uom_id" ref="product_uom_periode"/>
+            <!-- <field name="taxes_id" eval="[(6, 0, [ref('tax_sale_20')])]"/> -->
+        </record>
+
+        <record id="prod_rail_4_5" model="product.template">
+            <field name="name">Mesure des armements</field>
+            <field name="default_code">4.5</field>
+            <field name="list_price">470.00</field>
+            <field name="type">service</field>
+            <field name="uom_id" ref="uom.product_uom_km"/>
+            <field name="categ_id" ref="cat_rail_measurement"/>
+            <field name="uom_id" ref="product_uom_periode"/>
+            <!-- <field name="taxes_id" eval="[(6, 0, [ref('tax_sale_20')])]"/> -->
+        </record>
+
+        <!-- === 5. ANALYSE === -->
+        <record id="prod_rail_5_1" model="product.template">
+            <field name="name">Analyse : Tracé/condition de circulation</field>
+            <field name="default_code">5.1</field>
+            <field name="list_price">65.00</field>
+            <field name="type">service</field>
+            <field name="uom_id" ref="uom.product_uom_km"/>
+            <field name="categ_id" ref="cat_rail_measurement"/>
+            <field name="uom_id" ref="product_uom_periode"/>
+            <!-- <field name="taxes_id" eval="[(6, 0, [ref('tax_sale_20')])]"/> -->
+        </record>
+
+        <record id="prod_rail_5_2" model="product.template">
+            <field name="name">Analyse : Gabarit (entraxe/quai)</field>
+            <field name="default_code">5.2</field>
+            <field name="list_price">65.00</field>
+            <field name="type">service</field>
+            <field name="uom_id" ref="uom.product_uom_km"/>
+            <field name="categ_id" ref="cat_rail_measurement"/>
+            <field name="uom_id" ref="product_uom_periode"/>
+            <!-- <field name="taxes_id" eval="[(6, 0, [ref('tax_sale_20')])]"/> -->
+        </record>
+
+        <!-- === 6. ETUDE === -->
+        <record id="prod_rail_6_1" model="product.template">
+            <field name="name">Etude de tracé de référence</field>
+            <field name="default_code">6.1</field>
+            <field name="list_price">975.00</field>
+            <field name="type">service</field>
+            <field name="uom_id" ref="uom.product_uom_km"/>
+            <field name="categ_id" ref="cat_rail_measurement"/>
+            <field name="uom_id" ref="product_uom_periode"/>
+            <!-- <field name="taxes_id" eval="[(6, 0, [ref('tax_sale_20')])]"/> -->
+        </record>
+
+        <record id="prod_rail_6_2" model="product.template">
+            <field name="name">Examen tracé/gabarit et étude de NC</field>
+            <field name="default_code">6.2</field>
+            <field name="list_price">1220.00</field>
+            <field name="type">service</field>
+            <field name="uom_id" ref="uom.product_uom_km"/>
+            <field name="categ_id" ref="cat_rail_measurement"/>
+            <field name="uom_id" ref="product_uom_periode"/>
+            <!-- <field name="taxes_id" eval="[(6, 0, [ref('tax_sale_20')])]"/> -->
+        </record>
+
+        <record id="prod_rail_6_3" model="product.template">
+            <field name="name">Création de fiches obstacles</field>
+            <field name="default_code">6.3</field>
+            <field name="list_price">54.00</field>
+            <field name="type">service</field>
+            <field name="uom_id" ref="uom.product_uom_unit"/>
+            <field name="categ_id" ref="cat_rail_measurement"/>
+            <field name="uom_id" ref="product_uom_periode"/>
+            <!-- <field name="taxes_id" eval="[(6, 0, [ref('tax_sale_20')])]"/> -->
+        </record>
+
+        <record id="prod_rail_6_4" model="product.template">
+            <field name="name">Création d'épures et carnets (Lissage en récolement)</field>
+            <field name="default_code">6.4</field>
+            <field name="list_price">585.00</field>
+            <field name="type">service</field>
+            <field name="uom_id" ref="uom.product_uom_km"/>
+            <field name="categ_id" ref="cat_rail_measurement"/>
+            <field name="uom_id" ref="product_uom_periode"/>
+            <!-- <field name="taxes_id" eval="[(6, 0, [ref('tax_sale_20')])]"/> -->
+        </record>
+
+        <record id="prod_rail_6_5" model="product.template">
+            <field name="name">Etude de rectification du tracé</field>
+            <field name="default_code">6.5</field>
+            <field name="list_price">780.00</field>
+            <field name="type">service</field>
+            <field name="uom_id" ref="uom.product_uom_km"/>
+            <field name="categ_id" ref="cat_rail_measurement"/>
+            <field name="uom_id" ref="product_uom_periode"/>
+            <!-- <field name="taxes_id" eval="[(6, 0, [ref('tax_sale_20')])]"/> -->
+        </record>
+
+        <record id="prod_rail_6_6" model="product.template">
+            <field name="name">Carnet de quai MT 40174</field>
+            <field name="default_code">6.6</field>
+            <field name="list_price">1100.00</field>
+            <field name="type">service</field>
+            <field name="uom_id" ref="uom.product_uom_km"/>
+            <field name="categ_id" ref="cat_rail_measurement"/>
+            <field name="uom_id" ref="product_uom_periode"/>
+            <!-- <field name="taxes_id" eval="[(6, 0, [ref('tax_sale_20')])]"/> -->
+        </record>
+
+        <record id="prod_rail_6_7" model="product.template">
+            <field name="name">Etude gabarit (calculs d'entraxes limites)</field>
+            <field name="default_code">6.7</field>
+            <field name="list_price">550.00</field>
+            <field name="type">service</field>
+            <field name="uom_id" ref="uom.product_uom_km"/>
+            <field name="categ_id" ref="cat_rail_measurement"/>
+            <field name="uom_id" ref="product_uom_periode"/>
+            <!-- <field name="taxes_id" eval="[(6, 0, [ref('tax_sale_20')])]"/> -->
+        </record>
+
+        <record id="prod_rail_6_8" model="product.template">
+            <field name="name">Plus-value mise en forme spéciale documents</field>
+            <field name="default_code">6.8</field>
+            <field name="list_price">155.00</field>
+            <field name="type">service</field>
+            <field name="uom_id" ref="uom.product_uom_km"/>
+            <field name="categ_id" ref="cat_rail_measurement"/>
+            <field name="uom_id" ref="product_uom_periode"/>
+            <!-- <field name="taxes_id" eval="[(6, 0, [ref('tax_sale_20')])]"/> -->
+        </record>
+
+        <!-- === TEMPLATE QUOTATION === -->
+        <record id="template_bordereau_sncf_complet" model="sale.order.template">
+            <field name="name">Bordereau de Prix Mesurage SNCF</field>
+            <field name="note">Prestations de mesurage ferroviaire conformément au bordereau de prix en vigueur.</field>
+        </record>
+
+        <!-- FORFAIT -->
+        <record id="line_template_sec_0" model="sale.order.template.line">
+            <field name="sale_order_template_id" ref="template_bordereau_sncf_complet"/>
+            <field name="display_type">line_section</field>
+            <field name="name">Forfait de déplacement</field>
+            <field name="product_uom_qty">0</field>
+            <field name="sequence">10</field>
+        </record>
+        <record id="line_template_prod_forfait" model="sale.order.template.line">
+            <field name="sale_order_template_id" ref="template_bordereau_sncf_complet"/>
+            <field name="product_id" ref="prod_rail_forfait"/>
+            <field name="product_uom_qty">0</field>
+            <field name="sequence">20</field>
+        </record>
+
+        <!-- SECTION 1 : REPÉRAGE -->
+        <record id="line_template_sec_1" model="sale.order.template.line">
+            <field name="sale_order_template_id" ref="template_bordereau_sncf_complet"/>
+            <field name="display_type">line_section</field>
+            <field name="name">1. Repérage de la voie</field>
+            <field name="sequence">100</field>
+        </record>
+        <record id="line_template_1_1" model="sale.order.template.line">
+            <field name="sale_order_template_id" ref="template_bordereau_sncf_complet"/>
+            <field name="product_id" ref="prod_rail_1_1"/>
+            <field name="product_uom_qty">0</field>
+            <field name="sequence">110</field>
+        </record>
+        <record id="line_template_1_2" model="sale.order.template.line">
+            <field name="sale_order_template_id" ref="template_bordereau_sncf_complet"/>
+            <field name="product_id" ref="prod_rail_1_2"/>
+            <field name="product_uom_qty">0</field>
+            <field name="sequence">120</field>
+        </record>
+        <record id="line_template_1_3" model="sale.order.template.line">
+            <field name="sale_order_template_id" ref="template_bordereau_sncf_complet"/>
+            <field name="product_id" ref="prod_rail_1_3"/>
+            <field name="product_uom_qty">0</field>
+            <field name="sequence">130</field>
+        </record>
+        <record id="line_template_1_4" model="sale.order.template.line">
+            <field name="sale_order_template_id" ref="template_bordereau_sncf_complet"/>
+            <field name="product_id" ref="prod_rail_1_4"/>
+            <field name="product_uom_qty">0</field>
+            <field name="sequence">140</field>
+        </record>
+        <record id="line_template_1_5" model="sale.order.template.line">
+            <field name="sale_order_template_id" ref="template_bordereau_sncf_complet"/>
+            <field name="product_id" ref="prod_rail_1_5"/>
+            <field name="product_uom_qty">0</field>
+            <field name="sequence">150</field>
+        </record>
+        <record id="line_template_1_6a" model="sale.order.template.line">
+            <field name="sale_order_template_id" ref="template_bordereau_sncf_complet"/>
+            <field name="product_id" ref="prod_rail_1_6_a"/>
+            <field name="product_uom_qty">0</field>
+            <field name="sequence">160</field>
+        </record>
+        <record id="line_template_1_6b" model="sale.order.template.line">
+            <field name="sale_order_template_id" ref="template_bordereau_sncf_complet"/>
+            <field name="product_id" ref="prod_rail_1_6_b"/>
+            <field name="product_uom_qty">0</field>
+            <field name="sequence">170</field>
+        </record>
+
+        <!-- SECTION 2 : GÉOMÉTRIE VOIE -->
+        <record id="line_template_sec_2" model="sale.order.template.line">
+            <field name="sale_order_template_id" ref="template_bordereau_sncf_complet"/>
+            <field name="display_type">line_section</field>
+            <field name="name">2. Mesure de géométrie voie</field>
+            <field name="sequence">200</field>
+        </record>
+        <record id="line_template_2_1" model="sale.order.template.line">
+            <field name="sale_order_template_id" ref="template_bordereau_sncf_complet"/>
+            <field name="product_id" ref="prod_rail_2_1"/>
+            <field name="product_uom_qty">0</field>
+            <field name="sequence">210</field>
+        </record>
+        <record id="line_template_2_2" model="sale.order.template.line">
+            <field name="sale_order_template_id" ref="template_bordereau_sncf_complet"/>
+            <field name="product_id" ref="prod_rail_2_2"/>
+            <field name="product_uom_qty">0</field>
+            <field name="sequence">220</field>
+        </record>
+        <record id="line_template_2_3" model="sale.order.template.line">
+            <field name="sale_order_template_id" ref="template_bordereau_sncf_complet"/>
+            <field name="product_id" ref="prod_rail_2_3"/>
+            <field name="product_uom_qty">0</field>
+            <field name="sequence">230</field>
+        </record>
+        <record id="line_template_2_4" model="sale.order.template.line">
+            <field name="sale_order_template_id" ref="template_bordereau_sncf_complet"/>
+            <field name="product_id" ref="prod_rail_2_4"/>
+            <field name="product_uom_qty">0</field>
+            <field name="sequence">240</field>
+        </record>
+        <record id="line_template_2_5" model="sale.order.template.line">
+            <field name="sale_order_template_id" ref="template_bordereau_sncf_complet"/>
+            <field name="product_id" ref="prod_rail_2_5"/>
+            <field name="product_uom_qty">0</field>
+            <field name="sequence">250</field>
+        </record>
+
+        <!-- SECTION 3 : POSITIONNEMENT -->
+        <record id="line_template_sec_3" model="sale.order.template.line">
+            <field name="sale_order_template_id" ref="template_bordereau_sncf_complet"/>
+            <field name="display_type">line_section</field>
+            <field name="name">3. Mesure de positionnement</field>
+            <field name="sequence">300</field>
+        </record>
+        <record id="line_template_3_1" model="sale.order.template.line">
+            <field name="sale_order_template_id" ref="template_bordereau_sncf_complet"/>
+            <field name="product_id" ref="prod_rail_3_1"/>
+            <field name="product_uom_qty">0</field>
+            <field name="sequence">310</field>
+        </record>
+        <record id="line_template_3_2" model="sale.order.template.line">
+            <field name="sale_order_template_id" ref="template_bordereau_sncf_complet"/>
+            <field name="product_id" ref="prod_rail_3_2"/>
+            <field name="product_uom_qty">0</field>
+            <field name="sequence">320</field>
+        </record>
+        <record id="line_template_3_3" model="sale.order.template.line">
+            <field name="sale_order_template_id" ref="template_bordereau_sncf_complet"/>
+            <field name="product_id" ref="prod_rail_3_3"/>
+            <field name="product_uom_qty">0</field>
+            <field name="sequence">330</field>
+        </record>
+
+        <!-- SECTION 4 : CATÉNAIRE -->
+        <record id="line_template_sec_4" model="sale.order.template.line">
+            <field name="sale_order_template_id" ref="template_bordereau_sncf_complet"/>
+            <field name="display_type">line_section</field>
+            <field name="name">4. Mesure de géométrie caténaire</field>
+            <field name="sequence">400</field>
+        </record>
+        <record id="line_template_4_1" model="sale.order.template.line">
+            <field name="sale_order_template_id" ref="template_bordereau_sncf_complet"/>
+            <field name="product_id" ref="prod_rail_4_1"/>
+            <field name="product_uom_qty">0</field>
+            <field name="sequence">410</field>
+        </record>
+        <record id="line_template_4_2" model="sale.order.template.line">
+            <field name="sale_order_template_id" ref="template_bordereau_sncf_complet"/>
+            <field name="product_id" ref="prod_rail_4_2"/>
+            <field name="product_uom_qty">0</field>
+            <field name="sequence">420</field>
+        </record>
+        <record id="line_template_4_3" model="sale.order.template.line">
+            <field name="sale_order_template_id" ref="template_bordereau_sncf_complet"/>
+            <field name="product_id" ref="prod_rail_4_3"/>
+            <field name="product_uom_qty">0</field>
+            <field name="sequence">430</field>
+        </record>
+        <record id="line_template_4_4" model="sale.order.template.line">
+            <field name="sale_order_template_id" ref="template_bordereau_sncf_complet"/>
+            <field name="product_id" ref="prod_rail_4_4"/>
+            <field name="product_uom_qty">0</field>
+            <field name="sequence">440</field>
+        </record>
+        <record id="line_template_4_5" model="sale.order.template.line">
+            <field name="sale_order_template_id" ref="template_bordereau_sncf_complet"/>
+            <field name="product_id" ref="prod_rail_4_5"/>
+            <field name="product_uom_qty">0</field>
+            <field name="sequence">450</field>
+        </record>
+
+        <!-- SECTION 5 : ANALYSE -->
+        <record id="line_template_sec_5" model="sale.order.template.line">
+            <field name="sale_order_template_id" ref="template_bordereau_sncf_complet"/>
+            <field name="display_type">line_section</field>
+            <field name="name">5. Analyse</field>
+            <field name="sequence">500</field>
+        </record>
+        <record id="line_template_5_1" model="sale.order.template.line">
+            <field name="sale_order_template_id" ref="template_bordereau_sncf_complet"/>
+            <field name="product_id" ref="prod_rail_5_1"/>
+            <field name="product_uom_qty">0</field>
+            <field name="sequence">510</field>
+        </record>
+        <record id="line_template_5_2" model="sale.order.template.line">
+            <field name="sale_order_template_id" ref="template_bordereau_sncf_complet"/>
+            <field name="product_id" ref="prod_rail_5_2"/>
+            <field name="product_uom_qty">0</field>
+            <field name="sequence">520</field>
+        </record>
+
+        <!-- SECTION 6 : ETUDE -->
+        <record id="line_template_sec_6" model="sale.order.template.line">
+            <field name="sale_order_template_id" ref="template_bordereau_sncf_complet"/>
+            <field name="display_type">line_section</field>
+            <field name="name">6. Etude</field>
+            <field name="sequence">600</field>
+        </record>
+        <record id="line_template_6_1" model="sale.order.template.line">
+            <field name="sale_order_template_id" ref="template_bordereau_sncf_complet"/>
+            <field name="product_id" ref="prod_rail_6_1"/>
+            <field name="product_uom_qty">0</field>
+            <field name="sequence">610</field>
+        </record>
+        <record id="line_template_6_2" model="sale.order.template.line">
+            <field name="sale_order_template_id" ref="template_bordereau_sncf_complet"/>
+            <field name="product_id" ref="prod_rail_6_2"/>
+            <field name="product_uom_qty">0</field>
+            <field name="sequence">620</field>
+        </record>
+        <record id="line_template_6_3" model="sale.order.template.line">
+            <field name="sale_order_template_id" ref="template_bordereau_sncf_complet"/>
+            <field name="product_id" ref="prod_rail_6_3"/>
+            <field name="product_uom_qty">0</field>
+            <field name="sequence">630</field>
+        </record>
+        <record id="line_template_6_4" model="sale.order.template.line">
+            <field name="sale_order_template_id" ref="template_bordereau_sncf_complet"/>
+            <field name="product_id" ref="prod_rail_6_4"/>
+            <field name="product_uom_qty">0</field>
+            <field name="sequence">640</field>
+        </record>
+        <record id="line_template_6_5" model="sale.order.template.line">
+            <field name="sale_order_template_id" ref="template_bordereau_sncf_complet"/>
+            <field name="product_id" ref="prod_rail_6_5"/>
+            <field name="product_uom_qty">0</field>
+            <field name="sequence">650</field>
+        </record>
+        <record id="line_template_6_6" model="sale.order.template.line">
+            <field name="sale_order_template_id" ref="template_bordereau_sncf_complet"/>
+            <field name="product_id" ref="prod_rail_6_6"/>
+            <field name="product_uom_qty">0</field>
+            <field name="sequence">660</field>
+        </record>
+        <record id="line_template_6_7" model="sale.order.template.line">
+            <field name="sale_order_template_id" ref="template_bordereau_sncf_complet"/>
+            <field name="product_id" ref="prod_rail_6_7"/>
+            <field name="product_uom_qty">0</field>
+            <field name="sequence">670</field>
+        </record>
+        <record id="line_template_6_8" model="sale.order.template.line">
+            <field name="sale_order_template_id" ref="template_bordereau_sncf_complet"/>
+            <field name="product_id" ref="prod_rail_6_8"/>
+            <field name="product_uom_qty">0</field>
+            <field name="sequence">680</field>
+        </record>
+
+    </data>
+</odoo>

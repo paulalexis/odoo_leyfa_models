@@ -252,3 +252,217 @@
 .planning-grid .o_data_row:last-child td {
     border-bottom: 1px solid #dee2e6 !important;
 }
+
+
+/* =========================================
+   FORCE FULL WIDTH TABLE (Anti-Shrink)
+   ========================================= */
+
+/* On cible spécifiquement ce tableau pour ne pas casser le petit planning d'avant */
+.o_full_width_table {
+    width: 100% !important;
+    display: block !important;
+}
+
+.o_full_width_table .o_list_renderer {
+    width: 100% !important;
+    max-width: 100% !important;
+}
+
+.o_full_width_table table.o_list_table {
+    width: 100% !important; /* Force l'étalement horizontal */
+    min-width: 100% !important;
+    table-layout: auto !important; /* Permet aux colonnes de s'ajuster intelligemment */
+}
+
+/* On s'assure que les colonnes de ce tableau ne sont pas limitées par les règles du planning */
+.o_full_width_table th, 
+.o_full_width_table td {
+    width: auto !important; 
+    min-width: 50px !important; /* Empêche les colonnes de devenir illisibles */
+}
+
+/* Optionnel : donner un peu plus de poids à la colonne Nom du fichier */
+.o_full_width_table th[data-name="file_name"],
+.o_full_width_table td[name="file_name"] {
+    width: 40% !important;
+}
+
+
+
+/* Tableau de consistance */
+
+/* --- 1. Base : Retour à la ligne et Alignement --- */
+.o_rail_wrap_header thead th {
+    height: auto !important;
+    vertical-align: bottom !important;
+    white-space: normal !important;
+    border-bottom: 2px solid #dee2e6 !important;
+    padding: 8px 4px !important;
+}
+
+.o_rail_wrap_header thead th span {
+    white-space: normal !important;
+    display: inline-block !important;
+    font-weight: bold !important;
+    text-align: center !important;
+    width: 100%;
+}
+
+/* --- 2. Couleurs par Groupes (Background Header) --- */
+
+/* Groupe 1 : Identification (Neutre) */
+.o_rail_wrap_header thead th[data-name="ligne_id"],
+.o_rail_wrap_header thead th[data-name="voie_id"],
+.o_rail_wrap_header thead th[data-name="desc_nature_travaux"] {
+    background-color: #f8f9fa !important; /* Gris */
+}
+
+/* Groupe 2 : Segment théorique (Bleu) */
+.o_rail_wrap_header thead th[data-name="zone_debut"],
+.o_rail_wrap_header thead th[data-name="zone_fin"],
+.o_rail_wrap_header thead th[data-name="pkd"],
+.o_rail_wrap_header thead th[data-name="pkf"] {
+    background-color: #e7f1ff !important; /* Bleu clair */
+}
+
+/* Groupe 3 : Majorations Leyfa (Orange/Rouge) */
+.o_rail_wrap_header thead th[data-name="maj_deb"],
+.o_rail_wrap_header thead th[data-name="maj_fin"] {
+    background-color: #fff5eb !important; /* Orange très clair */
+}
+
+/* Groupe 4 : Infrastructure - Courbes et Quais (Vert) */
+.o_rail_wrap_header thead th[data-name="nombre_courbes"],
+.o_rail_wrap_header thead th[data-name="longueur_courbes"],
+.o_rail_wrap_header thead th[data-name="nombres_quais"],
+.o_rail_wrap_header thead th[data-name="longueur_quais"] {
+    background-color: #f0fff4 !important; /* Vert clair */
+}
+
+/* --- 3. Séparateurs Verticaux (Strokes) --- */
+/* On ajoute une bordure droite plus épaisse sur la dernière colonne de chaque groupe */
+.o_rail_wrap_header thead th[data-name="desc_nature_travaux"],
+.o_rail_wrap_header thead th[data-name="zone_fin"],
+.o_rail_wrap_header thead th[data-name="maj_fin"],
+.o_rail_wrap_header thead th[data-name="longueur_quais"] {
+    border-right: 3px solid #adb5bd !important;
+}
+
+/* On applique aussi la bordure sur les cellules du corps pour la continuité visuelle */
+.o_rail_wrap_header tbody td[name="desc_nature_travaux"],
+.o_rail_wrap_header tbody td[name="zone_fin"],
+.o_rail_wrap_header tbody td[name="maj_fin"],
+.o_rail_wrap_header tbody td[name="longueur_quais"] {
+    border-right: 3px solid #e9ecef !important;
+}
+
+/* --- 4. Style des Totaux en bas (Footer) --- */
+.o_rail_wrap_header tfoot {
+    background-color: #f8f9fa !important;
+    font-weight: bold;
+}
+
+
+/* --- Réglage précis pour PKD, PKF et Type de Tx --- */
+
+/* Pour PKD et PKF : on cible environ 85px pour le titre + l'icône de tri */
+.o_rail_wrap_header thead th[data-name="pkd"],
+.o_rail_wrap_header thead th[data-name="pkf"] {
+    min-width: 60px !important;
+    width: 60px !important;
+    white-space: nowrap !important; /* On garde PKD/PKF sur une ligne */
+}
+.o_rail_wrap_header thead th[data-name="zone_debut"],
+.o_rail_wrap_header thead th[data-name="zone_fin"] {
+    min-width: 70px !important;
+    width: 70px !important;
+    white-space: nowrap !important; /* On garde PKD/PKF sur une ligne */
+}
+
+.o_rail_wrap_header thead th[data-name="maj_deb"],
+.o_rail_wrap_header thead th[data-name="maj_fin"] {
+    min-width: 70px !important;
+    width: 70px !important;
+    white-space: nowrap !important;
+}
+
+.o_rail_wrap_header thead th[data-name="nombre_courbes"],
+.o_rail_wrap_header thead th[data-name="nombres_quais"] {
+    min-width: 60px !important;
+    width: 60px !important;
+    white-space: nowrap !important; /* On garde PKD/PKF sur une ligne */
+}
+
+.o_rail_wrap_header thead th[data-name="longueur_courbes"],
+.o_rail_wrap_header thead th[data-name="longueur_quais"] {
+    min-width: 70px !important;
+    width: 70px !important;
+    white-space: nowrap !important; /* On garde PKD/PKF sur une ligne */
+}
+
+/* Pour Type de Tx : le titre est plus long, on prévoit environ 110px */
+.o_rail_wrap_header thead th[data-name="desc_nature_travaux"] {
+    min-width: 70px !important;
+    width: 70px !important;
+    white-space: nowrap !important;
+}
+.o_rail_wrap_header thead th[data-name="ligne_id"] {
+    min-width: 100px !important;
+    width: 100px !important;
+    white-space: nowrap !important;
+}
+
+.o_rail_wrap_header thead th[data-name="voie_id"] {
+    min-width: 50px !important;
+    width: 50px !important;
+    white-space: nowrap !important;
+}
+
+.o_rail_wrap_header thead th[data-name="desc_nature_travaux"] {
+    min-width: 50px !important;
+    width: 50px !important;
+    white-space: nowrap !important;
+}
+
+/* On s'assure que le contenu à l'intérieur ne déborde pas mal */
+.o_rail_wrap_header thead th[data-name="pkd"] .o_column_sortable,
+.o_rail_wrap_header thead th[data-name="pkf"] .o_column_sortable,
+.o_rail_wrap_header thead th[data-name="desc_nature_travaux"] .o_column_sortable {
+    justify-content: space-between !important;
+    display: flex !important;
+}
+
+/* On centre les chiffres dans les cellules pour que ce soit propre */
+.o_rail_wrap_header tbody td {
+    text-align: center !important;
+}
+
+
+/* tableau 2 de consistance */
+
+[data-name="cible_line_ids"] {
+    width: 100% !important;
+}
+
+[data-name="cible_line_ids"] .o_list_table {
+    width: 100% !important;
+    table-layout: fixed !important; /* Force le respect des largeurs de colonnes */
+}
+
+/* 2. Supprime les lignes vides supplémentaires en bas du tableau */
+[data-name="cible_line_ids"] .o_list_renderer {
+    height: auto !important;
+    min-height: 0 !important;
+}
+
+/* Cache les lignes de remplissage (padding rows) générées par Odoo */
+[data-name="cible_line_ids"] .o_list_table tr:not(.o_data_row):not(.o_list_header) {
+    display: none !important;
+}
+
+/* Optionnel : Ajuste l'entête pour qu'il soit plus compact */
+[data-name="cible_line_ids"] thead th {
+    background-color: #fcfcfc !important;
+    border-bottom: 2px solid #dee2e6 !important;
+}
