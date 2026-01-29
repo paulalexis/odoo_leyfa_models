@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_equipe_terrain_list" model="ir.ui.view">
+        <field name="name">equipe.terrain.list</field>
+        <field name="model">equipe.terrain</field>
+        <field name="arch" type="xml">
+            <list string="Équipes de Terrain" sample="1">
+                <field name="color" widget="color" nolabel="1" readonly="1"/>
+                <field name="name" decoration-bf="1"/>
+                <field name="leader_id" widget="many2one_avatar_user"/>
+                <field name="chariot_lynx_id"/>
+                <field name="chariot_lynx_plus_id"/>
+                <field name="active" column_invisible="True"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_equipe_terrain_form" model="ir.ui.view">
+        <field name="name">equipe.terrain.form</field>
+        <field name="model">equipe.terrain</field>
+        <field name="arch" type="xml">
+            <form string="Équipe de Terrain">
+                <header>
+                    <button name="action_view_calendar"
+                            type="object"
+                            string="Voir le Planning Global"
+                            icon="fa-calendar"
+                            class="btn-primary"/>
+                </header>
+
+                <sheet>
+                    <widget name="web_ribbon" title="Archivé" bg_color="text-bg-danger" invisible="active"/>
+
+                    <div class="oe_title">
+                        <label for="name"/>
+                        <h1><field name="name" placeholder="Ex : Équipe 1"/></h1>
+                    </div>
+
+                    <group>
+                        <group string="Composition de l'équipe">
+                            <field name="active" invisible="1"/>
+                            <field name="leader_id" widget="many2one_avatar_user" options="{'no_create': True}"/>
+                            <field name="member_ids" widget="many2many_tags_avatar" options="{'no_create': True}"/>
+                        </group>
+                        <group string="Configuration">
+                            <field name="color" widget="color"/>
+                            <field name="chariot_lynx_id" options="{'no_create': True}"/>
+                            <field name="chariot_lynx_plus_id" options="{'no_create': True}"/>
+                        </group>
+                    </group>
+
+                    <notebook>
+                        <page string="Toutes les interventions (Main &amp; Sec.)" name="measurements">
+                            <!-- Cette liste affiche maintenant les mesures où l'équipe est equipe_id_1 OU equipe_id_2 -->
+                            <field name="measurement_ids" readonly="1">
+                                <list decoration-info="state == 'draft'" decoration-success="state == 'done'">
+                                    <field name="name"/>
+                                    <field name="date_start"/>
+                                    <field name="date_end"/>
+                                    <!-- On peut ajouter les deux colonnes pour voir le rôle -->
+                                    <field name="equipe_id_1" string="Équipe 1"/>
+                                    <field name="equipe_id_2" string="Équipe 2"/>
+                                    <field name="state" widget="badge" 
+                                           decoration-success="state == 'done'" 
+                                           decoration-warning="state == 'planned'"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Planning Hebdomadaire (J/N)" name="weekly_planning">
+                            <field name="planning_ids_all" readonly="1">
+                                <!-- decoration-muted : écrit en gris si aucun créneau n'est saisi -->
+                                <list decoration-muted="nb_periods == 0" default_order="date_start desc">
+                                    <field name="week_label" widget="badge" decoration-info="1"/>
+                                    <field name="measurement_id" string="Affaire"/>
+                                    <field name="date_start" string="Début Sem."/>
+                                    
+                                    <!-- Affichage des jours -->
+                                    <field name="mon" string="L" decoration-warning="mon == 'day'" decoration-success="mon == 'night'"/>
+                                    <field name="tue" string="M" decoration-warning="tue == 'day'" decoration-success="tue == 'night'"/>
+                                    <field name="wed" string="M" decoration-warning="wed == 'day'" decoration-success="wed == 'night'"/>
+                                    <field name="thu" string="J" decoration-warning="thu == 'day'" decoration-success="thu == 'night'"/>
+                                    <field name="fri" string="V" decoration-warning="fri == 'day'" decoration-success="fri == 'night'"/>
+                                    <field name="sat" string="S" decoration-warning="sat == 'day'" decoration-success="sat == 'night'"/>
+                                    <field name="sun" string="D" decoration-warning="sun == 'day'" decoration-success="sun == 'night'"/>
+                                    
+                                    <!-- Champ technique pour la décoration (peut être masqué) -->
+                                    <field name="nb_periods" column_invisible="True"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- 3. ACTION                 -->
+    <!-- ========================= -->
+    <record id="action_equipe_terrain" model="ir.actions.act_window">
+        <field name="name">Équipes de Terrain</field>
+        <field name="res_model">equipe.terrain</field>
+        <field name="view_mode">list,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Définissez vos équipes de terrain.
+            </p>
+            <p>
+                Associez un chef d'équipe, deux membres et les chariots LYNX / LYNX PLUS.
+            </p>
+        </field>
+    </record>
+
+</odoo>

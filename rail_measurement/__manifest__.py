@@ -26,24 +26,36 @@ dans les devis, puis de les configurer avec tous les détails techniques nécess
         'product',
         'hr',
         'uom',
-        'web_widget_mermaid_field'
+        'web_widget_mermaid_field',
+        'website',
+        'portal',
     ],
     'data': [
         'security/ir.model.access.csv',
+        'security/security.xml',
+
         'views/measurement.xml',
         'views/vue_prevente.xml',
-        'views/vue_planification.xml',
         'views/vue_terrain.xml',
         'views/affaires.xml',
+        'views/sale_order_report.xml',
+        'views/res_company.xml',
+        'views/portal/demande.xml',
+        'views/equipe_terrain_views.xml',
+        'views/menus_ressources.xml',
+        
         'data/rail_measurement_data.xml',
         'data/codes_affaires_data.xml',
         'data/custom_quotation.xml',
         'data/consistance_data.xml',
+        'data/equipes_terrain_data.xml'
     ],
     'assets': {
         'web.assets_backend': [
             'rail_measurement/static/src/js/rail_measurement_button.js',
             'rail_measurement/static/src/css/style.css',
+            # 'rail_measurement/static/src/css/sale_order_report.css',
+            'rail_measurement/static/src/scss/custom_chatter.scss',
             'rail_measurement/static/src/xml/list_button.xml',
             'rail_measurement/static/src/js/list_controller_patch.js',
             'rail_measurement/static/src/js/autocomplete_patch.js',

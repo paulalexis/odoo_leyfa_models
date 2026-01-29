@@ -1,4 +1,4 @@
-from odoo import models, fields
+from odoo import models, fields, api
 
 class TypeAffaire(models.Model):
     _name = 'leyfa.affaire.type'
@@ -20,3 +20,8 @@ class TypeAffaire(models.Model):
         'unique(code)', 
         "Le code du type d'affaire doit être unique !"
     )
+
+    @api.depends('name', 'code')
+    def _compute_display_name(self):
+        for record in self:
+            record.display_name = f"[{record.code}] {record.name}"

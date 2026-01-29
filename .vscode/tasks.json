@@ -9,7 +9,7 @@
                 "-3.12",
                 "odoo-bin",
                 "-d",
-                "odoo19",
+                "odoo_19",
                 "-u",
                 "rail_measurement"
             ],

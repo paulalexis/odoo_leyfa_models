@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- 1. Lien dans le menu "Mon Compte" -->
+    <template id="portal_my_home_rail" inherit_id="portal.portal_my_home">
+        <xpath expr="//div[hasclass('o_portal_docs')]" position="inside">
+            <t t-call="portal.portal_docs_entry">
+                <t t-set="title">Demandes de prestation</t>
+                <t t-set="url" t-value="'/my/measurement/new'"/>
+            </t>
+        </xpath>
+    </template>
+
+    <!-- 2. Formulaire de création -->
+    <template id="template_form_measurement" name="Nouvelle Mesure">
+        <t t-call="portal.portal_layout">
+            <div class="container mt-4">
+                <div class="row justify-content-center">
+                    <div class="col-md-6 bg-white p-4 shadow-sm border">
+                        <h3>Nouvelle Demande</h3>
+                            <form action="/my/measurement/submit" method="post">
+                                <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                                
+                                <div class="form-group mb-3">
+                                    <label for="ligne_id" class="form-label">Ligne Ferroviaire</label>
+                                    
+                                    <!-- BIEN VÉRIFIER LE name="ligne_id" CI-DESSOUS -->
+                                    <select name="ligne_id" 
+                                            id="ligne_id" 
+                                            class="form-control form-select" 
+                                            required="1"
+                                            t-att-disabled="measurement and measurement.state != 'presale'">
+                                        
+                                        <option value="">Sélectionnez une ligne...</option>
+                                        <t t-foreach="lignes" t-as="l">
+                                            <option t-att-value="l.id">
+                                                <t t-esc="l.display_name"/>
+                                            </option>
+                                        </t>
+                                    </select>
+                                </div>
+
+                                <button type="submit" class="btn btn-primary w-100">Démarrer la prestation</button>
+                            </form>
+                    </div>
+                </div>
+            </div>
+        </t>
+    </template>
+
+    <!-- 3. Vue détail avec Chatter -->
+    <template id="template_detail_measurement" name="Détail Mesure">
+        <t t-call="portal.portal_layout">
+            <div class="container bg-white p-4 mt-3 border">
+                <!-- On utilise .display_name pour avoir le format "Nom (Surnom)" -->
+                <h4>Prestation sur la ligne : <t t-esc="measurement.ligne_id.display_name"/></h4>
+                
+                <div id="measurement_communication" class="mt-5">
+                    <t t-call="portal.message_thread">
+                        <t t-set="object" t-value="measurement"/>
+                    </t>
+                </div>
+            </div>
+        </t>
+    </template>
+</odoo>

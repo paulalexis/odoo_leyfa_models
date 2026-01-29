@@ -1,21 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <data noupdate="1">
-        <!-- Unités de mesure personnalisées -->
-        <record id="product_uom_periode" model="uom.uom">
-            <field name="name">pér.</field>
-            <field name="category_id" ref="uom.product_uom_categ_unit"/>
-            <field name="factor">1.0</field>
-            <field name="rounding">0.01</field>
-            <field name="uom_type">reference</field>
+    <data noupdate="0">
+        <!-- Unités de mesure personnalisées -->        
+        <record id="product_uom_percentage" model="uom.uom">
+            <field name="name"> </field>
+            <field name="relative_factor">100</field>
+            <field name="relative_uom_id" ref="uom.product_uom_unit"/>
+            <field name="rounding">0.001</field>
         </record>
-        
-        <record id="uom_none" model="uom.uom">
-            <field name="name">u</field>
-            <field name="category_id" ref="uom.product_uom_categ_unit"/>
-            <field name="factor">1.0</field>
+        <record id="product_uom_week" model="uom.uom">
+            <field name="name">Semaine(s)</field>
+            <field name="relative_factor">1.0</field>
             <field name="rounding">1.0</field>
-            <field name="uom_type">reference</field>
+        </record>
+        <record id="product_uom_km" model="uom.uom">
+            <field name="name">km</field>
+            <field name="relative_factor">1.0</field>
+            <field name="rounding">0.01</field>
         </record>
 
         <!-- Catégorie de produit -->
@@ -24,13 +25,13 @@
         </record>
 
         <!-- Taxe -->
-        <!-- <record id="tax_sale_20" model="account.tax">
+        <record id="tax_sale_20" model="account.tax">
             <field name="name">TVA 20%</field>
             <field name="amount">20.0</field>
             <field name="amount_type">percent</field>
             <field name="type_tax_use">sale</field>
             <field name="company_id" ref="base.main_company"/>
-        </record> -->
+        </record>
 
         <!-- === FORFAIT === -->
         <record id="prod_rail_forfait" model="product.template">
@@ -40,7 +41,7 @@
             <field name="type">service</field>
             <field name="uom_id" ref="product_uom_week"/>
             <field name="categ_id" ref="cat_rail_measurement"/>
-            <!-- <field name="taxes_id" eval="[(6, 0, [ref('tax_sale_20')])]"/> -->
+           <!-- <field name="taxes_id" eval="[(6, 0, [ref('tax_sale_20')])]"/> -->
         </record>
 
         <!-- === 1. REPERAGE === -->
@@ -51,8 +52,7 @@
             <field name="type">service</field>
             <field name="uom_id" ref="uom.product_uom_km"/>
             <field name="categ_id" ref="cat_rail_measurement"/>
-            <field name="uom_id" ref="product_uom_periode"/>
-            <!-- <field name="taxes_id" eval="[(6, 0, [ref('tax_sale_20')])]"/> -->
+           <!-- <field name="taxes_id" eval="[(6, 0, [ref('tax_sale_20')])]"/> -->
         </record>
 
         <record id="prod_rail_1_2" model="product.template">
@@ -62,7 +62,7 @@
             <field name="type">service</field>
             <field name="uom_id" ref="uom.product_uom_unit"/>
             <field name="categ_id" ref="cat_rail_measurement"/>
-            <!-- <field name="taxes_id" eval="[(6, 0, [ref('tax_sale_20')])]"/> -->
+           <!-- <field name="taxes_id" eval="[(6, 0, [ref('tax_sale_20')])]"/> -->
         </record>
 
         <record id="prod_rail_1_3" model="product.template">
@@ -72,7 +72,7 @@
             <field name="type">service</field>
             <field name="uom_id" ref="uom.product_uom_unit"/>
             <field name="categ_id" ref="cat_rail_measurement"/>
-            <!-- <field name="taxes_id" eval="[(6, 0, [ref('tax_sale_20')])]"/> -->
+           <!-- <field name="taxes_id" eval="[(6, 0, [ref('tax_sale_20')])]"/> -->
         </record>
 
         <record id="prod_rail_1_4" model="product.template">
@@ -82,7 +82,7 @@
             <field name="type">service</field>
             <field name="uom_id" ref="uom.product_uom_unit"/>
             <field name="categ_id" ref="cat_rail_measurement"/>
-            <!-- <field name="taxes_id" eval="[(6, 0, [ref('tax_sale_20')])]"/> -->
+           <!-- <field name="taxes_id" eval="[(6, 0, [ref('tax_sale_20')])]"/> -->
         </record>
 
         <record id="prod_rail_1_5" model="product.template">
@@ -92,7 +92,7 @@
             <field name="type">service</field>
             <field name="uom_id" ref="uom.product_uom_unit"/>
             <field name="categ_id" ref="cat_rail_measurement"/>
-            <!-- <field name="taxes_id" eval="[(6, 0, [ref('tax_sale_20')])]"/> -->
+           <!-- <field name="taxes_id" eval="[(6, 0, [ref('tax_sale_20')])]"/> -->
         </record>
 
         <record id="prod_rail_1_6_a" model="product.template">
@@ -102,7 +102,7 @@
             <field name="type">service</field>
             <field name="uom_id" ref="uom.product_uom_unit"/>
             <field name="categ_id" ref="cat_rail_measurement"/>
-            <!-- <field name="taxes_id" eval="[(6, 0, [ref('tax_sale_20')])]"/> -->
+           <!-- <field name="taxes_id" eval="[(6, 0, [ref('tax_sale_20')])]"/> -->
         </record>
 
         <record id="prod_rail_1_6_b" model="product.template">
@@ -112,7 +112,7 @@
             <field name="type">service</field>
             <field name="uom_id" ref="uom.product_uom_unit"/>
             <field name="categ_id" ref="cat_rail_measurement"/>
-            <!-- <field name="taxes_id" eval="[(6, 0, [ref('tax_sale_20')])]"/> -->
+           <!-- <field name="taxes_id" eval="[(6, 0, [ref('tax_sale_20')])]"/> -->
         </record>
 
         <!-- === 2. GEOMETRIE VOIE === -->
@@ -123,8 +123,7 @@
             <field name="type">service</field>
             <field name="uom_id" ref="uom.product_uom_km"/>
             <field name="categ_id" ref="cat_rail_measurement"/>
-            <field name="uom_id" ref="product_uom_periode"/>
-            <!-- <field name="taxes_id" eval="[(6, 0, [ref('tax_sale_20')])]"/> -->
+           <!-- <field name="taxes_id" eval="[(6, 0, [ref('tax_sale_20')])]"/> -->
         </record>
 
         <record id="prod_rail_2_2" model="product.template">
@@ -134,8 +133,7 @@
             <field name="type">service</field>
             <field name="uom_id" ref="uom.product_uom_km"/>
             <field name="categ_id" ref="cat_rail_measurement"/>
-            <field name="uom_id" ref="product_uom_periode"/>
-            <!-- <field name="taxes_id" eval="[(6, 0, [ref('tax_sale_20')])]"/> -->
+           <!-- <field name="taxes_id" eval="[(6, 0, [ref('tax_sale_20')])]"/> -->
         </record>
 
         <record id="prod_rail_2_3" model="product.template">
@@ -145,8 +143,7 @@
             <field name="type">service</field>
             <field name="uom_id" ref="uom.product_uom_km"/>
             <field name="categ_id" ref="cat_rail_measurement"/>
-            <field name="uom_id" ref="product_uom_periode"/>
-            <!-- <field name="taxes_id" eval="[(6, 0, [ref('tax_sale_20')])]"/> -->
+           <!-- <field name="taxes_id" eval="[(6, 0, [ref('tax_sale_20')])]"/> -->
         </record>
 
         <record id="prod_rail_2_4" model="product.template">
@@ -156,8 +153,7 @@
             <field name="type">service</field>
             <field name="uom_id" ref="uom.product_uom_km"/>
             <field name="categ_id" ref="cat_rail_measurement"/>
-            <field name="uom_id" ref="product_uom_periode"/>
-            <!-- <field name="taxes_id" eval="[(6, 0, [ref('tax_sale_20')])]"/> -->
+           <!-- <field name="taxes_id" eval="[(6, 0, [ref('tax_sale_20')])]"/> -->
         </record>
 
         <record id="prod_rail_2_5" model="product.template">
@@ -167,8 +163,7 @@
             <field name="type">service</field>
             <field name="uom_id" ref="uom.product_uom_km"/>
             <field name="categ_id" ref="cat_rail_measurement"/>
-            <field name="uom_id" ref="product_uom_periode"/>
-            <!-- <field name="taxes_id" eval="[(6, 0, [ref('tax_sale_20')])]"/> -->
+           <!-- <field name="taxes_id" eval="[(6, 0, [ref('tax_sale_20')])]"/> -->
         </record>
 
         <!-- === 3. POSITIONNEMENT === -->
@@ -179,8 +174,7 @@
             <field name="type">service</field>
             <field name="uom_id" ref="uom.product_uom_km"/>
             <field name="categ_id" ref="cat_rail_measurement"/>
-            <field name="uom_id" ref="product_uom_periode"/>
-            <!-- <field name="taxes_id" eval="[(6, 0, [ref('tax_sale_20')])]"/> -->
+           <!-- <field name="taxes_id" eval="[(6, 0, [ref('tax_sale_20')])]"/> -->
         </record>
 
         <record id="prod_rail_3_2" model="product.template">
@@ -190,8 +184,7 @@
             <field name="type">service</field>
             <field name="uom_id" ref="uom.product_uom_km"/>
             <field name="categ_id" ref="cat_rail_measurement"/>
-            <field name="uom_id" ref="product_uom_periode"/>
-            <!-- <field name="taxes_id" eval="[(6, 0, [ref('tax_sale_20')])]"/> -->
+           <!-- <field name="taxes_id" eval="[(6, 0, [ref('tax_sale_20')])]"/> -->
         </record>
 
         <record id="prod_rail_3_3" model="product.template">
@@ -201,8 +194,7 @@
             <field name="type">service</field>
             <field name="uom_id" ref="uom.product_uom_km"/>
             <field name="categ_id" ref="cat_rail_measurement"/>
-            <field name="uom_id" ref="product_uom_periode"/>
-            <!-- <field name="taxes_id" eval="[(6, 0, [ref('tax_sale_20')])]"/> -->
+           <!-- <field name="taxes_id" eval="[(6, 0, [ref('tax_sale_20')])]"/> -->
         </record>
 
         <!-- === 4. CATENAIRE === -->
@@ -213,8 +205,7 @@
             <field name="type">service</field>
             <field name="uom_id" ref="uom.product_uom_km"/>
             <field name="categ_id" ref="cat_rail_measurement"/>
-            <field name="uom_id" ref="product_uom_periode"/>
-            <!-- <field name="taxes_id" eval="[(6, 0, [ref('tax_sale_20')])]"/> -->
+           <!-- <field name="taxes_id" eval="[(6, 0, [ref('tax_sale_20')])]"/> -->
         </record>
 
         <record id="prod_rail_4_2" model="product.template">
@@ -224,8 +215,7 @@
             <field name="type">service</field>
             <field name="uom_id" ref="uom.product_uom_km"/>
             <field name="categ_id" ref="cat_rail_measurement"/>
-            <field name="uom_id" ref="product_uom_periode"/>
-            <!-- <field name="taxes_id" eval="[(6, 0, [ref('tax_sale_20')])]"/> -->
+           <!-- <field name="taxes_id" eval="[(6, 0, [ref('tax_sale_20')])]"/> -->
         </record>
 
         <record id="prod_rail_4_3" model="product.template">
@@ -235,8 +225,7 @@
             <field name="type">service</field>
             <field name="uom_id" ref="uom.product_uom_km"/>
             <field name="categ_id" ref="cat_rail_measurement"/>
-            <field name="uom_id" ref="product_uom_periode"/>
-            <!-- <field name="taxes_id" eval="[(6, 0, [ref('tax_sale_20')])]"/> -->
+           <!-- <field name="taxes_id" eval="[(6, 0, [ref('tax_sale_20')])]"/> -->
         </record>
 
         <record id="prod_rail_4_4" model="product.template">
@@ -246,8 +235,7 @@
             <field name="type">service</field>
             <field name="uom_id" ref="uom.product_uom_km"/>
             <field name="categ_id" ref="cat_rail_measurement"/>
-            <field name="uom_id" ref="product_uom_periode"/>
-            <!-- <field name="taxes_id" eval="[(6, 0, [ref('tax_sale_20')])]"/> -->
+           <!-- <field name="taxes_id" eval="[(6, 0, [ref('tax_sale_20')])]"/> -->
         </record>
 
         <record id="prod_rail_4_5" model="product.template">
@@ -257,8 +245,7 @@
             <field name="type">service</field>
             <field name="uom_id" ref="uom.product_uom_km"/>
             <field name="categ_id" ref="cat_rail_measurement"/>
-            <field name="uom_id" ref="product_uom_periode"/>
-            <!-- <field name="taxes_id" eval="[(6, 0, [ref('tax_sale_20')])]"/> -->
+           <!-- <field name="taxes_id" eval="[(6, 0, [ref('tax_sale_20')])]"/> -->
         </record>
 
         <!-- === 5. ANALYSE === -->
@@ -269,8 +256,7 @@
             <field name="type">service</field>
             <field name="uom_id" ref="uom.product_uom_km"/>
             <field name="categ_id" ref="cat_rail_measurement"/>
-            <field name="uom_id" ref="product_uom_periode"/>
-            <!-- <field name="taxes_id" eval="[(6, 0, [ref('tax_sale_20')])]"/> -->
+           <!-- <field name="taxes_id" eval="[(6, 0, [ref('tax_sale_20')])]"/> -->
         </record>
 
         <record id="prod_rail_5_2" model="product.template">
@@ -280,8 +266,7 @@
             <field name="type">service</field>
             <field name="uom_id" ref="uom.product_uom_km"/>
             <field name="categ_id" ref="cat_rail_measurement"/>
-            <field name="uom_id" ref="product_uom_periode"/>
-            <!-- <field name="taxes_id" eval="[(6, 0, [ref('tax_sale_20')])]"/> -->
+           <!-- <field name="taxes_id" eval="[(6, 0, [ref('tax_sale_20')])]"/> -->
         </record>
 
         <!-- === 6. ETUDE === -->
@@ -292,8 +277,7 @@
             <field name="type">service</field>
             <field name="uom_id" ref="uom.product_uom_km"/>
             <field name="categ_id" ref="cat_rail_measurement"/>
-            <field name="uom_id" ref="product_uom_periode"/>
-            <!-- <field name="taxes_id" eval="[(6, 0, [ref('tax_sale_20')])]"/> -->
+           <!-- <field name="taxes_id" eval="[(6, 0, [ref('tax_sale_20')])]"/> -->
         </record>
 
         <record id="prod_rail_6_2" model="product.template">
@@ -303,8 +287,7 @@
             <field name="type">service</field>
             <field name="uom_id" ref="uom.product_uom_km"/>
             <field name="categ_id" ref="cat_rail_measurement"/>
-            <field name="uom_id" ref="product_uom_periode"/>
-            <!-- <field name="taxes_id" eval="[(6, 0, [ref('tax_sale_20')])]"/> -->
+           <!-- <field name="taxes_id" eval="[(6, 0, [ref('tax_sale_20')])]"/> -->
         </record>
 
         <record id="prod_rail_6_3" model="product.template">
@@ -314,8 +297,7 @@
             <field name="type">service</field>
             <field name="uom_id" ref="uom.product_uom_unit"/>
             <field name="categ_id" ref="cat_rail_measurement"/>
-            <field name="uom_id" ref="product_uom_periode"/>
-            <!-- <field name="taxes_id" eval="[(6, 0, [ref('tax_sale_20')])]"/> -->
+           <!-- <field name="taxes_id" eval="[(6, 0, [ref('tax_sale_20')])]"/> -->
         </record>
 
         <record id="prod_rail_6_4" model="product.template">
@@ -325,8 +307,7 @@
             <field name="type">service</field>
             <field name="uom_id" ref="uom.product_uom_km"/>
             <field name="categ_id" ref="cat_rail_measurement"/>
-            <field name="uom_id" ref="product_uom_periode"/>
-            <!-- <field name="taxes_id" eval="[(6, 0, [ref('tax_sale_20')])]"/> -->
+           <!-- <field name="taxes_id" eval="[(6, 0, [ref('tax_sale_20')])]"/> -->
         </record>
 
         <record id="prod_rail_6_5" model="product.template">
@@ -336,8 +317,7 @@
             <field name="type">service</field>
             <field name="uom_id" ref="uom.product_uom_km"/>
             <field name="categ_id" ref="cat_rail_measurement"/>
-            <field name="uom_id" ref="product_uom_periode"/>
-            <!-- <field name="taxes_id" eval="[(6, 0, [ref('tax_sale_20')])]"/> -->
+           <!-- <field name="taxes_id" eval="[(6, 0, [ref('tax_sale_20')])]"/> -->
         </record>
 
         <record id="prod_rail_6_6" model="product.template">
@@ -347,8 +327,7 @@
             <field name="type">service</field>
             <field name="uom_id" ref="uom.product_uom_km"/>
             <field name="categ_id" ref="cat_rail_measurement"/>
-            <field name="uom_id" ref="product_uom_periode"/>
-            <!-- <field name="taxes_id" eval="[(6, 0, [ref('tax_sale_20')])]"/> -->
+           <!-- <field name="taxes_id" eval="[(6, 0, [ref('tax_sale_20')])]"/> -->
         </record>
 
         <record id="prod_rail_6_7" model="product.template">
@@ -358,8 +337,7 @@
             <field name="type">service</field>
             <field name="uom_id" ref="uom.product_uom_km"/>
             <field name="categ_id" ref="cat_rail_measurement"/>
-            <field name="uom_id" ref="product_uom_periode"/>
-            <!-- <field name="taxes_id" eval="[(6, 0, [ref('tax_sale_20')])]"/> -->
+           <!-- <field name="taxes_id" eval="[(6, 0, [ref('tax_sale_20')])]"/> -->
         </record>
 
         <record id="prod_rail_6_8" model="product.template">
@@ -369,8 +347,29 @@
             <field name="type">service</field>
             <field name="uom_id" ref="uom.product_uom_km"/>
             <field name="categ_id" ref="cat_rail_measurement"/>
-            <field name="uom_id" ref="product_uom_periode"/>
-            <!-- <field name="taxes_id" eval="[(6, 0, [ref('tax_sale_20')])]"/> -->
+           <!-- <field name="taxes_id" eval="[(6, 0, [ref('tax_sale_20')])]"/> -->
+        </record>
+
+        <record id="prod_remise_itin" model="product.product">
+            <field name="name">Remise/Majoration Itinéraire (Sect. 1-4)</field>
+            <field name="default_code">REMISE_ITIN</field>
+            <field name="type">service</field>
+            <field name="list_price">0.0</field>
+            <field name="uom_id" ref="product_uom_percentage"/>
+            <field name="categ_id" ref="cat_rail_measurement"/>
+           <!-- <field name="taxes_id" eval="[(6, 0, [ref('tax_sale_20')])]"/> -->
+            <!-- <field name="taxes_id" eval="[(5, 0, 0)]"/> -->
+        </record>
+
+        <record id="prod_remise_vol" model="product.product">
+            <field name="name">Remise sur Volume (CDA)</field>
+            <field name="default_code">REMISE_VOL</field>
+            <field name="type">service</field>
+            <field name="list_price">0.0</field>
+            <field name="uom_id" ref="product_uom_percentage"/>
+            <field name="categ_id" ref="cat_rail_measurement"/>
+           <!-- <field name="taxes_id" eval="[(6, 0, [ref('tax_sale_20')])]"/> -->
+            <!-- <field name="taxes_id" eval="[(5, 0, 0)]"/> -->
         </record>
 
         <!-- === TEMPLATE QUOTATION === -->
@@ -622,5 +621,27 @@
             <field name="sequence">680</field>
         </record>
 
+        <record id="line_template_sec_7" model="sale.order.template.line">
+            <field name="sale_order_template_id" ref="template_bordereau_sncf_complet"/>
+            <field name="display_type">line_section</field>
+            <field name="name">7. Remises et Ajustements</field>
+            <field name="sequence">700</field>
+        </record>
+
+        <!-- Ligne Remise Itinéraire -->
+        <record id="line_template_7_1" model="sale.order.template.line">
+            <field name="sale_order_template_id" ref="template_bordereau_sncf_complet"/>
+            <field name="product_id" ref="prod_remise_itin"/>
+            <field name="product_uom_qty">0</field>
+            <field name="sequence">710</field>
+        </record>
+
+        <!-- Ligne Remise Volume -->
+        <record id="line_template_7_2" model="sale.order.template.line">
+            <field name="sale_order_template_id" ref="template_bordereau_sncf_complet"/>
+            <field name="product_id" ref="prod_remise_vol"/>
+            <field name="product_uom_qty">0</field>
+            <field name="sequence">720</field>
+        </record>
     </data>
 </odoo>

@@ -18,7 +18,7 @@
 
     <!-- Unité de Mesure Période -->
     <!-- Note: uom.category is gone. symbol and uom_type are gone. -->
-    <record id="product_uom_periode" model="uom.uom">
+    <!-- <record id="product_uom_periode" model="uom.uom">
         <field name="name">pér.</field>
         <field name="relative_factor">1.0</field>
         <field name="rounding">0.01</field>
@@ -28,29 +28,9 @@
         <field name="relative_factor">1.0</field>
         <field name="rounding">1</field>
     </record>
-    <record id="product_uom_km" model="uom.uom">
-        <field name="name">km</field>
-        <field name="relative_factor">1.0</field>
-        <field name="rounding">0.01</field>
-    </record>
     <record id="uom_none" model="uom.uom">
         <field name="name"> </field>
         <field name="relative_factor">1.0</field>
         <field name="rounding">1.0</field>
-    </record>
-
-    <!-- Produit -->
-    <record id="product_rail_measurement_standard" model="product.product">
-        <field name="name">Mesure de voie ferrée</field>
-        <field name="type">service</field>
-        <field name="list_price">0.0</field>
-        <field name="categ_id" ref="product_category_rail_measurement"/>
-        <field name="uom_id" ref="product_uom_periode"/>
-        <!-- no tax -->
-        <field name="taxes_id" eval="[(6, 0, [])]"/>        
-        <!-- uom_po_id is removed in Odoo 19. It is now handled via Vendor Pricelists. -->
-        <field name="is_rail_measurement" eval="True"/>
-        <field name="invoice_policy">order</field>
-    </record>
-
+    </record> -->
 </odoo>

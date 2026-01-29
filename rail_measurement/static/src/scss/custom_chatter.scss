@@ -1,0 +1,17 @@
+// /* Force chatter to the bottom even on large screens */
+// .o_form_view.o_xxl_form_view {
+//     flex-direction: column !important; // Breaks the side-by-side flex row
+
+//     .o_form_sheet_bg {
+//         max-width: 100% !important;
+//         width: 100% !important;
+//     }
+
+//     // Odoo 17/18 specific chatter container class
+//     .o-mail-Form-chatter, .o_FormRenderer_chatterContainer {
+//         width: 100% !important;
+//         max-width: 100% !important;
+//         border-left: none !important;
+//         border-top: 1px solid #dee2e6;
+//     }
+// }

@@ -440,29 +440,4 @@
 
 
 /* tableau 2 de consistance */
-
-[data-name="cible_line_ids"] {
-    width: 100% !important;
-}
-
-[data-name="cible_line_ids"] .o_list_table {
-    width: 100% !important;
-    table-layout: fixed !important; /* Force le respect des largeurs de colonnes */
-}
-
-/* 2. Supprime les lignes vides supplémentaires en bas du tableau */
-[data-name="cible_line_ids"] .o_list_renderer {
-    height: auto !important;
-    min-height: 0 !important;
-}
-
-/* Cache les lignes de remplissage (padding rows) générées par Odoo */
-[data-name="cible_line_ids"] .o_list_table tr:not(.o_data_row):not(.o_list_header) {
-    display: none !important;
-}
-
-/* Optionnel : Ajuste l'entête pour qu'il soit plus compact */
-[data-name="cible_line_ids"] thead th {
-    background-color: #fcfcfc !important;
-    border-bottom: 2px solid #dee2e6 !important;
-}
+/* 1. Supprimer les lignes vides (padding rows) sous les données */

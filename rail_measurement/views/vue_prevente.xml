@@ -10,9 +10,8 @@
             <xpath expr="//page[@name='sales_tab']" position="inside">
 
                 <notebook position="inside">
-                    <page string="Informations Générales" name="general_info_subtab">
-                        <div class="row mt-n2" style="margin-top: 0px !important;">
-                            
+                    <page string="1. Informations Générales" name="general_info_subtab">
+                        <div class="o_row">
                             <!-- COLONNE GAUCHE -->
                             <div class="col-lg-6 col-md-12">
                                 <group string="CODAGE LEYFA" name="codage_leyfa">
@@ -33,121 +32,64 @@
                                     </div>
 
                                     <field name="exercice_id" options="{'no_create': True, 'no_open': True}" readonly="state != 'presale'" placeholder="Exercice"/>
-                                    <label for="ligne_id" string="Ligne / Voies"/>
+                                    <label for="ligne_id" string="Ligne"/>
                                     <div class="o_row">
                                         <field name="ligne_id" 
-                                            options="{'no_create': True, 'no_open': True}" 
+                                            options="{'no_open': True, 'no_create_edit': True, 'no_quick_create': True}" 
                                             readonly="state != 'presale'"
-                                            placeholder="Sélectionnez la ligne..."/>
-                                        
-                                        <field name="voie_ids" 
-                                            widget="many2many_tags" 
-                                            options="{'color_field': 'color', 'no_create_edit': False}"
-                                            placeholder="Voies..."
-                                            readonly="state != 'presale'"
-                                            context="{'default_active': True}"/>
+                                            placeholder="Sélectionnez la ligne..."/>                                        
                                     </div>
                                     <field name="type_affaire_id" options="{'no_create': True, 'no_open': True}" readonly="state != 'presale'"/>
                                     <field name="nature_mission" widget="radio" options="{'horizontal': true}" 
                                         invisible="not type_requires_nature" required="type_requires_nature" readonly="state != 'presale'"/>
-
-                                    <label for="desc_typologie_detail" string="Typologie / Travaux"/>
-                                    <div class="o_row">
-                                        <field name="desc_typologie_detail" placeholder="Typologie..." readonly="state != 'presale'"/>
-                                        <field name="desc_nature_travaux" placeholder="Nature des travaux..." readonly="state != 'presale'"/>
-                                    </div>
-
-                                    <label for="desc_methodologie" string="Méthodo / Année"/>
-                                    <div class="o_row">
-                                        <field name="desc_methodologie" placeholder="Méthodologie..." readonly="state != 'presale'"/>
-                                        <field name="desc_annee" options="{'format': false}" placeholder="Année" 
-                                            widget="char" readonly="state != 'presale'"/>
-                                    </div>
                                 </group>
                             </div>
-
                             <!-- COLONNE DROITE -->
                             <div class="col-lg-6 col-md-12">
-                                <group string="LOCALISATION" name="localisation_group">
-                                    <label for="pk_initial" string="Segment (PK)"/>
-                                    <div class="o_row">
-                                        <field name="pk_initial" placeholder="Début" readonly="state != 'presale'"/>
-                                        <span>à</span>
-                                        <field name="pk_final" placeholder="Fin" readonly="state != 'presale'"/>
-                                    </div>
-                                    <label for="lineaire_releve" string="Linéaire relevé"/>
-                                    <div class="o_row">
-                                        <field name="lineaire_releve" 
-                                            placeholder="Métrage..."
-                                            readonly="state != 'presale'"
-                                            class="oe_inline"
-                                            style="width: 100px !important;"/>
-                                    </div>
-                                    <label for="lineaire_etudes" string="Linéaire études" invisible="nature_mission != 'E'"/>
-                                    <div class="o_row">
-                                        <field name="lineaire_etudes" 
-                                            placeholder="Métrage..."
-                                            readonly="state not in ['presale', 'study']"
-                                            class="oe_inline"
-                                            style="width: 100px !important;"
-                                            invisible="nature_mission != 'E'"/>
-                                    </div>
-                                </group>
-
-                                <group string="VENTE" name="ventes_group">
-                                    <div colspan="2" class="text-muted mb-2 d-flex align-items-center" 
-                                        style="font-size: 0.72rem; border-bottom: 1px solid #eee; padding-bottom: 5px; white-space: nowrap; overflow: hidden;" 
-                                        invisible="not sale_order_id">
-                                        <div class="d-flex align-items-center me-2">
-                                            <span class="fw-bold me-1">Réf :</span>
-                                            <field name="sale_order_id" readonly="1" nolabel="1" class="oe_inline m-0"/>
-                                        </div>
-                                    </div>
-                                    <field name="currency_id" invisible="1"/>
-                                    <field name="total_nb_periods" invisible="1"/>
-
-                                    <label for="price_releve"/>
-                                    <div class="d-flex align-items-baseline">
-                                        <field name="price_releve" widget="monetary" class="oe_inline fw-bold"
-                                            readonly="state != 'presale'" options="{'currency_field': 'currency_id'}"/>
-                                        <div class="text-muted small ms-2" invisible="total_nb_periods == 0">
-                                            <span>(</span>
-                                            <field name="price_releve_daily" widget="monetary" class="oe_inline"/>
-                                            <span> / pér.)</span>
-                                        </div>
-                                    </div>
-
-                                    <label for="price_etudes" invisible="nature_mission != 'E'"/>
-                                    <div class="d-flex align-items-baseline" invisible="nature_mission != 'E'">
-                                        <field name="price_etudes" widget="monetary" class="oe_inline fw-bold"
-                                            readonly="state != 'presale'" options="{'currency_field': 'currency_id'}"/>
-                                        <div class="text-muted small ms-2" invisible="total_nb_periods == 0">
-                                            <span>(</span>
-                                            <field name="price_etudes_daily" widget="monetary" class="oe_inline"/>
-                                            <span> / pér.)</span>
-                                        </div>
-                                    </div>
+                                <group string="Informations supplémentaires">
+                                    <field name="voie_ids" 
+                                                widget="many2many_tags" 
+                                                options="{'color_field': 'color', 'no_create_edit': True, 'no_open': True, 'no_quick_create': True}"
+                                                placeholder="Voies..."
+                                                readonly="state != 'presale'"
+                                                context="{'default_active': True}"/>
+                                    <!-- <label for="desc_typologie_detail" string="Typologie"/> -->
+                                    <field name="desc_typologie_detail" placeholder="Typologie..." readonly="state != 'presale'"/>
                                     
-                                    <label for="price_total" string="Total Mission" invisible="nature_mission != 'E'"/>
-                                    <div class="d-flex align-items-baseline" invisible="nature_mission != 'E'">
-                                        <field name="price_total" widget="monetary" class="oe_inline fw-bold text-primary"
-                                            readonly="1" options="{'currency_field': 'currency_id'}"/>
-                                        <div class="text-primary small ms-2" invisible="total_nb_periods == 0">
-                                            <span class="fw-bold">(Σ </span>
-                                            <field name="price_total_daily" widget="monetary" class="oe_inline"/>
-                                            <span> / pér.)</span>
-                                        </div>
-                                    </div>
+                                    <!-- <label for="desc_nature_travaux" string="Nature des Travaux"/> -->
+                                    <field name="desc_nature_travaux" placeholder="Nature des travaux..." readonly="state != 'presale'"/>
+                                    
+                                    <!-- <label for="desc_methodologie" string="Méthodologie"/> -->
+                                    <field name="desc_methodologie" placeholder="Méthodologie..." readonly="state != 'presale'"/>
+                                    <!-- <label for="desc_annee" string="Année du projet"/> -->
+                                    <field name="desc_annee" options="{'format': false}" placeholder="Année" 
+                                        widget="char" readonly="state != 'presale'"/>
+                                </group>
+                                <group string="Pour le devis...">
+                                    <label for="sale_order_id" string="Devis" invisible="not sale_order_id"/>
+                                    <field name="sale_order_id" readonly="1" nolabel="1" class="oe_inline m-0" invisible="not sale_order_id"/>
+                                    
+                                    <field name="itinerary_duration" options="{'horizontal': true}"/>
                                 </group>
                             </div>
                         </div>
-                        <separator string="OBSERVATIONS / INFORMATIONS SUPPLÉMENTAIRES"/>
+                        <separator string="OBSERVATIONS"/>
                         <field name="desc_observations" placeholder="Observations..."/>
                     </page>
 
                     <!-- Second Page included in this file -->
-                    <page string="Consistance" name="consistency_subtab">
-                        <field name="consistance_lines" context="{'default_ligne_id': ligne_id}">
+                    <page string="2. Consistance" name="consistency_subtab">
+                        <!-- <separator string="DÉTAILS DE LA CONSISTANCE"/> -->
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <h3 class="m-0">Consistance de la mesure</h3>
+                            <button name="action_open_import_wizard" 
+                                string="Importer Excel" 
+                                type="object" 
+                                icon="fa-upload" 
+                                class="btn-secondary"/>
+                        </div>
+                        <br/>
+                        <field name="consistance_lines" context="{'default_ligne_id': default_ligne_id}">
                             <list editable="bottom" class="o_rail_wrap_header">
                                 <!-- On utilise des strings longs pour forcer la compréhension -->
                                 <field name="ligne_id" string="Ligne Ferroviaire" options="{'no_create': True, 'no_create_edit': True, 'no_open': True, 'no_quick_create': True}"/>
@@ -191,27 +133,225 @@
                         <!-- <div style="font-size: 0.85rem;">
                             <i>Toutes les distances sont en mètre (m).</i>
                         </div> -->
-                        <group col="2">
-                            <group string="Matériel de repérage">
-                                <field name="cible_line_ids" nolabel="1" class="w-100">
-                                    <list editable="bottom" create="0" delete="0">
-                                        <field name="name" readonly="1" force_save="1" style="min-width: 200px !important;"/>
-                                        <field name="qty" string="Qté"/>
-                                        <field name="observation" string="Observations"/>
+                        <br/>
+                    
+                        <div class="p-3"> 
+                            <div class="row justify-content-between">
+                                <div class="col-lg-5">
+                                    <div style="margin-bottom: 20px;">
+                                        <separator string="Repérages voie et obstacles" class="o_horizontal_separator"/>
+                                    </div>
+                                    <field name="cible_line_ids" nolabel="1">
+                                        <list editable="bottom" create="0" delete="0">
+                                            <field name="line_type" column_invisible="False"/> 
+                                            <field name="name" string="Repérages" readonly="1" force_save="1"/>
+                                            <field name="qty" string="Qté" width="50px"/>
+                                            <field name="observation" string="Obs."/>
+                                        </list>
+                                    </field>
+                                </div>
+
+                                <!-- RIGHT COLUMN (58% width - Aligned Right) -->
+                                <div class="col-lg-5">
+                                    <div style="margin-bottom: 20px;">
+                                        <separator string="Quais" class="o_horizontal_separator"/>
+                                    </div>
+                                    <field name="quai_line_ids" nolabel="1" context="{'default_ligne_id': ligne_id}">
+                                        <list editable="bottom" create="1" delete="1" open_form_view="0">
+                                            <field name="ligne_id" string="Ligne" width="90px"/>
+                                            <field name="voie_id" string="Voie" width="60px"/>
+                                            <field name="pkd" string="PK D." width="70px"/>
+                                            <field name="pkf" string="PK F." width="70px"/>
+                                            <!-- <field name="longueur" string="Long." width="70px"/> -->
+                                            <field name="nom_gare" string="Gare"/>
+                                        </list>
+                                    </field>
+                                </div>
+                                
+                            </div>
+                        </div>
+                    </page>
+
+                    <page string="3. Planification" name="planification_subtab">
+                        <group string="CALENDRIER">
+                            <!-- L'affichage des semaines en grand -->
+                            <label for="display_weeks" string="Période :"/>
+                            <div class="o_row align-items-baseline">
+                                <!-- 1. Le titre en gros (SXX/XX) -->
+                                <field name="display_weeks" readonly="1" class="fw-bold fs-4 text-primary me-3"/>
+                                
+                                <!-- 2. Le sélecteur de dates (discret entre parenthèses) -->
+                                <span class="text-muted small">(Ajuster : </span>
+                                
+                                <!-- Le widget est porté par date_start. 
+                                    Il affichera de lui-même "Date1 -> Date2" à cet endroit précis -->
+                                <field name="date_start" 
+                                    widget="daterange" 
+                                    options="{'end_date_field': 'date_end'}"
+                                    class="small oe_inline m-0 p-0"
+                                    force_save="1"
+                                    readonly="state != 'presale' and (state != 'production' or prod_substate != 'mission')"/>
+
+                                <!-- CORRECTION : On utilise class="d-none" au lieu de invisible="1" -->
+                                <!-- Cela permet au widget de "lier" les deux champs dès le chargement -->
+                                <field name="date_end" class="d-none" force_save="1" readonly="state != 'presale' and (state != 'production' or prod_substate != 'mission')"/>
+                                
+                                <span class="text-muted small">)</span>
+
+                                <!-- 3. Ton bouton de génération -->
+                                <button name="action_generate_planning" type="object" 
+                                        string="Générer les semaines" 
+                                        class="btn-outline-primary btn-sm ms-3" 
+                                        icon="fa-refresh"
+                                        invisible="not date_start or not date_end"/>
+                            </div>
+                        </group>
+                        <group string="EQUIPE(S)">                            
+                            <!-- Champ technique pour la disponibilité (calculé en Python) -->
+                            <field name="unavailable_equipe_ids" invisible="1"/>
+
+                            <!-- Équipe 1 : On exclut les équipes déjà réservées ailleurs -->
+                            <label for="equipe_id_1" string="Équipe n°1"/>
+                            <div class="o_row">
+                                <field name="equipe_id_1" 
+                                    options="{'no_create': True}"
+                                    domain="[('id', '!=', equipe_id_2)]"
+                                    context="{'check_avail_start': date_start, 'check_avail_end': date_end, 'check_avail_id': id}"/>
+                            </div>
+
+                            <!-- Ligne du Toggle + Équipe 2 -->
+                            <label for="has_second_team" string="Deuxième équipe ?"/>
+                            <div class="o_row">
+                                <!-- L'interrupteur -->
+                                <field name="has_second_team" widget="boolean_toggle" nolabel="1"/>
+                                
+                                <!-- Équipe 2 : Apparaît à droite si le toggle est activé -->
+                                <!-- DOMAINE : Exclut les indisponibles ET l'équipe n°1 sélectionnée au-dessus -->
+                                <field name="equipe_id_2" 
+                                    placeholder="Sélectionnez l'équipe secondaire..."
+                                    invisible="not has_second_team" 
+                                    required="has_second_team"
+                                    options="{'no_create': True}"
+                                    domain="[('id', '!=', equipe_id_1)]"
+                                    context="{'check_avail_start': date_start, 'check_avail_end': date_end, 'check_avail_id': id}"/>
+                            </div>
+                        </group>
+                        <separator string="PLANNING JOURNALIER (J/N)"/>
+
+                        <!-- On utilise une div pour limiter la largeur (ex: col-7 pour environ 60% de l'écran) -->
+                        <div class="row">
+                            <div class="col-lg-7 col-md-4">
+                                <field name="planning_ids" mode="list" nolabel="1" readonly="state != 'presale' and (state != 'production' or prod_substate != 'mission')">
+                                    <!-- 'delete="0"' pour enlever la corbeille et 'planning-grid' pour le CSS -->
+                                    <list editable="bottom" create="0" delete="0" class="planning-grid">
+                                        
+                                        <field name="week_label" readonly="1" class="fw-bold text-center" header_class="text-center"/>
+
+                                        <field name="date_start" string="Du" readonly="1" 
+                                            class="small text-muted text-center" 
+                                            header_class="text-muted fw-normal text-center"/>
+
+                                        <field name="date_end" string="Au" readonly="1" 
+                                            class="small text-muted text-center" 
+                                            header_class="text-muted fw-normal text-center"/>
+
+                                        <!-- On utilise les décorations standards pour déclencher les couleurs CSS -->
+                                        <field name="mon" string="L" class="text-center" header_class="text-center"
+                                            decoration-warning="mon == 'day'" decoration-success="mon == 'night'"/>
+                                        <field name="tue" string="M" class="text-center" header_class="text-center"
+                                            decoration-warning="tue == 'day'" decoration-success="tue == 'night'"/>
+                                        <field name="wed" string="M" class="text-center" header_class="text-center"
+                                            decoration-warning="wed == 'day'" decoration-success="wed == 'night'"/>
+                                        <field name="thu" string="J" class="text-center" header_class="text-center"
+                                            decoration-warning="thu == 'day'" decoration-success="thu == 'night'"/>
+                                        <field name="fri" string="V" class="text-center" header_class="text-center"
+                                            decoration-warning="fri == 'day'" decoration-success="fri == 'night'"/>
+                                        <field name="sat" string="S" class="text-center" header_class="text-center"
+                                            decoration-warning="sat == 'day'" decoration-success="sat == 'night'"/>
+                                        <field name="sun" string="D" class="text-center" header_class="text-center"
+                                            decoration-warning="sun == 'day'" decoration-success="sun == 'night'"/>
+                                                                                    
+                                        <button name="action_copy_to_all" 
+                                            type="object" 
+                                            icon="fa-clone" 
+                                            title="Appliquer ce régime à toutes les semaines" 
+                                            class="text-primary btn_copy_row"
+                                            invisible="parent.state != 'presale' and (parent.state != 'production' or parent.prod_substate != 'mission')"/>
                                     </list>
                                 </field>
-                            </group>
-
-                            <group string="Autre matériel / Notes">
-                                <!-- Placez ici votre deuxième tableau ou d'autres champs -->
-                                <p class="text-muted fst-italic">Emplacement pour le second tableau...</p>
-                            </group>
-
-                        </group>
+                            </div>
+                        </div>
+                        <div class="text-muted small mt-1 ps-2" invisible="not planning_ids">
+                            <i class="fa fa-info-circle me-1"/>
+                            <span>Nombre de périodes : </span>
+                            <field name="total_nb_periods" class="fw-bold"/>
+                            <span class="ms-1">(J/N)</span>
+                        </div>                                          
+                        <separator string="RESSOURCES CHARIOTS"/>
+                        <div class="alert alert-info" role="status" invisible="state != 'presale' and (state != 'production' or prod_substate not in ['material'])">
+                            <i class="fa fa-info-circle" title="Information"/> <b>Action requise :</b> Affectez les chariots physiques pour les dates sélectionnées.
+                        </div>
+                        <div class="alert alert-info" role="status" invisible="(state != 'production' or prod_substate not in ['mission'])">
+                            <i class="fa fa-info-circle" title="Information"/> <b>Action requise :</b> Remplissez le besoin en chariots pour les dates sélectionnées.
+                        </div>
+                        <field name="chariot_type_lines" 
+                            readonly="state != 'presale' and (state != 'production' or prod_substate not in ['mission', 'material'])">
+                            <list editable="bottom">
+                                <field name="chariot_type_id" 
+                                    options="{'no_create': True}"
+                                    domain="[('id', 'not in', parent.existing_chariot_type_ids)]"
+                                    force_save="1"
+                                    readonly="parent.state != 'presale' and (parent.state != 'production' or parent.prod_substate not in ['mission'])"/>
+                                <field name="quantity" readonly="parent.state != 'presale' and (parent.state != 'production' or parent.prod_substate not in ['mission'])"/>
+                                <field name="assigned_chariot_ids" 
+                                    widget="many2many_tags" 
+                                    options="{'no_create': True, 'color_field': 'state'}"
+                                    
+                                    domain="[('cart_type_id', '=', chariot_type_id)]"
+                                    
+                                    context="{
+                                        'check_avail_start': parent.date_start,
+                                        'check_avail_end': parent.date_end,
+                                        'check_avail_id': parent.id
+                                    }"
+                                    
+                                    placeholder="Sélectionnez les chariots..."
+                                    readonly="(parent.state != 'presale' and (parent.state != 'production' or parent.prod_substate not in ['material'])) or not parent.date_start or not parent.date_end"
+                                    />
+                            </list>
+                        </field>
                     </page>
                 </notebook>
             </xpath>
+        </field>
+    </record>
 
+    
+    <record id="view_rail_consistance_import_wizard_form" model="ir.ui.view">
+        <field name="name">rail.consistance.import.wizard.form</field>
+        <field name="model">rail.consistance.import.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Importation Spéciale Process">
+                <sheet>
+                    <div class="alert alert-info" role="alert">
+                        Téléchargez le modèle ci-dessous, collez-y vos données et importez les lignes.
+                    </div>
+                    <group>
+                        <field name="file" filename="filename" string="Fichier Excel (.xlsx)"/>
+                        <field name="filename" invisible="1"/>
+                        <field name="replace_existing" widget="boolean_toggle"/>
+                    </group>
+                </sheet>
+                <footer>
+                    <button name="action_import" string="Lancer l'importation" type="object" class="btn-primary"/>
+                    <button name="action_download_template" 
+                                type="object" 
+                                class="btn-secondary" 
+                                icon="fa-download" 
+                                string="Modèle Excel"/>
+                    <button string="Annuler" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
         </field>
     </record>
 </odoo>

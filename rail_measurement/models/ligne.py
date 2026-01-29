@@ -39,6 +39,11 @@ class Ligne(models.Model):
                 display = name
             result.append((rec.id, display))
         return result
+    
+    @api.depends('name', 'surnom')
+    def _compute_display_name(self):
+        for record in self:
+            record.display_name = f"[{record.surnom}] {record.name}"
 
 
 class TypeVoie(models.Model):

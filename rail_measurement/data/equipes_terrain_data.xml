@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+
+    <!-- EMPLOYÉS -->
+    <record id="emp_olivier_tresor" model="hr.employee"><field name="name">Olivier TRESOR</field></record>
+    <record id="emp_mickael_bertrand" model="hr.employee"><field name="name">Mickaël BERTRAND</field></record>
+    <record id="emp_titie_flikesa" model="hr.employee"><field name="name">Titié FLIKESA</field></record>
+    <record id="emp_jonas_aimable" model="hr.employee"><field name="name">Jonas AIMABLE</field></record>
+
+    <record id="emp_jordan_gaugnard" model="hr.employee"><field name="name">Jordan GAUGNARD</field></record>
+    <record id="emp_maxime_lefevre" model="hr.employee"><field name="name">Maxime LEFEVRE</field></record>
+    <record id="emp_anthony_tyburn" model="hr.employee"><field name="name">Anthony TYBURN</field></record>
+
+    <record id="emp_jeremy_buisson" model="hr.employee"><field name="name">Jérémy BUISSON</field></record>
+
+    <record id="emp_fadi_maiz" model="hr.employee"><field name="name">Fadi MAIZ</field></record>
+    <record id="emp_ali_hamane" model="hr.employee"><field name="name">Ali HAMANE</field></record>
+    <record id="emp_kevin_maherault" model="hr.employee"><field name="name">Kévin MAHERAULT</field></record>
+
+    <record id="emp_benjamin_thomas" model="hr.employee"><field name="name">Benjamin THOMAS</field></record>
+    <record id="emp_lilian_roger" model="hr.employee"><field name="name">Lilian ROGER</field></record>
+    <record id="emp_sebastien_chevalier" model="hr.employee"><field name="name">Sébastien CHEVALIER</field></record>
+    <record id="emp_romain_laroche" model="hr.employee"><field name="name">Romain LAROCHE</field></record>
+
+    <record id="emp_valentin_louvain" model="hr.employee"><field name="name">Valentin LOUVAIN</field></record>
+    <record id="emp_victor_thenaud" model="hr.employee"><field name="name">Victor THENAUD</field></record>
+    <record id="emp_lorenzo_miani" model="hr.employee"><field name="name">Lorenzo MIANI</field></record>
+
+    <record id="emp_camille_massuyes" model="hr.employee"><field name="name">Camille MASSUYES</field></record>
+    <record id="emp_flavien_salieres" model="hr.employee"><field name="name">Flavien SALIERES</field></record>
+    <record id="emp_wesley_catel" model="hr.employee"><field name="name">Wesley CATEL</field></record>
+    <record id="emp_noe_jezequel" model="hr.employee"><field name="name">Noé JEZEQUEL</field></record>
+
+    <record id="emp_arnaud_catel" model="hr.employee"><field name="name">Arnaud CATEL</field></record>
+    <record id="emp_eliasse_dadi" model="hr.employee"><field name="name">Eliasse DADI</field></record>
+    <record id="emp_matteo_valle" model="hr.employee"><field name="name">Mattéo VALLE</field></record>
+    <record id="emp_wassim_abidi" model="hr.employee"><field name="name">Wassim ABIDI</field></record>
+
+    <record id="emp_nabil_outouil" model="hr.employee"><field name="name">Nabil OUTOUIL</field></record>
+    <record id="emp_billal_chikhaoui" model="hr.employee"><field name="name">Billal CHIKHAOUI</field></record>
+    <record id="emp_simon_garnier" model="hr.employee"><field name="name">Simon GARNIER</field></record>
+    <record id="emp_yannis_pellan" model="hr.employee"><field name="name">Yannis PELLAN</field></record>
+
+    <record id="emp_jordan_marsli" model="hr.employee"><field name="name">Jordan MARSLI-PUJOL</field></record>
+    <record id="emp_noureddine_bagdadi" model="hr.employee"><field name="name">Noureddine BAGDADI</field></record>
+    <record id="emp_mohamed_marsli" model="hr.employee"><field name="name">Mohamed MARSLI</field></record>
+    <record id="emp_karim_laaroussi" model="hr.employee"><field name="name">Karim LAAROUSSI</field></record>
+
+    <record id="emp_moha_oukrina" model="hr.employee"><field name="name">Moha OUKRINA</field></record>
+    <record id="emp_samir_rehioui" model="hr.employee"><field name="name">Samir REHIOUI</field></record>
+    <record id="emp_mounir_slamnia" model="hr.employee"><field name="name">Mounir SLAMNIA</field></record>
+
+    <record id="emp_nayim_chkiri" model="hr.employee"><field name="name">Nayim CHKIRI</field></record>
+    <record id="emp_thomas_cribier" model="hr.employee"><field name="name">Thomas CRIBIER</field></record>
+    <record id="emp_nacer_bala" model="hr.employee"><field name="name">Nacer BALA</field></record>
+
+    <record id="emp_raphael_pescheloche" model="hr.employee"><field name="name">Raphael PESCHELOCHE</field></record>
+    <record id="emp_franck_senery" model="hr.employee"><field name="name">Franck SENERY</field></record>
+
+    <!-- ÉQUIPES AVEC COULEURS -->
+    <record id="equipe_n1" model="equipe.terrain">
+        <field name="name">N1</field>
+        <field name="color">#F99696</field>
+        <field name="leader_id" ref="emp_olivier_tresor"/>
+        <field name="member_ids" eval="[(6, 0, [ref('emp_mickael_bertrand'), ref('emp_titie_flikesa'), ref('emp_jonas_aimable')])]"/>
+    </record>
+
+    <record id="equipe_c1" model="equipe.terrain">
+        <field name="name">C1</field>
+        <field name="color">#F52394</field>
+        <field name="leader_id" ref="emp_jordan_gaugnard"/>
+        <field name="member_ids" eval="[(6, 0, [ref('emp_maxime_lefevre'), ref('emp_anthony_tyburn')])]"/>
+    </record>
+
+    <record id="equipe_c2" model="equipe.terrain">
+        <field name="name">C2</field>
+        <field name="color">#00B140</field>
+        <field name="leader_id" ref="emp_jeremy_buisson"/>
+    </record>
+
+    <record id="equipe_c3" model="equipe.terrain">
+        <field name="name">C3</field>
+        <field name="color">#6F2C91</field>
+        <field name="leader_id" ref="emp_fadi_maiz"/>
+        <field name="member_ids" eval="[(6, 0, [ref('emp_ali_hamane'), ref('emp_kevin_maherault')])]"/>
+    </record>
+
+    <record id="equipe_c4" model="equipe.terrain">
+        <field name="name">C4</field>
+        <field name="color">#FFFF00</field>
+        <field name="leader_id" ref="emp_benjamin_thomas"/>
+        <field name="member_ids" eval="[(6, 0, [ref('emp_lilian_roger'), ref('emp_sebastien_chevalier'), ref('emp_romain_laroche')])]"/>
+    </record>
+
+    <record id="equipe_no1" model="equipe.terrain">
+        <field name="name">NO1</field>
+        <field name="color">#FF9900</field>
+        <field name="leader_id" ref="emp_valentin_louvain"/>
+        <field name="member_ids" eval="[(6, 0, [ref('emp_victor_thenaud'), ref('emp_lorenzo_miani')])]"/>
+    </record>
+
+    <record id="equipe_t1" model="equipe.terrain">
+        <field name="name">T1</field>
+        <field name="color">#FF0000</field>
+        <field name="leader_id" ref="emp_camille_massuyes"/>
+        <field name="member_ids" eval="[(6, 0, [ref('emp_flavien_salieres'), ref('emp_wesley_catel'), ref('emp_noe_jezequel')])]"/>
+    </record>
+
+    <record id="equipe_t2" model="equipe.terrain">
+        <field name="name">T2</field>
+        <field name="color">#00B0F0</field>
+        <field name="leader_id" ref="emp_arnaud_catel"/>
+        <field name="member_ids" eval="[(6, 0, [ref('emp_eliasse_dadi'), ref('emp_matteo_valle'), ref('emp_wassim_abidi')])]"/>
+    </record>
+
+    <record id="equipe_t3" model="equipe.terrain">
+        <field name="name">T3</field>
+        <field name="color">#C00000</field>
+        <field name="leader_id" ref="emp_nabil_outouil"/>
+        <field name="member_ids" eval="[(6, 0, [ref('emp_billal_chikhaoui'), ref('emp_simon_garnier'), ref('emp_yannis_pellan')])]"/>
+    </record>
+
+    <record id="equipe_t4" model="equipe.terrain">
+        <field name="name">T4</field>
+        <field name="color">#C55A11</field>
+        <field name="leader_id" ref="emp_jordan_marsli"/>
+        <field name="member_ids" eval="[(6, 0, [ref('emp_noureddine_bagdadi'), ref('emp_mohamed_marsli'), ref('emp_karim_laaroussi')])]"/>
+    </record>
+
+    <record id="equipe_t5" model="equipe.terrain">
+        <field name="name">T5</field>
+        <field name="color">#FFFFFF</field>
+        <field name="leader_id" ref="emp_moha_oukrina"/>
+        <field name="member_ids" eval="[(6, 0, [ref('emp_samir_rehioui'), ref('emp_mounir_slamnia')])]"/>
+    </record>
+
+    <record id="equipe_t6" model="equipe.terrain">
+        <field name="name">T6</field>
+        <field name="color">#FFFFFF</field>
+        <field name="leader_id" ref="emp_nayim_chkiri"/>
+        <field name="member_ids" eval="[(6, 0, [ref('emp_thomas_cribier'), ref('emp_nacer_bala')])]"/>
+    </record>
+
+    <record id="equipe_t7" model="equipe.terrain">
+        <field name="name">T7</field>
+        <field name="color">#FFFFFF</field>
+        <field name="leader_id" ref="emp_raphael_pescheloche"/>
+        <field name="member_ids" eval="[(6, 0, [ref('emp_franck_senery')])]"/>
+    </record>
+
+</odoo>

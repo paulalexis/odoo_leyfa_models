@@ -58,8 +58,8 @@
         <!-- Type MOE -->
         <record id="type_moe" model="leyfa.affaire.type">
             <field name="code">MOE</field>
-            <field name="name">Maitrise d’œuvre</field>
-            <field name="description">Mission de maitrise d’œuvre, par exemple de Tx comme sur le chantier de l’AUBRAC.</field>
+            <field name="name">Maitrise d'œuvre</field>
+            <field name="description">Mission de maitrise d'œuvre, par exemple de Tx comme sur le chantier de l'AUBRAC.</field>
             <field name="sequence">70</field>
             <field name="requires_nature" eval="False"/>
         </record>

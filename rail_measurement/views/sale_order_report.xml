@@ -1,0 +1,252 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <template id="report_saleorder_document_custom" t-name="rail_measurement.report_saleorder_document_custom">
+        <main>
+            <t t-foreach="docs" t-as="doc" limit="1">
+                <t t-call="web.external_layout">
+                    <div class="page">
+                        <style>
+                            .rm-report {
+                                font-family: 'Helvetica', 'Arial', sans-serif;
+                                font-size: 10pt;
+                                color: #333;
+                                margin-top: 40px; /* Ajusté suite à la modif du Paper Format */
+                            }
+                            /* Header Nettoyé */
+                            .rm-custom-header {
+                                border-bottom: 2px solid #003366;
+                                margin-bottom: 15px;
+                                padding-bottom: 10px;
+                            }
+                            .rm-quote-title {
+                                background: #003366;
+                                color: white;
+                                padding: 8px 15px;
+                                margin: 10px 0;
+                                width: 100%;
+                            }
+                            /* Tableaux */
+                            .rm-table {
+                                width: 100%;
+                                border-collapse: collapse;
+                                margin: 10px 0;
+                            }
+                            .rm-table th {
+                                background: #003366; color: white; padding: 8px;
+                                text-align: center; border: 1px solid #003366; font-size: 9pt;
+                            }
+                            .rm-table td {
+                                padding: 6px; text-align: center;
+                                border: 1px solid #ddd; vertical-align: middle; font-size: 9pt;
+                            }
+                            .rm-text-left { text-align: left; }
+                            .rm-category-row { background: #e8f0f7; font-weight: bold; color: #003366; }
+                            
+                            /* Section Client/Ref Nettoyée (plus de stroke parasite) */
+                            .rm-info-box {
+                                border: 1px solid #ddd;
+                                padding: 10px;
+                                background: #f8f9fa;
+                                height: 100px;
+                            }
+
+                            /* Bloc Total sans lignes barrées */
+                            .rm-total-box {
+                                border: 2px solid #003366;
+                                padding: 12px;
+                                width: 320px;
+                                float: right;
+                                margin-top: 20px;
+                                background: #f8f9fa;
+                            }
+                            .rm-total-row {
+                                clear: both;
+                                display: block;
+                                padding: 4px 0;
+                            }
+                            .rm-total-row span:first-child { float: left; }
+                            .rm-total-row span:last-child { float: right; font-weight: bold; }
+                            .rm-final-total {
+                                font-size: 14pt;
+                                border-top: 1px solid #003366; /* Ligne fine de séparation */
+                                color: #003366;
+                                margin-top: 8px;
+                                padding-top: 8px;
+                            }
+                            .page-break { page-break-before: always; }
+                        </style>
+
+                        <div class="article rm-report">
+                            <!-- HEADER : LOGO & COMPAGNIE -->
+                            <div class="rm-custom-header">
+                                <table width="100%">
+                                    <tr>
+                                        <td width="70%">
+                                            <div style="font-size:16pt;font-weight:bold;color:#003366;">
+                                                <span t-field="doc.company_id.name"/>
+                                            </div>
+                                            <div style="font-size:9pt;">
+                                                <span t-field="doc.company_id.city"/>, <span t-field="doc.company_id.country_id.name"/>
+                                            </div>
+                                        </td>
+                                        <td width="30%" style="text-align:right;">
+                                            <img t-if="doc.company_id.logo" t-att-src="image_data_uri(doc.company_id.logo)" style="max-height:65px"/>
+                                            <div style="font-size:8pt;margin-top:5px;">
+                                                le <span t-field="doc.date_order" t-options='{"widget":"date"}'/>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+
+                            <!-- BANDEAU TITRE -->
+                            <div class="rm-quote-title">
+                                <table width="100%" style="color:white; border-collapse: collapse;">
+                                    <tr>
+                                        <td style="font-size:14pt;font-weight:bold;">
+                                            Devis n° <span t-field="doc.name"/>
+                                        </td>
+                                        <td style="text-align:right;">
+                                            <strong>Code Affaire :</strong> <span t-field="doc.measurement_id.code_affaire"/>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+
+                            <!-- BLOC CLIENT ET RÉFÉRENCES (Nettoyé) -->
+                            <table width="100%" style="margin-top:10px; border-collapse: collapse;">
+                                <tr>
+                                    <td width="48%" class="rm-info-box">
+                                        <strong style="color:#003366;">CLIENT</strong><br/>
+                                        <div style="margin-top:5px;">
+                                            <strong t-field="doc.partner_id.name"/><br/>
+                                            <span t-field="doc.partner_id.email"/>
+                                        </div>
+                                    </td>
+                                    <td width="4%"><!-- Espace pour éviter le stroke entre les deux --></td>
+                                    <td width="48%" style="vertical-align: top;">
+                                        <table class="rm-table" style="margin:0; font-size:8pt;">
+                                            <tr><td class="rm-text-left"><strong>Nos Réf</strong></td><td><span t-field="doc.measurement_id.code_affaire"/></td></tr>
+                                            <tr><td class="rm-text-left"><strong>Date</strong></td><td><span t-field="doc.date_order" t-options='{"widget": "datetime"}'/></td></tr>
+                                            <tr><td class="rm-text-left"><strong>Validité</strong></td><td><span t-field="doc.validity_date"/></td></tr>
+                                            <tr><td class="rm-text-left"><strong>Commercial</strong></td><td><span t-field="doc.user_id.name"/></td></tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <!-- TABLEAU DES PRIX -->
+                            <div style="background:#003366;color:white;padding:6px 15px;font-weight:bold;margin-top:20px;">OFFRE DE PRIX</div>
+                            <table class="rm-table">
+                                <thead>
+                                    <tr>
+                                        <th>Classe</th>
+                                        <th style="width:42%;">Libellé - Type d'opération</th>
+                                        <th>Unité</th><th>Qté</th><th>PU HT</th><th>TVA</th><th>Total HT</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <t t-set="in_section_7" t-value="False"/>
+                                    <t t-foreach="doc.order_line" t-as="line">
+                                        <!-- Détection Section 7 -->
+                                        <t t-if="line.display_type == 'line_section'">
+                                            <t t-set="in_section_7" t-value="'7.' in line.name"/>
+                                            <tr class="rm-category-row">
+                                                <td colspan="7" class="rm-text-left"><span t-field="line.name"/></td>
+                                            </tr>
+                                        </t>
+                                        
+                                        <tr t-if="not line.display_type">
+                                            <td><span t-field="line.product_id.default_code"/></td>
+                                            <td class="rm-text-left">
+                                                <!-- Nettoyage Nom : Uniquement si commence par [ -->
+                                                <t t-if="line.name and line.name.startswith('[') and ']' in line.name">
+                                                    <span t-esc="line.name.split(']', 1)[1].strip()"/>
+                                                </t>
+                                                <t t-else="">
+                                                    <span t-field="line.name"/>
+                                                </t>
+                                            </td>
+                                            <td><span t-field="line.product_uom_id.name"/></td>
+                                            <td>
+                                                <!-- Section 7 : Qté % -->
+                                                <t t-if="in_section_7">
+                                                    <span t-esc="'%.1f' % (line.product_uom_qty * 100)"/>%
+                                                </t>
+                                                <t t-else="">
+                                                    <span t-esc="'%.1f' % line.product_uom_qty"/>
+                                                </t>
+                                            </td>
+                                            <td><span t-field="line.price_unit"/></td>
+                                            <td><t t-foreach="line.tax_ids" t-as="tax"><span t-esc="'%.0f' % tax.amount"/>%</t></td>
+                                            <td><span t-field="line.price_subtotal"/></td>
+                                        </tr>
+                                    </t>
+                                </tbody>
+                            </table>
+
+                            <!-- BLOC TOTAL NETTOYÉ -->
+                            <div class="rm-total-box">
+                                <div class="rm-total-row">
+                                    <span>Total HT</span>
+                                    <span t-field="doc.amount_untaxed"/>
+                                </div>
+                                <div class="rm-total-row">
+                                    <span>TVA</span>
+                                    <span t-field="doc.amount_tax"/>
+                                </div>
+                                <div class="rm-total-row rm-final-total">
+                                    <span>Total TTC</span>
+                                    <span t-field="doc.amount_total" style="font-size: 16pt;"/>
+                                </div>
+                            </div>
+
+                            <div style="clear:both"/>
+                            <div class="page-break"/>
+
+                            <!-- TABLEAU DE CONSISTANCE (Détail Linéaire) -->
+                            <t t-if="doc.measurement_id and doc.measurement_id.consistance_lines">
+                                <div style="background:#003366;color:white;padding:6px 15px;font-weight:bold;margin-top:15px;">
+                                    DÉTAIL LINÉAIRE THÉORIQUE / LINÉAIRE RELEVÉ
+                                </div>
+                                <table class="rm-table" style="font-size:7pt;">
+                                    <thead>
+                                        <tr>
+                                            <th>Ligne</th><th>Voie</th><th>Tx</th><th>PKD</th><th>PKF</th>
+                                            <th>Maj.D</th><th>Maj.F</th><th>L.Am</th><th>L.Av</th>
+                                            <th>Nb C</th><th>Nb Q</th><th>Observations</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <t t-foreach="doc.measurement_id.consistance_lines" t-as="cons">
+                                            <tr>
+                                                <td><span t-field="cons.ligne_id.name"/></td>
+                                                <td><span t-field="cons.voie_id.name"/></td>
+                                                <td><span t-field="cons.desc_nature_travaux.name"/></td>
+                                                <td><span t-esc="int(cons.pkd)"/></td>
+                                                <td><span t-esc="int(cons.pkf)"/></td>
+                                                <td><span t-esc="int(cons.maj_deb)"/></td>
+                                                <td><span t-esc="int(cons.maj_fin)"/></td>
+                                                <td><span t-esc="int(cons.limite_amont)"/></td>
+                                                <td><span t-esc="int(cons.limite_aval)"/></td>
+                                                <td><span t-field="cons.nombre_courbes"/></td>
+                                                <td><span t-field="cons.nombres_quais"/></td>
+                                                <td class="rm-text-left" style="font-size:6pt;">
+                                                    <span t-field="cons.observations"/>
+                                                </td>
+                                            </tr>
+                                        </t>
+                                    </tbody>
+                                </table>
+                            </t>
+
+                            <p t-if="doc.note" style="margin-top:20px;font-style:italic;font-size:9pt;">
+                                <span t-field="doc.note"/>
+                            </p>
+                        </div>
+                    </div>
+                </t>
+            </t>
+        </main>
+    </template>
+</odoo>

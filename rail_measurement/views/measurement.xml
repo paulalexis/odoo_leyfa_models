@@ -103,8 +103,6 @@
                 <field name="partner_id"/>
                 <field name="date_start"/>
                 <field name="ligne_id"/>
-                <field name="pk_initial"/>
-                <field name="pk_final"/>
                 <field name="state" widget="badge" 
                        decoration-info="state == 'presale'"
                        decoration-warning="state in ('production', 'measure', 'study', 'invoicing')"
@@ -146,11 +144,7 @@
 
                     <notebook>
                         <!-- TAB 1: SALES / COMMERCE -->
-                        <page string="💼 Affaire &amp; Commerce" name="sales_tab">
-                        </page>
-
-                        <!-- TAB 2: PRODUCTION / TERRAIN -->
-                        <page string="🗺️ Planification" name="planification_tab">
+                        <page string="💼 Pôle Affaire" name="sales_tab">
                         </page>
 
                         <page string="🚧 Relevés Terrain" name="terrain_tab">
@@ -442,8 +436,8 @@
                 </div>
 
                 <footer>
-                    <button name="action_analyze" string="Analyser et Attacher" 
-                            type="object" class="btn-primary" invisible="state != 'upload'"/>
+                    <!-- <button name="action_analyze" string="Analyser et Attacher" 
+                            type="object" class="btn-primary" invisible="state != 'upload'"/> -->
                     <button name="action_confirm_selection" string="Confirmer l'attribution" 
                             type="object" class="btn-primary" invisible="state != 'select'"/>
                     <button string="Annuler" class="btn-secondary" special="cancel"/>
@@ -472,6 +466,26 @@
         </field>
     </record>
 
+
+    <!-- Planning -->
+    <record id="view_rail_measurement_planning_calendar" model="ir.ui.view">
+        <field name="name">rail.measurement.planning.calendar</field>
+        <field name="model">rail.measurement.planning</field>
+        <field name="arch" type="xml">
+            <!-- 'color' utilise notre champ calculé pour alterner Gris/Bleu -->
+            <calendar string="Planning Équipes" 
+                    date_start="date_start" 
+                    date_stop="date_end" 
+                    color="calendar_color" 
+                    mode="month"
+                    quick_create="false">
+                <field name="measurement_id"/>
+                <field name="week_label"/>
+                <field name="nb_periods" string="Jours travaillés"/>
+            </calendar>
+        </field>
+    </record>
+
     <!-- ========== MENUS ========== -->
     <menuitem id="rail_measurement_root"
               name="Mesure de voie"
@@ -488,22 +502,4 @@
               parent="rail_measurement_menu_ops"
               action="action_rail_measurement"
               sequence="10"/>
-
-    <menuitem id="rail_measurement_menu_resources"
-              name="Ressources"
-              parent="rail_measurement_root"
-              sequence="20"/>
-
-    <menuitem id="chariot_type_menu"
-              name="Types de chariots"
-              parent="rail_measurement_menu_resources"
-              action="action_chariot_type"
-              sequence="10"/>
-
-    <menuitem id="chariot_menu"
-              name="Chariots physiques"
-              parent="rail_measurement_menu_resources"
-              action="action_chariot"
-              sequence="20"/>
-
 </odoo>
