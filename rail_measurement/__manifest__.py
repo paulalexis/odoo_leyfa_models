@@ -61,6 +61,7 @@ dans les devis, puis de les configurer avec tous les détails techniques nécess
             'rail_measurement/static/src/js/autocomplete_patch.js',
         ],
     },
+    'images': ['static/description/icon.png'],
     'demo': [],
     'installable': True,
     'application': True,
