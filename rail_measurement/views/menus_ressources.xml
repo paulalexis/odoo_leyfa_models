@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <!-- Menu Racine -->
-    <menuitem id="rail_measurement_root" name="Affaires" sequence="10"/>
+    <menuitem id="rail_measurement_root" name="Affaires" sequence="10"
+        web_icon="rail_measurement,static/description/icon.png"/>
 
     <!-- Parent Ressources -->
     <menuitem id="rail_measurement_menu_resources" name="Ressources" parent="rail_measurement_root" sequence="50"/>
