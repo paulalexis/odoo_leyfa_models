@@ -841,7 +841,6 @@ class RailMeasurement(models.Model):
     default_ligne_id = fields.Many2one(
         'leyfa.ligne', 
         string='Ligne Ferroviaire par défaut', 
-        required=True,
         tracking=True,
         default=lambda self: self.ligne_id
     )
