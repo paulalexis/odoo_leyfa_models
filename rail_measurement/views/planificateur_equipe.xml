@@ -1,0 +1,410 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Vue Kanban Planificateur -->
+<record id="view_planificateur_hebdo_kanban" model="ir.ui.view">
+    <field name="name">planificateur.hebdo.kanban</field>
+    <field name="model">equipe.composition.hebdo</field>
+    <field name="arch" type="xml">
+        <kanban default_group_by="equipe_id" 
+                sample="1"
+                on_create="quick_create"
+                quick_create_view="rail_measurement.equipe_composition_hebdo_quick_create_form">
+            <field name="equipe_id"/>
+            <field name="week_start"/>
+            <field name="week_end"/>
+            <field name="week_number"/>
+            <field name="leader_id"/>
+            <field name="member_ids"/>
+            <field name="state"/>
+            <field name="total_members"/>
+            
+            <templates>
+                <!-- CHANGEMENT ICI : kanban-box devient card -->
+                <t t-name="card">
+                    <div class="oe_kanban_card oe_kanban_global_click">
+                        <!-- En-tête -->
+                        <div class="o_kanban_card_header">
+                            <div class="o_kanban_card_header_title">
+                                <div class="o_primary">
+                                    <strong><field name="week_number"/></strong>
+                                </div>
+                                <div class="text-muted">
+                                    <field name="week_start"/>
+                                </div>
+                            </div>
+                            <div class="o_dropdown_kanban dropdown">
+                                <a role="button" class="dropdown-toggle o-no-caret btn" data-bs-toggle="dropdown" href="#" aria-label="Menu" title="Menu">
+                                    <span class="fa fa-ellipsis-v"/>
+                                </a>
+                                <div class="dropdown-menu" role="menu">
+                                    <a role="menuitem" type="edit" class="dropdown-item">Modifier</a>
+                                    <a role="menuitem" type="delete" class="dropdown-item">Supprimer</a>
+                                    <a role="menuitem" name="action_copy_from_previous_week" type="object" class="dropdown-item">Copier semaine précédente</a>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Corps -->
+                        <div class="o_kanban_card_content mt-2">
+                            <div class="mb-2">
+                                <i class="fa fa-user-circle text-primary" title="Chef d'équipe"/> 
+                                <strong> Chef:</strong> <field name="leader_id"/>
+                            </div>
+                            
+                            <div class="mb-2">
+                                <div class="d-flex align-items-center mb-1">
+                                    <i class="fa fa-users text-info" title="Membres"/> 
+                                    <strong> Membres (<field name="total_members"/>):</strong>
+                                </div>
+                                <field name="member_ids" widget="many2many_tags"/>
+                            </div>
+                        </div>
+                        
+                        <!-- Pied -->
+                        <div class="o_kanban_record_bottom d-flex justify-content-between align-items-center mt-2">
+                            <div class="oe_kanban_bottom_left">
+                                <field name="state" widget="label_selection" options="{'classes': {'draft': 'warning', 'validated': 'success'}}"/>
+                            </div>
+                            <div class="oe_kanban_bottom_right">
+                                <button t-if="record.state.raw_value == 'draft'" 
+                                        name="action_validate" 
+                                        type="object" 
+                                        class="btn btn-sm btn-success">
+                                    <i class="fa fa-check" title="Check"/>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </t>
+            </templates>
+        </kanban>
+    </field>
+</record>
+
+    <!-- Formulaire création rapide -->
+    <record id="equipe_composition_hebdo_quick_create_form" model="ir.ui.view">
+        <field name="name">equipe.composition.hebdo.quick.create</field>
+        <field name="model">equipe.composition.hebdo</field>
+        <field name="arch" type="xml">
+            <form>
+                <group>
+                    <field name="week_start" widget="week" required="1"/>
+                    <field name="equipe_id" invisible="1"/>
+                </group>
+            </form>
+        </field>
+    </record>
+
+    <!-- Vue de recherche COMPATIBLE ODOO 19 -->
+    <record id="view_planificateur_hebdo_search" model="ir.ui.view">
+        <field name="name">planificateur.hebdo.search</field>
+        <field name="model">equipe.composition.hebdo</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="equipe_id"/>
+                <field name="leader_id"/>
+                <field name="week_number"/>
+                
+                <filter name="draft" string="Brouillon" domain="[('state', '=', 'draft')]"/>
+                <filter name="validated" string="Validées" domain="[('state', '=', 'validated')]"/>
+                
+                <separator/>
+                
+                <filter string="Par équipe" name="group_by_equipe" context="{'group_by': 'equipe_id'}"/>
+            </search>
+        </field>
+    </record>
+
+    <!-- Action Planificateur -->
+    <record id="action_planificateur_hebdo" model="ir.actions.act_window">
+        <field name="name">Planificateur Hebdomadaire</field>
+        <field name="res_model">equipe.composition.hebdo</field>
+        <field name="view_mode">kanban,list,form</field>
+        <field name="view_id" ref="view_planificateur_hebdo_kanban"/>
+        <field name="search_view_id" ref="view_planificateur_hebdo_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Organisez vos équipes par semaine
+            </p>
+            <p>
+                Glissez-déposez les employés entre les équipes.<br/>
+                Chaque colonne représente une équipe, chaque carte une semaine.
+            </p>
+        </field>
+    </record>
+
+    <!-- Menu -->
+    <menuitem id="menu_planificateur_hebdo"
+              name="Planificateur"
+              parent="rail_measurement_root"
+              action="action_planificateur_hebdo"
+              sequence="5"/>
+
+    <!-- ========================================
+         VUE KANBAN
+         ======================================== -->
+<record id="view_equipe_composition_hebdo_kanban" model="ir.ui.view">
+    <field name="name">equipe.composition.hebdo.kanban</field>
+    <field name="model">equipe.composition.hebdo</field>
+    <field name="arch" type="xml">
+        <kanban sample="1">
+            <templates>
+                <!-- CHANGEMENT ICI : kanban-box devient card -->
+                <t t-name="card">
+                    <div class="oe_kanban_global_click p-2">
+                        <div class="o_kanban_record_top mb-2">
+                            <div class="o_kanban_record_headings">
+                                <strong class="o_kanban_record_title">
+                                    <field name="equipe_id"/>
+                                </strong>
+                                <div class="o_kanban_record_subtitle text-muted">
+                                    <field name="week_number"/> (<field name="week_start"/>)
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="o_kanban_record_body mt-2">
+                            <div class="row">
+                                <div class="col-12 mb-1">
+                                    <i class="fa fa-user-circle text-primary" title="Chef d'équipe"/> Chef: <field name="leader_id"/>
+                                </div>
+                                <div class="col-12 mb-1">
+                                    <i class="fa fa-users text-info" title="Effectif de l'équipe"/> Effectif: <field name="total_members"/>
+                                </div>
+                            </div>
+                            <div class="o_kanban_tags_section mt-2">
+                                <field name="member_ids" widget="many2many_tags"/>
+                            </div>
+                        </div>
+
+                        <div class="o_kanban_record_bottom mt-2 d-flex justify-content-between align-items-center">
+                            <field name="state" widget="label_selection" options="{'classes': {'draft': 'secondary', 'validated': 'success'}}"/>
+                            <button t-if="record.state.raw_value == 'draft'" 
+                                    name="action_validate" 
+                                    type="object" 
+                                    class="btn btn-sm btn-outline-success">
+                                Valider
+                            </button>
+                        </div>
+                    </div>
+                </t>
+            </templates>
+        </kanban>
+    </field>
+</record>€
+
+    <!-- ========================================
+         VUE list
+         ======================================== -->
+    <record id="view_equipe_composition_hebdo_list" model="ir.ui.view">
+        <field name="name">equipe.composition.hebdo.list</field>
+        <field name="model">equipe.composition.hebdo</field>
+        <field name="arch" type="xml">
+            <list string="Compositions hebdomadaires" 
+                  decoration-muted="state == 'validated'"
+                  decoration-info="state == 'draft'"
+                  sample="1">
+                <field name="week_number"/>
+                <field name="week_start"/>
+                <field name="equipe_id"/>
+                <field name="leader_id"/>
+                <field name="total_members"/>
+                <field name="state" widget="badge" decoration-success="state == 'validated'"/>
+                <button name="action_validate" 
+                        type="object" 
+                        string="Valider" 
+                        icon="fa-check"
+                        invisible="state == 'validated'"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- ========================================
+         VUE FORM
+         ======================================== -->
+    <record id="view_equipe_composition_hebdo_form" model="ir.ui.view">
+        <field name="name">equipe.composition.hebdo.form</field>
+        <field name="model">equipe.composition.hebdo</field>
+        <field name="arch" type="xml">
+            <form string="Composition hebdomadaire">
+                <header>
+                    <button name="action_validate" 
+                            string="Valider" 
+                            type="object" 
+                            class="oe_highlight"
+                            invisible="state == 'validated'"/>
+                    <button name="action_draft" 
+                            string="Repasser en brouillon" 
+                            type="object"
+                            invisible="state == 'draft'"/>
+                    <button name="action_copy_from_previous_week" 
+                            string="Copier semaine précédente" 
+                            type="object"
+                            class="btn-secondary"
+                            invisible="state == 'validated'"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,validated"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="equipe_id" placeholder="Sélectionner une équipe" 
+                                   options="{'no_create': True}"/>
+                        </h1>
+                        <h2>
+                            <field name="week_number" readonly="1"/>
+                        </h2>
+                    </div>
+                    
+                    <group>
+                        <group string="Période">
+                            <field name="week_start" widget="week"/>
+                            <field name="week_end" readonly="1"/>
+                        </group>
+                        <group string="Statistiques">
+                            <field name="total_members"/>
+                        </group>
+                    </group>
+                    
+                    <notebook>
+                        <page string="Composition" name="composition">
+                            <group>
+                                <group string="Chef d'équipe">
+                                    <field name="leader_id" 
+                                           options="{'no_create': True, 'no_open': True}"
+                                           domain="[('active', '=', True)]"/>
+                                </group>
+                                <group string="Matériel">
+                                    <field name="chariot_lynx_id" options="{'no_create': True}"/>
+                                    <field name="chariot_lynx_plus_id" options="{'no_create': True}"/>
+                                </group>
+                            </group>
+                            
+                            <separator string="Membres présents"/>
+                            <field name="member_ids" 
+                                   widget="many2many_tags"
+                                   options="{'no_create': True}"
+                                   domain="[('active', '=', True)]"/>
+                            
+                            <separator string="Membres absents (pour info)"/>
+                            <field name="absent_member_ids" 
+                                   widget="many2many_tags"
+                                   options="{'no_create': True}"/>
+                        </page>
+                        
+                        <page string="Raison / Notes" name="notes">
+                            <group>
+                                <field name="modification_reason" 
+                                       placeholder="Ex: Jean Dupont en congé, apprenti Paul Martin ajouté"/>
+                            </group>
+                            <separator string="Notes complémentaires"/>
+                            <field name="notes" placeholder="Notes additionnelles..."/>
+                        </page>
+                        
+                        <page string="Affaires de la semaine" name="measurements">
+                            <field name="measurement_ids" mode="list" readonly="1">
+                                <list>
+                                    <field name="name"/>
+                                    <field name="date_start"/>
+                                    <field name="date_end"/>
+                                    <field name="state" widget="badge"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- ========================================
+         VUE CALENDAR
+         ======================================== -->
+    <record id="view_equipe_composition_hebdo_calendar" model="ir.ui.view">
+        <field name="name">equipe.composition.hebdo.calendar</field>
+        <field name="model">equipe.composition.hebdo</field>
+        <field name="arch" type="xml">
+            <calendar string="Planning des compositions" 
+                      date_start="week_start" 
+                      date_stop="week_end"
+                      color="equipe_id"
+                      mode="month"
+                      quick_create="0">
+                <field name="equipe_id"/>
+                <field name="leader_id"/>
+                <field name="total_members"/>
+                <field name="state"/>
+            </calendar>
+        </field>
+    </record>
+
+    <!-- ========================================
+         VUE PIVOT
+         ======================================== -->
+    <record id="view_equipe_composition_hebdo_pivot" model="ir.ui.view">
+        <field name="name">equipe.composition.hebdo.pivot</field>
+        <field name="model">equipe.composition.hebdo</field>
+        <field name="arch" type="xml">
+            <pivot string="Analyse des compositions">
+                <field name="equipe_id" type="row"/>
+                <field name="week_start" interval="week" type="col"/>
+                <field name="total_members" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <!-- ========================================
+         VUE SEARCH - COMPATIBLE ODOO 19
+         ======================================== -->
+    <record id="view_equipe_composition_hebdo_search" model="ir.ui.view">
+        <field name="name">equipe.composition.hebdo.search</field>
+        <field name="model">equipe.composition.hebdo</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="equipe_id"/>
+                <field name="leader_id"/>
+                <field name="week_number"/>
+                <field name="member_ids"/>
+                
+                <filter name="draft" string="Brouillon" domain="[('state', '=', 'draft')]"/>
+                <filter name="validated" string="Validées" domain="[('state', '=', 'validated')]"/>
+                
+                <separator/>
+                
+                <filter string="Par équipe" name="group_by_equipe" context="{'group_by': 'equipe_id'}"/>
+                <filter string="Par semaine" name="group_by_week" context="{'group_by': 'week_start:week'}"/>
+                <filter string="Par état" name="group_by_state" context="{'group_by': 'state'}"/>
+            </search>
+        </field>
+    </record>
+
+    <!-- ========================================
+         ACTION
+         ======================================== -->
+    <record id="action_equipe_composition_hebdo" model="ir.actions.act_window">
+        <field name="name">Compositions Hebdomadaires</field>
+        <field name="res_model">equipe.composition.hebdo</field>
+        <field name="view_mode">kanban,list,form,calendar,pivot</field>
+        <field name="context">{
+            'search_default_group_by_equipe': 1,
+        }</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Créer votre première composition hebdomadaire
+            </p>
+            <p>
+                Gérez la composition de vos équipes semaine par semaine.<br/>
+                Ajoutez des apprentis, gérez les congés, et validez la composition avant le départ sur le terrain.
+            </p>
+        </field>
+    </record>
+
+    <!-- ========================================
+         MENU
+         ======================================== -->
+    <menuitem id="menu_equipe_composition_hebdo"
+              name="Planning Hebdomadaire"
+              parent="rail_measurement_menu_resources"
+              action="action_equipe_composition_hebdo"
+              sequence="15"/>
+
+</odoo>
