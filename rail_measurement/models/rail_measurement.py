@@ -1861,7 +1861,7 @@ class SaleOrder(models.Model):
     user_receive_commande = fields.Many2one(
         'res.users', 
         string='Utilisateur de réception de la commande',
-        default=lambda self: self.env.company.default_user_receive_commande or self.env.user
+        default=lambda self: self.env.user
     )
 
     def action_set_as_default_receiver(self):
