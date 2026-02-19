@@ -9,7 +9,7 @@
             <field name="rounding">0.001</field>
         </record>
         <record id="product_uom_week" model="uom.uom">
-            <field name="name">Semaine(s)</field>
+            <field name="name">semaine(s)</field>
             <field name="relative_factor">1.0</field>
             <field name="rounding">1.0</field>
         </record>
@@ -97,7 +97,7 @@
 
         <record id="prod_rail_1_6_a" model="product.template">
             <field name="name">Repérage des Quais / OA MT 40174 (100 à 400m)</field>
-            <field name="default_code">1.6a</field>
+            <field name="default_code">1.6</field>
             <field name="list_price">87.91</field>
             <field name="type">service</field>
             <field name="uom_id" ref="uom.product_uom_unit"/>
@@ -107,7 +107,7 @@
 
         <record id="prod_rail_1_6_b" model="product.template">
             <field name="name">Repérage des Quais / OA MT 40174 (au-delà de 400m)</field>
-            <field name="default_code">1.6b</field>
+            <field name="default_code">1.7</field>
             <field name="list_price">30.00</field>
             <field name="type">service</field>
             <field name="uom_id" ref="uom.product_uom_unit"/>

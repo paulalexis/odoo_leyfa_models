@@ -8,10 +8,7 @@
         <notebook position="inside">
             <page string="Configuration Devis/CGV" name="contract_config">
                 <!-- Use a single group with one column for full width -->
-                <group name="footer_config">
-                    <separator string="Fin des mentions contractuelles (Apparaît sur tous les devis)"/>
-                    <field name="contract_footer_text" widget="html" nolabel="1" colspan="2"/>
-                </group>
+                
                 <group name="cgv_config">
                     <separator string="Conditions Générales de Vente (CGV)"/>
                     <field name="cgv_text" widget="html" nolabel="1" colspan="2"/>
@@ -38,6 +35,27 @@
         <xpath expr="//notebook" position="inside">
             <page string="Introduction du devis" name="contract_intro">
                 <group>
+                    <separator string="Contact envoi commande"/>
+                    <label for="user_receive_commande"/>
+                    <div class="o_row">
+                        <field name="user_receive_commande"/>
+                        <field name="is_default_receiver" invisible="1"/>
+                        <button 
+                            name="action_set_as_default_receiver"
+                            type="object"
+                            string="Par défaut"
+                            icon="fa-check-circle"
+                            class="btn-success"
+                            invisible="is_default_receiver"
+                            title="Définir comme utilisateur par défaut pour les prochains devis"
+                        />
+                        <span 
+                            invisible="not is_default_receiver" 
+                            class="badge text-bg-secondary ms-2">
+                            <i class="fa fa-check me-1" title="Utilisateur par défaut"/>Par défaut
+                        </span>
+                    </div>
+
                     <separator string="Texte d'introduction spécifique à ce devis"/>
                     <!-- colspan="2" makes the field stretch across the label and field columns -->
                     <field name="contract_intro_text" widget="html" nolabel="1" colspan="2"

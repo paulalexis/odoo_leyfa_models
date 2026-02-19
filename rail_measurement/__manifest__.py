@@ -43,6 +43,7 @@ dans les devis, puis de les configurer avec tous les détails techniques nécess
         'views/portal/demande.xml',
         'views/equipe_terrain_views.xml',
         'views/menus_ressources.xml',
+        'views/planificateur_equipe.xml',
         
         'data/rail_measurement_data.xml',
         'data/codes_affaires_data.xml',

@@ -282,6 +282,90 @@ class RailMeasurement(models.Model):
         tracking=True
     )
 
+    # Logique de devis BIS
+    sale_order_ids = fields.One2many(
+        'sale.order', 
+        'measurement_id', 
+        string='Historique des Devis'
+    )
+
+    def action_create_revision(self):
+        self.ensure_one()
+        if not self.sale_order_id:
+            return
+
+        old_so = self.sale_order_id
+        current_name = old_so.name
+        base_name = current_name.split('_')[0]
+        existing_names = self.sale_order_ids.mapped('name')
+        
+        # 1. Calcul du nouveau nom (Suffixe B, C, D...)
+        alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        suffix_index = 1 
+        new_name = f"{base_name}_{alphabet[suffix_index]}"
+        
+        while new_name in existing_names:
+            suffix_index += 1
+            if suffix_index >= len(alphabet):
+                new_name = f"{base_name}_REV{suffix_index}"
+                break
+            new_name = f"{base_name}_{alphabet[suffix_index]}"
+
+        # 2. Copie vers le nouveau devis (toujours créé en brouillon/presale)
+        new_so = old_so.copy({
+            'name': new_name,
+            'origin': current_name,
+            'client_order_ref': f"Révision/Avenant de {current_name}",
+        })
+
+        # 3. Gestion de l'ancien devis
+        if old_so.state in ['draft', 'sent', 'presale']:
+            # Cas avant-vente : on annule l'ancien car il est remplacé
+            old_so.action_cancel()
+            old_so.message_post(body=f"Annulé : remplacé par la révision {new_name}")
+        else:
+            # Cas "En chantier" (déjà confirmé) : on ne l'annule pas !
+            # On le garde tel quel, et le nouveau servira d'avenant ou de nouvelle base.
+            old_so.message_post(body=f"Une révision ({new_name}) a été créée pour ce contrat. Pensez à l'annuler si nécessaire.")
+
+        # 4. Message et mise à jour du lien actif
+        new_so.message_post(body=f"Ce devis est une révision de {current_name}")
+        self.sale_order_id = new_so
+        
+        return {
+            'type': 'ir.actions.act_window',
+            'res_model': 'sale.order',
+            'res_id': new_so.id,
+            'view_mode': 'form',
+            'target': 'current',
+        }
+   
+    sale_order_count = fields.Integer(
+        compute='_compute_sale_order_count', 
+        string="Nombre de devis"
+    )
+
+    @api.depends('sale_order_ids')
+    def _compute_sale_order_count(self):
+        for record in self:
+            record.sale_order_count = len(record.sale_order_ids)
+
+    has_active_previous_quotes = fields.Boolean(
+        compute='_compute_has_active_previous_quotes',
+        string="A des devis précédents actifs"
+    )
+
+    @api.depends('sale_order_ids', 'sale_order_ids.state', 'sale_order_id')
+    def _compute_has_active_previous_quotes(self):
+        for rec in self:
+            # On cherche s'il existe des devis dans la liste qui :
+            # 1. Ne sont pas le devis actuellement actif (sale_order_id)
+            # 2. Ne sont pas annulés ('cancel')
+            other_active_quotes = rec.sale_order_ids.filtered(
+                lambda so: so.id != rec.sale_order_id.id and so.state != 'cancel'
+            )
+            rec.has_active_previous_quotes = bool(other_active_quotes)
+
     ## Voie
     voie_ids = fields.Many2many(
         'leyfa.type.voie',           # Modèle de destination
@@ -714,6 +798,30 @@ class RailMeasurement(models.Model):
         'measurement_id',
         string='Consistance de la mesure'
     )
+
+    has_courbes = fields.Boolean(
+        string="Has Courbes Data",
+        compute="_compute_has_courbes_quais",
+        store=True
+    )
+    has_quais = fields.Boolean(
+        string="Has Quais Data", 
+        compute="_compute_has_courbes_quais",
+        store=True
+    )
+
+    @api.depends('consistance_lines.nombre_courbes', 'consistance_lines.longueur_courbes',
+                'consistance_lines.nombres_quais', 'consistance_lines.longueur_quais')
+    def _compute_has_courbes_quais(self):
+        for rec in self:
+            rec.has_courbes = any(
+                line.nombre_courbes or line.longueur_courbes 
+                for line in rec.consistance_lines
+            )
+            rec.has_quais = any(
+                line.nombres_quais or line.longueur_quais 
+                for line in rec.consistance_lines
+            )
 
     total_theo_consistance = fields.Float(string="Total Théorique", compute="_compute_consistance_totals", digits=(7, 0))
     total_releve_consistance = fields.Float(string="Total Relevé", compute="_compute_consistance_totals", digits=(7, 0))
@@ -1592,7 +1700,7 @@ class RailMeasurementWizard(models.TransientModel):
             # 2. Create Mode: Redirect to a NEW form view of rail.measurement
             return {
                 'type': 'ir.actions.act_window',
-                'name': 'Nouvelle Mesure de Voie',
+                'name': 'Nouvelle Affaire',
                 'res_model': 'rail.measurement',
                 'view_mode': 'form',
                 'target': 'new', # Opens in a popup/sub-window
@@ -1640,13 +1748,24 @@ class SaleOrder(models.Model):
                 'default_partner_id': self.partner_id.id
             }
         }
+
+    def action_view_sale_order(self):
+        """ Utilisé pour ouvrir la fiche du devis depuis la liste de l'historique """
+        self.ensure_one()
+        return {
+            'type': 'ir.actions.act_window',
+            'res_model': 'sale.order',
+            'res_id': self.id,
+            'view_mode': 'form',
+            'target': 'current',
+        }
     
     def action_create_rail_measurement(self):
         self.ensure_one()
         
         return {
             'type': 'ir.actions.act_window',
-            'name': 'Configurer la mesure de voie',
+            'name': 'Configurer l\'Affaire',
             'res_model': 'rail.measurement.wizard',
             'view_mode': 'form',
             'target': 'new',
@@ -1737,6 +1856,73 @@ class SaleOrder(models.Model):
                     line.product_uom_qty = vol_rate
                     line.price_unit = total_cda
                     line.price_total = total_cda*vol_rate
+
+    # A qui on envoie la commande ?
+    user_receive_commande = fields.Many2one(
+        'res.users', 
+        string='Utilisateur de réception de la commande',
+        default=lambda self: self.env.company.default_user_receive_commande or self.env.user
+    )
+
+    def action_set_as_default_receiver(self):
+        self.env.company.default_user_receive_commande = self.user_receive_commande
+
+    @api.depends('user_receive_commande', 'company_id.default_user_receive_commande')
+    def _compute_is_default_receiver(self):
+        for rec in self:
+            rec.is_default_receiver = (
+                rec.user_receive_commande == rec.company_id.default_user_receive_commande
+            )
+
+    is_default_receiver = fields.Boolean(compute='_compute_is_default_receiver')
+
+    # Champ spécifique au devis
+    contract_intro_text = fields.Html(
+        string="Introduction spécifique au devis",
+        default="""<p>Nous avons le plaisir de vous faire parvenir notre proposition pour...</p>"""
+    )
+
+    quote_number_custom = fields.Char(string="Numéro de Devis Personnalisé", compute="_compute_quote_number_custom")
+
+    @api.depends('date_order', 'name')
+    def _compute_quote_number_custom(self):
+        for order in self:
+            if not order.date_order:
+                order.quote_number_custom = "/"
+                continue
+            
+            # 1. Récupérer le mois et l'année de la commande
+            date_ref = order.date_order
+            first_day_month = date_ref.replace(day=1, hour=0, minute=0, second=0)
+            
+            # 2. Compter combien de devis ont été créés avant celui-ci dans le même mois
+            # On compte les devis de la même société créés entre le 1er du mois et la date de l'ordre actuel
+            domain = [
+                ('date_order', '>=', first_day_month),
+                ('date_order', '<=', date_ref),
+                ('company_id', '=', order.company_id.id)
+            ]
+            # On trie par ID pour garantir que le "018" ne change pas si on change l'heure
+            monthly_orders = self.search(domain, order='id asc')
+            
+            # 3. Trouver la position (index) de l'ordre actuel dans la liste du mois
+            try:
+                # On récupère l'index (commence à 0, donc +1)
+                order_index = list(monthly_orders.ids).index(order.id) + 1
+            except ValueError:
+                order_index = 1
+
+            # 4. Formater le résultat : AAAA/MM/000
+            year_month = date_ref.strftime('%Y/%m')
+            sequence = str(order_index).zfill(3) # Transforme 1 en 001, 18 en 018
+            
+            order.quote_number_custom = f"{year_month}/{sequence}"
+
+class ResCompany(models.Model):
+    _inherit = 'res.company'
+    # Celui à qui evoyer la commande par défaut (peut être différent du commercial qui crée le devis)    
+    default_user_receive_commande = fields.Many2one('res.users', string='Utilisateur de réception par défaut')
+
 
 class RailMeasurementPlanning(models.Model):
     _name = 'rail.measurement.planning'

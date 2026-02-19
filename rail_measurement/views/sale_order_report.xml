@@ -1,252 +1,825 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <template id="report_saleorder_document_custom" t-name="rail_measurement.report_saleorder_document_custom">
-        <main>
-            <t t-foreach="docs" t-as="doc" limit="1">
-                <t t-call="web.external_layout">
-                    <div class="page">
-                        <style>
-                            .rm-report {
-                                font-family: 'Helvetica', 'Arial', sans-serif;
-                                font-size: 10pt;
-                                color: #333;
-                                margin-top: 40px; /* Ajusté suite à la modif du Paper Format */
-                            }
-                            /* Header Nettoyé */
-                            .rm-custom-header {
-                                border-bottom: 2px solid #003366;
-                                margin-bottom: 15px;
-                                padding-bottom: 10px;
-                            }
-                            .rm-quote-title {
-                                background: #003366;
-                                color: white;
-                                padding: 8px 15px;
-                                margin: 10px 0;
-                                width: 100%;
-                            }
-                            /* Tableaux */
-                            .rm-table {
-                                width: 100%;
-                                border-collapse: collapse;
-                                margin: 10px 0;
-                            }
-                            .rm-table th {
-                                background: #003366; color: white; padding: 8px;
-                                text-align: center; border: 1px solid #003366; font-size: 9pt;
-                            }
-                            .rm-table td {
-                                padding: 6px; text-align: center;
-                                border: 1px solid #ddd; vertical-align: middle; font-size: 9pt;
-                            }
-                            .rm-text-left { text-align: left; }
-                            .rm-category-row { background: #e8f0f7; font-weight: bold; color: #003366; }
-                            
-                            /* Section Client/Ref Nettoyée (plus de stroke parasite) */
-                            .rm-info-box {
-                                border: 1px solid #ddd;
-                                padding: 10px;
-                                background: #f8f9fa;
-                                height: 100px;
-                            }
+    <!-- 
+        Template simplifié avec mise en page linéaire
+        Version finale pour Odoo 19.0
+        Modified: Split header + centered page header + Signature always visible
+    -->
+    <template id="report_saleorder_document_inherit" inherit_id="sale.report_saleorder_document">
+        <!-- 1. Remove the default Odoo Address block -->
+        <xpath expr="//t[@t-set='address']" position="replace">
+            <t t-set="address" t-value="False"/>
+        </xpath>
 
-                            /* Bloc Total sans lignes barrées */
-                            .rm-total-box {
-                                border: 2px solid #003366;
-                                padding: 12px;
-                                width: 320px;
-                                float: right;
-                                margin-top: 20px;
-                                background: #f8f9fa;
-                            }
-                            .rm-total-row {
-                                clear: both;
-                                display: block;
-                                padding: 4px 0;
-                            }
-                            .rm-total-row span:first-child { float: left; }
-                            .rm-total-row span:last-child { float: right; font-weight: bold; }
-                            .rm-final-total {
-                                font-size: 14pt;
-                                border-top: 1px solid #003366; /* Ligne fine de séparation */
-                                color: #003366;
-                                margin-top: 8px;
-                                padding-top: 8px;
-                            }
-                            .page-break { page-break-before: always; }
-                        </style>
+        <!-- 2. Remove the default Odoo Information block (Invoicing/Shipping) -->
+        <xpath expr="//t[@t-set='information_block']" position="replace">
+            <t t-set="information_block" t-value="False"/>
+        </xpath>
 
-                        <div class="article rm-report">
-                            <!-- HEADER : LOGO & COMPAGNIE -->
-                            <div class="rm-custom-header">
-                                <table width="100%">
-                                    <tr>
-                                        <td width="70%">
-                                            <div style="font-size:16pt;font-weight:bold;color:#003366;">
-                                                <span t-field="doc.company_id.name"/>
-                                            </div>
-                                            <div style="font-size:9pt;">
-                                                <span t-field="doc.company_id.city"/>, <span t-field="doc.company_id.country_id.name"/>
-                                            </div>
-                                        </td>
-                                        <td width="30%" style="text-align:right;">
-                                            <img t-if="doc.company_id.logo" t-att-src="image_data_uri(doc.company_id.logo)" style="max-height:65px"/>
-                                            <div style="font-size:8pt;margin-top:5px;">
-                                                le <span t-field="doc.date_order" t-options='{"widget":"date"}'/>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                </table>
-                            </div>
+        <!-- Injection des styles personnalisés -->
+        <xpath expr="//div[hasclass('page')]" position="before">
+            <style>
+                /* 1. RESET GLOBAL POUR LA LISIBILITÉ */
+                .rm-report, .rm-contract-intro, .rm-company-location, .rm-company-info, .rm-cgv-section {
+                    /* On change la police pour Verdana qui est naturellement plus large et lisible en PDF */
+                    font-family: "Verdana", "Geneva", sans-serif !important;
+                }
 
-                            <!-- BANDEAU TITRE -->
-                            <div class="rm-quote-title">
-                                <table width="100%" style="color:white; border-collapse: collapse;">
-                                    <tr>
-                                        <td style="font-size:14pt;font-weight:bold;">
-                                            Devis n° <span t-field="doc.name"/>
-                                        </td>
-                                        <td style="text-align:right;">
-                                            <strong>Code Affaire :</strong> <span t-field="doc.measurement_id.code_affaire"/>
-                                        </td>
-                                    </tr>
-                                </table>
-                            </div>
+                .rm-cgv-section {
+                    font-size: 6pt !important;
+                }
 
-                            <!-- BLOC CLIENT ET RÉFÉRENCES (Nettoyé) -->
-                            <table width="100%" style="margin-top:10px; border-collapse: collapse;">
+                /* 2. CORRECTION DU TEXTE EN GRAS (Souvent trop compact) */
+                .rm-contract-intro strong, .rm-contract-intro b {
+                    font-weight: bold !important;
+                    letter-spacing: 0.5px !important; /* Un peu plus d'espace pour le gras */
+                }
+
+                /* Fix pour les tableaux à l'intérieur des CGV (comme sur votre image) */
+                    .rm-cgv-section table {
+                    width: 100% !important;
+                    border-collapse: collapse !important;
+                    margin: 10px 0 !important;
+                    border: 1px solid #ddd !important;
+                }
+
+                .rm-cgv-section table td, 
+                .rm-cgv-section table th {
+                    border: 1px solid #ccc !important;
+                    padding: 5px !important;
+                    text-align: left !important;
+                    vertical-align: top !important;
+                    letter-spacing: 0.2px !important; /* Fix pour le texte dans les cellules */
+                }
+
+                .rm-cgv-section table th {
+                    background-color: #f8f9fa !important;
+                    font-weight: bold !important;
+                }
+
+                /* RESET ULTRA COMPLET */
+                * {
+                    border: none !important;
+                    box-shadow: none !important;
+                    outline: none !important;
+                }
+                
+                .o_report_layout_boxed .article, 
+                .o_report_layout_boxed .page,
+                .o_report_layout_boxed div,
+                .o_report_layout_boxed table,
+                .o_report_layout_boxed td,
+                .o_report_layout_boxed tr {
+                    border: none !important;
+                }
+                
+                /* Cache le header standard d'Odoo */
+                div#informations { display: none !important; }
+                
+                /* Cache le titre Order # */
+                .page > h2:first-of-type { display: none !important; }
+                h2.mt-4 { display: none !important; }
+                
+                /* Cache le texte "SNCF Réseau, ..." en haut */
+                .page > div:first-child > strong:first-child { display: none !important; }
+                div.text-right > strong { display: none !important; }
+                strong:contains("SNCF") { display: none !important; }
+                
+                .rm-report {
+                    font-family: 'Helvetica', 'Arial', sans-serif;
+                    font-size: 9pt;
+                    color: #333;
+                }
+                
+                /* En-tête de page (sur toutes les pages SAUF la première) */
+                .rm-page-header {
+                    display: block; /* Visible par défaut */
+                    text-align: center;
+                    padding: 10px 0;
+                    margin-bottom: 15px;
+                    background-color: #f5f5f5;
+                    border-bottom: 1px solid #ddd;
+                }
+                
+                /* Cacher l'en-tête sur la première page seulement */
+                .page > div:first-of-type .rm-page-header {
+                    display: none !important;
+                }
+                
+                /* Afficher sur toutes les sections avec page-break */
+                .rm-page-break-before .rm-page-header,
+                .rm-consistance-section .rm-page-header {
+                    display: block !important;
+                }
+                
+                .rm-page-header img {
+                    height: 30px;
+                    vertical-align: middle;
+                    margin-right: 15px;
+                }
+                
+                .rm-page-header-text {
+                    display: inline-block;
+                    vertical-align: middle;
+                    font-size: 11pt;
+                    color: #666;
+                }
+                
+                /* Header personnalisé - SPLIT */
+                .rm-custom-header {
+                    margin-bottom: 20px;
+                    padding: 0;
+                }
+                
+                .rm-header-left {
+                    float: left;
+                    width: 65%;
+                }
+                
+                .rm-header-right {
+                    float: right;
+                    width: 30%;
+                    text-align: center;
+                }
+                
+                /* Bandeau titre JAUNE - maintenant dans le header gauche */
+                .rm-quote-title {
+                    color: #D98825 !important;
+                    font-size: 24pt;
+                    font-weight: bold;
+                    margin-bottom: 5px;
+                }
+                
+                .rm-company-name {
+                    font-size: 10pt;
+                    font-weight: bold;
+                    color: #333;
+                    margin-bottom: 0px;
+                }
+                
+                .rm-company-info {
+                    font-weight: normal;
+                    font-size: 10pt;
+                    color: #333;
+                    margin-bottom: 4px;
+                }
+
+                .rm-company-location {
+                    font-size: 9pt;
+                    color: #666;
+                }
+                
+                /* Section CLIENT */
+                .rm-client-section {
+                    padding: 10px 0;
+                    margin: 15px 0;
+                    clear: both;
+                }
+                
+                .rm-ref-table {
+                    border-collapse: collapse;
+                    width: 100%;
+                    font-size: 8pt;
+                }
+                .rm-ref-table td {
+                    padding: 3px 6px;
+                }
+                
+                /* Contract intro - use inline styles for PDF compatibility */
+                .rm-contract-intro strong,
+                .rm-contract-intro b {
+                    font-weight: bold !important;
+                }
+
+                .rm-contract-intro em,
+                .rm-contract-intro i {
+                    font-style: italic !important;
+                }
+
+                .rm-contract-intro u {
+                    text-decoration: underline !important;
+                }
+
+                .rm-contract-intro p {
+                    margin: 5px 0 !important;
+                }
+
+                /* Tableaux de produits */
+                .rm-table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin: 10px 0;
+                    font-size: 8pt;
+                }
+                .rm-table th {
+                    background: #003366 !important; 
+                    color: white !important; 
+                    padding: 6px 4px;
+                    text-align: center; 
+                    border: 1px solid #003366 !important; 
+                    font-size: 9pt;
+                    font-weight: bold;
+                }
+                .rm-table td {
+                    text-align: center;
+                    border: 1px solid #ddd !important; 
+                    vertical-align: middle; 
+                    font-size: 8pt;
+                }
+                .rm-text-left { text-align: left !important; }
+                
+                /* Sections de catégorie */
+                .rm-category-row { 
+                    background: #b8c5d6 !important;
+                    font-weight: bold !important; 
+                    color: #003366 !important;
+                    font-size: 9pt !important;
+                    padding: 6px 8px 6px 15px !important;
+                    text-indent: 5px;
+                }
+
+                /* Container for total box and signature */
+                .rm-bottom-section {
+                    margin-top: 15px;
+                    display: table;
+                    width: 100%;
+                    page-break-inside: avoid;
+                }
+
+                /* Bloc Total */
+                .rm-total-box {
+                    border: 3px solid #003366 !important;
+                    padding: 6px;
+                    width: 300px;
+                    float: right;
+                    background: #f0f4f8 !important;
+                    font-size: 9pt;
+                    page-break-inside: avoid;
+                }
+                .rm-total-row {
+                    clear: both;
+                    display: block;
+                    padding: 3px 0;
+                }
+                .rm-total-row span:first-child { float: left; }
+                .rm-total-row span:last-child { float: right; font-weight: bold; }
+                .rm-final-total {
+                    font-size: 13pt;
+                    border-top: 2px solid #003366 !important;
+                    color: #003366;
+                    margin-top: 6px;
+                    padding-top: 6px;
+                }
+                
+                /* Signature section - right side */
+                .rm-signature-box {
+                    float: left;
+                    width: 350px;
+                    text-align: center;
+                    page-break-inside: avoid;
+                    min-height: 120px;
+                }
+                
+                .rm-signature-box .rm-signature-label {
+                    margin-bottom: 5px;
+                    font-size: 10pt;
+                    font-weight: bold;
+                    text-align: left;
+                }
+                
+                .rm-signature-box .rm-signature-image {
+                    margin: 20px 0;
+                    min-height: 60px;
+                }
+                
+                .rm-signature-box .rm-signature-name {
+                    margin-top: 15px;
+                    font-size: 9pt;
+                }
+                
+                /* Section titre */
+                .rm-section-header {
+                    background: #ffffff !important;
+                    color: #003366 !important;
+                    padding: 0px 10px;
+                    font-weight: bold;
+                    margin-top: 15px;
+                    margin-bottom: 10px;
+                    font-size: 13pt;
+                    text-align: center;
+                }
+                
+                /* Tableau de consistance */
+                .rm-consistance-section {
+                    margin-top: 30px;
+                    page-break-before: always;
+                }
+                .rm-section-title {
+                    background: #ffffff !important;
+                    color: #000000 !important;
+                    padding: 0px 15px;
+                    font-weight: bold;
+                    margin-top: 15px;
+                    margin-bottom: 5px;
+                    font-size: 11pt;
+                }
+                .rm-consistance-table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    font-size: 8pt;
+                }
+                .rm-consistance-table th {
+                    background: #003366 !important;
+                    color: white !important;
+                    padding: 8px 4px !important;
+                    text-align: center;
+                    border: 1px solid #003366 !important;
+                    font-size: 9pt;
+                }
+                .rm-consistance-table td {
+                    padding: 8px 5px !important;
+                    text-align: center;
+                    border: 1px solid #ddd !important;
+                    vertical-align: middle;
+                    font-size: 8pt;
+                }
+                
+                /* Tables additionnelles (cibles et quais) */
+                .rm-additional-tables {
+                    margin-top: 20px;
+                    display: table;
+                    width: 100%;
+                }
+                .rm-table-left {
+                    float: left;
+                    width: 48%;
+                }
+                .rm-table-right {
+                    float: right;
+                    width: 48%;
+                }
+                .rm-small-table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    font-size: 8pt;
+                }
+                .rm-small-table th {
+                    background: #003366 !important;
+                    color: white !important;
+                    padding: 8px 4px !important;
+                    text-align: center;
+                    border: 1px solid #003366 !important;
+                    font-size: 9pt;
+                }
+                .rm-small-table td {
+                    padding: 8px 5px !important;
+                    text-align: center;
+                    border: 1px solid #ddd !important;
+                    vertical-align: middle;
+                    font-size: 8pt;
+                }
+
+                .o_report_layout_boxed h2,
+                .o_report_layout_standard h2 {
+                    display: none !important;
+                }
+            </style>
+        </xpath>
+
+        <!-- Suppression du header Odoo par défaut et remplacement par header split -->
+        <xpath expr="//div[hasclass('page')]/div[1]" position="replace">
+            <div class="rm-custom-header">
+                <!-- Partie gauche du header -->
+                <div class="rm-header-left">
+                    <div class="rm-company-name">
+                        <t t-out="doc.company_id.name"/>, une filiale SNCF RESEAU
+                        <img src="/rail_measurement/static/src/png/logo_sncf_réseau.png" 
+                            style="height: 20px; margin-left: 5px; vertical-align: middle; margin-bottom: 4px;"/>
+                    </div>
+                    <div class="rm-company-location">
+                        <t t-out="doc.company_id.street"/><br/>
+                        <t t-out="doc.company_id.zip"/> <t t-out="doc.company_id.city.upper()"/><br/>
+                        <t t-out="doc.company_id.company_registry" t-if="doc.company_id.company_registry"/><br/><br/>
+                        <i class="fa fa-phone fa-fw" title="Téléphone" style="margin-right: 8px;"/><t t-out="doc.company_id.phone" t-if="doc.company_id.phone"/><br/>
+                        <i class="fa fa-user fa-fw" title="Contact devis" style="margin-right: 8px;"/>Contact devis : <t t-out="doc.user_id.name"/> (<t t-out="doc.user_id.email"/>)<br/>
+                        <i class="fa fa-envelope fa-fw" title="Envoi commande" style="margin-right: 8px;"/>Envoi commande : <t t-out="doc.user_receive_commande.name" t-if="doc.user_receive_commande"/> 
+                            (<t t-out="doc.user_receive_commande.email" t-if="doc.user_receive_commande"/>)
+                    </div>
+                </div>
+                
+                <!-- Partie droite du header - Logo plus grand -->
+                <div class="rm-header-right">
+                    <img t-if="doc.company_id.logo" t-att-src="image_data_uri(doc.company_id.logo)" style="max-height: 100px; max-width: 100%;"/>
+                    <div style="font-size:9pt; margin-top:8px; color:#666;">
+                        à  <t t-out="doc.company_id.city.upper()"/>, le <t t-out="doc.date_order" t-options='{"widget":"date", "format": "dd/MM/yyyy"}'/>
+                    </div>
+                </div>
+                
+                <div style="clear: both;"></div>
+            </div>
+
+            <!-- Bloc CLIENT et Références -->
+            <div style="float: right; text-align: right; width: 60%; margin-top: 20px;">
+                
+                <!-- Utilisation de la classe rm-company-name pour le nom du client -->
+                <div class="rm-company-name" style="text-transform: uppercase;">
+                    <t t-if="doc.partner_id.parent_id">
+                        <t t-out="doc.partner_id.parent_id.name"/>
+                    </t>
+                    <t t-else="">
+                        <t t-out="doc.partner_id.name"/>
+                    </t>
+                </div>
+
+                <!-- Utilisation de la classe rm-company-location pour l'adresse et contact -->
+                <div class="rm-company-location">
+                    
+                    <!-- Lignes en violet (TSA / Ville) comme sur l'image -->
+                    <div style="margin-bottom: 10px;">
+                        <t t-if="doc.partner_id.street2">
+                            <t t-out="doc.partner_id.street2"/><br/>
+                        </t>
+                        <t t-if="doc.partner_id.zip" t-out="doc.partner_id.zip"/> 
+                        <t t-if="doc.partner_id.city" t-out="(doc.partner_id.city or '').upper()"/>
+                    </div>
+
+                    <strong>Contact :</strong><br/>
+                    <span style="color: #777;">
+                        <t t-if="doc.partner_id.name" t-out="doc.partner_id.name"/>
+                    </span>
+
+                    <t t-if="doc.partner_id.function">
+                        , <t t-out="doc.partner_id.function"/><br/>
+                    </t>
+                    
+                    <t t-if="doc.partner_id.street">
+                        <t t-out="doc.partner_id.street"/><br/>
+                    </t>
+                    <t t-if="doc.partner_id.street2">
+                        <t t-out="doc.partner_id.street2"/><br/>
+                    </t>
+                    
+                    <t t-if="doc.partner_id.city">
+                        <t t-out="doc.partner_id.zip"/> <t t-out="doc.partner_id.city"/><br/>
+                    </t>
+
+                    <t t-if="doc.partner_id.phone">
+                        Tél. <t t-out="doc.partner_id.phone"/><br/>
+                    </t>
+
+                    <t t-if="doc.partner_id.email">
+                        <t t-out="doc.partner_id.email"/><br/>
+                    </t>
+                </div>
+            </div>
+
+            <!-- Nettoyage pour que la suite du rapport ne remonte pas -->
+            <div style="clear: both;"/>
+            <div class="rm-quote-title">
+                Devis n°<t t-out="doc.quote_number_custom"/> du <t t-out="doc.date_order" t-options='{"widget": "date", "format": "dd/MM/yyyy"}'/>
+            </div>
+            <div class="rm-company-location">
+                Code affaire : <t t-out="doc.measurement_id.code_affaire" t-if="doc.measurement_id"/>, réf. pièce : <t t-out="doc.id"/>
+            </div>
+
+            <hr style="border: none !important; border-top: 2px solid #003366 !important; margin: 20px 0;"/>
+            <div style="text-align: center; margin: 20px 0;">
+                <t t-out="doc.measurement_id.type_affaire_id.name" t-if="doc.measurement_id"/> 
+                <span t-field="doc.measurement_id.desc_typologie_detail"/> 
+                <span t-field="doc.measurement_id.desc_nature_travaux"/> 
+                <span t-field="doc.measurement_id.desc_methodologie"/> 
+                <t t-out="doc.measurement_id.desc_annee" t-if="doc.measurement_id"/>
+                <br/>
+                <t t-out="doc.measurement_id.ligne_id.name" t-if="doc.measurement_id.ligne_id"/> 
+                <t t-out="doc.measurement_id.ligne_id.gares" t-if="doc.measurement_id.ligne_id"/> 
+            </div>
+            <hr style="border: none !important; border-top: 2px solid #003366 !important; margin: 20px 0;"/>
+
+            <!-- Contract Introduction Text -->
+            <div t-if="doc.contract_intro_text" class="rm-contract-intro" 
+                style="margin: 15px 0; padding: 10px; font-size: 9pt; line-height: 1.4;">
+                <t t-out="doc.contract_intro_text"/>
+            </div>
+
+            <div style="text-align: center; margin: 20px 0;">
+                <div class="rm-company-location">
+                    LEYFA Measurement - SAS au capital de 1 071 720 euros – RCS Toulouse 530 501 808 <br/>
+                    N° TVA Intracommunautaire FR 52 530 501 808<br/>
+                    SIRET : 530 501 808 00030 – APE : 7112B Ingénierie et études techniques<br/>
+                    RIB 30004 01328 00013976735 04
+                </div>
+            </div>
+        </xpath>
+
+
+        <!-- Suppression radicale du bloc de texte promotionnel s'il est présent dans le DOM -->
+        <xpath expr="//div[hasclass('text-center') and contains(., 'Connect your software')]" position="replace">
+            <div style="display:none;"/>
+        </xpath>
+
+        <!-- Ajout du tableau de consistance -->
+        <xpath expr="//div[@id='informations']" position="replace">
+            <t t-if="doc.measurement_id and doc.measurement_id.consistance_lines">
+                <!-- Use boolean fields to determine column visibility -->
+                <t t-set="show_courbes_quais" t-value="doc.measurement_id.has_courbes or doc.measurement_id.has_quais"/>
+                
+                <div class="rm-consistance-section" style="page-break-before: always;">
+                    <!-- En-tête de page pour les pages de consistance -->
+                    <div class="rm-page-header">
+                        <img t-if="doc.company_id.logo" t-att-src="image_data_uri(doc.company_id.logo)"/>
+                        <div class="rm-page-header-text">
+                            Devis n°<t t-out="doc.quote_number_custom"/>
+                            - <t t-out="doc.partner_id.parent_id.name"/>, <t t-out="doc.partner_id.name"/>
+                        </div>
+                    </div>
+
+                    <div class="rm-section-header">CONSISTANCE DE L'OPÉRATION</div>
+
+                    <div class="rm-section-title">
+                        Détail linéaire pour chaque ligne et voie
+                    </div>
+                    <table class="rm-consistance-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 8%;">Ligne</th>
+                                <th style="width: 6%;">Voie</th>
+                                <th style="width: 5%;">Type Travaux</th>
+                                <th style="width: 7%;">Linéaire Amont</th>
+                                <th style="width: 7%;">Linéaire Aval</th>
+                                <t t-if="doc.measurement_id.has_courbes">
+                                    <th style="width: 6%;">Nb Courbes</th>
+                                    <th style="width: 7%;">Longueur Courbes</th>
+                                </t>
+                                <t t-if="doc.measurement_id.has_quais">
+                                    <th style="width: 6%;">Nb Quais</th>
+                                    <th style="width: 7%;">Longueur Quais</th>
+                                </t>
+                                <t>
+                                    <th>Observations</th>
+                                </t>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <t t-foreach="doc.measurement_id.consistance_lines" t-as="cons">
                                 <tr>
-                                    <td width="48%" class="rm-info-box">
-                                        <strong style="color:#003366;">CLIENT</strong><br/>
-                                        <div style="margin-top:5px;">
-                                            <strong t-field="doc.partner_id.name"/><br/>
-                                            <span t-field="doc.partner_id.email"/>
-                                        </div>
-                                    </td>
-                                    <td width="4%"><!-- Espace pour éviter le stroke entre les deux --></td>
-                                    <td width="48%" style="vertical-align: top;">
-                                        <table class="rm-table" style="margin:0; font-size:8pt;">
-                                            <tr><td class="rm-text-left"><strong>Nos Réf</strong></td><td><span t-field="doc.measurement_id.code_affaire"/></td></tr>
-                                            <tr><td class="rm-text-left"><strong>Date</strong></td><td><span t-field="doc.date_order" t-options='{"widget": "datetime"}'/></td></tr>
-                                            <tr><td class="rm-text-left"><strong>Validité</strong></td><td><span t-field="doc.validity_date"/></td></tr>
-                                            <tr><td class="rm-text-left"><strong>Commercial</strong></td><td><span t-field="doc.user_id.name"/></td></tr>
-                                        </table>
+                                    <td><t t-out="cons.ligne_id.name"/></td>
+                                    <td><t t-out="cons.voie_id.name"/></td>
+                                    <td><t t-out="cons.desc_nature_travaux.name"/></td>
+                                    <td><t t-out="'%d+%03d' % (int(cons.limite_amont/1000), int(cons.limite_amont%1000)) if cons.limite_amont else ''"/></td>
+                                    <td><t t-out="'%d+%03d' % (int(cons.limite_aval/1000), int(cons.limite_aval%1000)) if cons.limite_aval else ''"/></td>
+                                    <t t-if="doc.measurement_id.has_courbes">
+                                        <td><t t-out="cons.nombre_courbes if cons.nombre_courbes else ''"/></td>
+                                        <td><t t-out="int(cons.longueur_courbes) if cons.longueur_courbes else ''"/></td>
+                                    </t>
+                                    <t t-if="doc.measurement_id.has_quais">
+                                        <td><t t-out="cons.nombres_quais if cons.nombres_quais else ''"/></td>
+                                        <td><t t-out="int(cons.longueur_quais) if cons.longueur_quais else ''"/></td>
+                                    </t>
+                                    <td class="rm-text-left" style="padding-left: 8px;">
+                                        <t t-out="cons.observations"/>
                                     </td>
                                 </tr>
-                            </table>
-
-                            <!-- TABLEAU DES PRIX -->
-                            <div style="background:#003366;color:white;padding:6px 15px;font-weight:bold;margin-top:20px;">OFFRE DE PRIX</div>
-                            <table class="rm-table">
-                                <thead>
-                                    <tr>
-                                        <th>Classe</th>
-                                        <th style="width:42%;">Libellé - Type d'opération</th>
-                                        <th>Unité</th><th>Qté</th><th>PU HT</th><th>TVA</th><th>Total HT</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <t t-set="in_section_7" t-value="False"/>
-                                    <t t-foreach="doc.order_line" t-as="line">
-                                        <!-- Détection Section 7 -->
-                                        <t t-if="line.display_type == 'line_section'">
-                                            <t t-set="in_section_7" t-value="'7.' in line.name"/>
-                                            <tr class="rm-category-row">
-                                                <td colspan="7" class="rm-text-left"><span t-field="line.name"/></td>
-                                            </tr>
-                                        </t>
-                                        
-                                        <tr t-if="not line.display_type">
-                                            <td><span t-field="line.product_id.default_code"/></td>
-                                            <td class="rm-text-left">
-                                                <!-- Nettoyage Nom : Uniquement si commence par [ -->
-                                                <t t-if="line.name and line.name.startswith('[') and ']' in line.name">
-                                                    <span t-esc="line.name.split(']', 1)[1].strip()"/>
-                                                </t>
-                                                <t t-else="">
-                                                    <span t-field="line.name"/>
-                                                </t>
-                                            </td>
-                                            <td><span t-field="line.product_uom_id.name"/></td>
-                                            <td>
-                                                <!-- Section 7 : Qté % -->
-                                                <t t-if="in_section_7">
-                                                    <span t-esc="'%.1f' % (line.product_uom_qty * 100)"/>%
-                                                </t>
-                                                <t t-else="">
-                                                    <span t-esc="'%.1f' % line.product_uom_qty"/>
-                                                </t>
-                                            </td>
-                                            <td><span t-field="line.price_unit"/></td>
-                                            <td><t t-foreach="line.tax_ids" t-as="tax"><span t-esc="'%.0f' % tax.amount"/>%</t></td>
-                                            <td><span t-field="line.price_subtotal"/></td>
-                                        </tr>
-                                    </t>
-                                </tbody>
-                            </table>
-
-                            <!-- BLOC TOTAL NETTOYÉ -->
-                            <div class="rm-total-box">
-                                <div class="rm-total-row">
-                                    <span>Total HT</span>
-                                    <span t-field="doc.amount_untaxed"/>
+                            </t>
+                        </tbody>
+                    </table>
+                    
+                    <!-- Two additional tables side by side -->
+                    <div class="rm-additional-tables">
+                        <!-- Left table: Matériel de repérage (Cibles) -->
+                        <div class="rm-table-left">
+                            <t t-if="doc.measurement_id.cible_line_ids">
+                                <div class="rm-section-title">
+                                    Matériel de repérage
                                 </div>
-                                <div class="rm-total-row">
-                                    <span>TVA</span>
-                                    <span t-field="doc.amount_tax"/>
-                                </div>
-                                <div class="rm-total-row rm-final-total">
-                                    <span>Total TTC</span>
-                                    <span t-field="doc.amount_total" style="font-size: 16pt;"/>
-                                </div>
-                            </div>
-
-                            <div style="clear:both"/>
-                            <div class="page-break"/>
-
-                            <!-- TABLEAU DE CONSISTANCE (Détail Linéaire) -->
-                            <t t-if="doc.measurement_id and doc.measurement_id.consistance_lines">
-                                <div style="background:#003366;color:white;padding:6px 15px;font-weight:bold;margin-top:15px;">
-                                    DÉTAIL LINÉAIRE THÉORIQUE / LINÉAIRE RELEVÉ
-                                </div>
-                                <table class="rm-table" style="font-size:7pt;">
+                                <table class="rm-small-table">
                                     <thead>
                                         <tr>
-                                            <th>Ligne</th><th>Voie</th><th>Tx</th><th>PKD</th><th>PKF</th>
-                                            <th>Maj.D</th><th>Maj.F</th><th>L.Am</th><th>L.Av</th>
-                                            <th>Nb C</th><th>Nb Q</th><th>Observations</th>
+                                            <th style="width: 60%;">Repérages voie et obstacles</th>
+                                            <th style="width: 15%;">Quantité</th>
+                                            <th style="width: 25%;">Observations</th>
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        <t t-foreach="doc.measurement_id.consistance_lines" t-as="cons">
+                                        <t t-foreach="doc.measurement_id.cible_line_ids" t-as="cible">
                                             <tr>
-                                                <td><span t-field="cons.ligne_id.name"/></td>
-                                                <td><span t-field="cons.voie_id.name"/></td>
-                                                <td><span t-field="cons.desc_nature_travaux.name"/></td>
-                                                <td><span t-esc="int(cons.pkd)"/></td>
-                                                <td><span t-esc="int(cons.pkf)"/></td>
-                                                <td><span t-esc="int(cons.maj_deb)"/></td>
-                                                <td><span t-esc="int(cons.maj_fin)"/></td>
-                                                <td><span t-esc="int(cons.limite_amont)"/></td>
-                                                <td><span t-esc="int(cons.limite_aval)"/></td>
-                                                <td><span t-field="cons.nombre_courbes"/></td>
-                                                <td><span t-field="cons.nombres_quais"/></td>
-                                                <td class="rm-text-left" style="font-size:6pt;">
-                                                    <span t-field="cons.observations"/>
+                                                <td class="rm-text-left" style="padding-left: 8px;">
+                                                    <t t-out="cible.name"/>
+                                                </td>
+                                                <td><t t-out="cible.qty"/></td>
+                                                <td class="rm-text-left" style="padding-left: 8px;">
+                                                    <t t-out="cible.observation"/>
                                                 </td>
                                             </tr>
                                         </t>
                                     </tbody>
                                 </table>
                             </t>
-
-                            <p t-if="doc.note" style="margin-top:20px;font-style:italic;font-size:9pt;">
-                                <span t-field="doc.note"/>
-                            </p>
                         </div>
+                        
+                        <!-- Right table: Quais à mesurer -->
+                        <div class="rm-table-right">
+                            <t t-if="doc.measurement_id.quai_line_ids">
+                                <div class="rm-section-title">
+                                    Quais à mesurer
+                                </div>
+                                <table class="rm-small-table">
+                                    <thead>
+                                        <tr>
+                                            <th style="width: 12%;">Ligne</th>
+                                            <th style="width: 12%;">Voie</th>
+                                            <th style="width: 12%;">PK Début</th>
+                                            <th style="width: 12%;">PK Fin</th>
+                                            <th style="width: 12%;">Longueur</th>
+                                            <th style="width: 40%;">Nom de la gare</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <t t-foreach="doc.measurement_id.quai_line_ids" t-as="quai">
+                                            <tr>
+                                                <td><t t-out="quai.ligne_id.name"/></td>
+                                                <td><t t-out="quai.voie_id.name"/></td>
+                                                <td><t t-out="'%d+%03d' % (int(quai.pkd/1000), int(quai.pkd%1000)) if quai.pkd else ''"/></td>
+                                                <td><t t-out="'%d+%03d' % (int(quai.pkf/1000), int(quai.pkf%1000)) if quai.pkf else ''"/></td>
+                                                <td><t t-out="int(quai.longueur) if quai.longueur else ''"/></td>
+                                                <td class="rm-text-left" style="padding-left: 8px;">
+                                                    <t t-out="quai.nom_gare"/>
+                                                </td>
+                                            </tr>
+                                        </t>
+                                    </tbody>
+                                </table>
+                            </t>
+                        </div>
+                        
+                        <div style="clear: both;"></div>
                     </div>
-                </t>
+                </div>
             </t>
-        </main>
+        </xpath>
+
+        <!-- Remplacement du tableau des lignes -->
+        <xpath expr="//table[hasclass('o_main_table')]" position="replace">
+            <div style="page-break-before: always;">
+                <!-- En-tête de page (apparaît sur cette page et suivantes) -->
+                <div class="rm-page-header">
+                    <img t-if="doc.company_id.logo" t-att-src="image_data_uri(doc.company_id.logo)"/>
+                    <div class="rm-page-header-text">
+                        Devis n°<t t-out="doc.quote_number_custom"/>
+                        - <t t-out="doc.partner_id.parent_id.name"/>, <t t-out="doc.partner_id.name"/>
+                    </div>
+                </div>
+                
+                <div class="rm-section-header">OFFRE DE PRIX</div>
+                <table class="rm-table o_main_table table-sm">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th style="width:42%;">Libellé - Type d'opération</th>
+                            <th>Unité</th>
+                            <th>Qté</th>
+                            <th>PU HT</th>
+                            <th>TVA</th>
+                            <th>Total HT</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <t t-set="in_section_7" t-value="False"/>
+                        <t t-foreach="doc.order_line" t-as="line">
+                            <!-- Section -->
+                            <t t-if="line.display_type == 'line_section'">
+                                <t t-set="in_section_7" t-value="'7.' in (line.name or '')"/>
+                                <tr class="rm-category-row">
+                                    <td colspan="7" class="rm-text-left">
+                                        <t t-out="line.name"/>
+                                    </td>
+                                </tr>
+                            </t>
+                            
+                            <!-- Note -->
+                            <t t-elif="line.display_type == 'line_note'">
+                                <tr>
+                                    <td colspan="7" class="rm-text-left" style="font-style: italic;">
+                                        <t t-out="line.name"/>
+                                    </td>
+                                </tr>
+                            </t>
+                            
+                            <!-- Ligne produit -->
+                            <tr t-else="">
+                                <td>
+                                    <t t-out="line.product_id.default_code"/>
+                                </td>
+                                <td class="rm-text-left">
+                                    <t t-if="line.name and line.name.startswith('[') and ']' in line.name">
+                                        <t t-out="line.name.split(']', 1)[1].strip()"/>
+                                    </t>
+                                    <t t-else="">
+                                        <t t-out="line.name"/>
+                                    </t>
+                                </td>
+                                <td>
+                                    <t t-out="line.product_uom_id.with_context(lang='fr_FR').name" t-if="line.product_uom_id"/>
+                                </td>
+                                <td>
+                                    <t t-if="in_section_7">
+                                        <t t-out="'%.1f' % (line.product_uom_qty * 100)"/>%
+                                    </t>
+                                    <t t-else="">
+                                        <t t-out="'%.1f' % line.product_uom_qty"/>
+                                    </t>
+                                </td>
+                                <td>
+                                    <t t-out="line.price_unit" t-options='{"widget": "monetary", "display_currency": doc.currency_id}'/>
+                                </td>
+                                <td>
+                                    <t t-foreach="line.tax_ids" t-as="tax">
+                                        <t t-out="'%.0f' % tax.amount"/>%<t t-if="not tax_last">, </t>
+                                    </t>
+                                </td>
+                                <td>
+                                    <t t-out="line.price_subtotal" t-options='{"widget": "monetary", "display_currency": doc.currency_id}'/>
+                                </td>
+                            </tr>
+                        </t>
+                    </tbody>
+                </table>
+            </div>
+        </xpath>
+
+        <!-- Remplacement du bloc totaux - REPLACE the original total div -->
+        <xpath expr="//div[@id='total']" position="replace">
+            <!-- Two column structure: Total on left, Signature on right -->
+            <div class="rm-bottom-section">
+                <!-- Total box on the right -->
+                <div class="rm-total-box" id="total">
+                    <div class="rm-total-row">
+                        <span>Total HT</span>
+                        <span t-out="doc.amount_untaxed" t-options='{"widget": "monetary", "display_currency": doc.currency_id}'/>
+                    </div>
+                    <div class="rm-total-row">
+                        <span>TVA</span>
+                        <span t-out="doc.amount_tax" t-options='{"widget": "monetary", "display_currency": doc.currency_id}'/>
+                    </div>
+                    <div class="rm-total-row rm-final-total">
+                        <span>Total TTC</span>
+                        <span t-out="doc.amount_total" t-options='{"widget": "monetary", "display_currency": doc.currency_id}' style="font-size: 16pt;"/>
+                    </div>
+                </div>
+
+                <!-- Signature box on the left - ALWAYS VISIBLE -->
+                <div class="rm-signature-box">
+                    <div class="rm-signature-image">
+                        <t t-if="doc.signature">
+                            <div class="rm-signature-label">Signature</div>
+                            <img t-att-src="image_data_uri(doc.signature)" style="max-height: 90px; max-width: 250px;"/>
+                        </t>
+                    </div>
+                    <!-- <div class="rm-signature-name">
+                        <t t-if="doc.signed_by">
+                            <span t-field="doc.signed_by"/>
+                        </t>
+                        <t t-else="">
+                            <span t-out="doc.user_id.name"/>
+                        </t>
+                    </div> -->
+                </div>
+                
+                <div style="clear: both;"></div>
+            </div>
+        </xpath>
+
+        <!-- Hide/Override the base signature section that appears after total -->
+        <xpath expr="//div[@name='signature']" position="replace">
+            <!-- Empty div to replace the original signature section -->
+            <div/>
+        </xpath>
+
+        <!-- Ajout des CGV à la fin du document sur une nouvelle page -->
+        <xpath expr="//div[hasclass('page')]" position="after">
+            <t t-if="doc.company_id.cgv_text">
+                <div style="page-break-before: always; margin-top: 30px;">
+                    <!-- On réaffiche l'en-tête de page pour identifier le document -->
+                    <div class="rm-section-header">ANNEXE : Conditions Générales de Vente</div>
+                    
+                    <div class="rm-cgv-section" style="padding: 10px;">
+                        <t t-out="doc.company_id.cgv_text"/>
+                    </div>
+                </div>
+            </t>
+        </xpath>
+
     </template>
+
+    <!-- Déclaration du rapport -->
+    <record id="action_report_saleorder_custom" model="ir.actions.report">
+        <field name="name">Devis / Commande (Rail Measurement)</field>
+        <field name="model">sale.order</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">rail_measurement.report_saleorder_document_inherit</field>
+        <field name="report_file">rail_measurement.report_saleorder_document_inherit</field>
+        <field name="binding_model_id" ref="sale.model_sale_order"/>
+        <field name="binding_type">report</field>
+        <field name="print_report_name">'Devis - %s' % (object.name)</field>
+    </record>
+
 </odoo>

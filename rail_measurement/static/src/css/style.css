@@ -439,5 +439,11 @@
 }
 
 
-/* tableau 2 de consistance */
-/* 1. Supprimer les lignes vides (padding rows) sous les données */
+/* full width */
+.o_form_view:not(:has(.o-mail-ChatterContainer)) .rail_full_width_sheet {
+    max-width: 100% !important;
+}
+
+.sale_history_list .o_list_renderer table {
+    min-width: unset !important;
+}

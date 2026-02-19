@@ -13,7 +13,7 @@
                     <page string="1. Informations Générales" name="general_info_subtab">
                         <div class="o_row">
                             <!-- COLONNE GAUCHE -->
-                            <div class="col-lg-6 col-md-12">
+                            <div class="col-lg-4 col-md-12">
                                 <group string="CODAGE LEYFA" name="codage_leyfa">
                                     <field name="type_requires_nature" invisible="1"/>
                                     <field name="state" invisible="1"/>
@@ -45,32 +45,79 @@
                                 </group>
                             </div>
                             <!-- COLONNE DROITE -->
-                            <div class="col-lg-6 col-md-12">
+                            <div class="col-lg-4 col-md-12">
                                 <group string="Informations supplémentaires">
                                     <field name="voie_ids" 
-                                                widget="many2many_tags" 
-                                                options="{'color_field': 'color', 'no_create_edit': True, 'no_open': True, 'no_quick_create': True}"
-                                                placeholder="Voies..."
-                                                readonly="state != 'presale'"
-                                                context="{'default_active': True}"/>
-                                    <!-- <label for="desc_typologie_detail" string="Typologie"/> -->
+                                            widget="many2many_tags" 
+                                            options="{'color_field': 'color', 'no_create_edit': True, 'no_open': True, 'no_quick_create': True}"
+                                            placeholder="Voies..."
+                                            readonly="state != 'presale'"/>
                                     <field name="desc_typologie_detail" placeholder="Typologie..." readonly="state != 'presale'"/>
-                                    
-                                    <!-- <label for="desc_nature_travaux" string="Nature des Travaux"/> -->
                                     <field name="desc_nature_travaux" placeholder="Nature des travaux..." readonly="state != 'presale'"/>
-                                    
-                                    <!-- <label for="desc_methodologie" string="Méthodologie"/> -->
                                     <field name="desc_methodologie" placeholder="Méthodologie..." readonly="state != 'presale'"/>
-                                    <!-- <label for="desc_annee" string="Année du projet"/> -->
-                                    <field name="desc_annee" options="{'format': false}" placeholder="Année" 
-                                        widget="char" readonly="state != 'presale'"/>
+                                    <field name="desc_annee" options="{'format': false}" placeholder="Année" widget="char" readonly="state != 'presale'"/>
+                                    <field name="itinerary_duration" options="{'horizontal': true}" readonly="state != 'presale'"/>
                                 </group>
-                                <group string="Pour le devis...">
-                                    <label for="sale_order_id" string="Devis" invisible="not sale_order_id"/>
-                                    <field name="sale_order_id" readonly="1" nolabel="1" class="oe_inline m-0" invisible="not sale_order_id"/>
+                            
+                            </div>
+                            <div class="col-lg-4 col-md-12">
+                                <group string="Suivi Contractuel">
+                                    <!-- Champs techniques pour les conditions -->
+                                    <field name="sale_order_id" invisible="1"/>
+                                    <field name="state" invisible="1"/>
+                                    <field name="sale_order_count" invisible="1"/>
                                     
-                                    <field name="itinerary_duration" options="{'horizontal': true}"/>
+                                    <label for="sale_order_id" string="Devis Actuel"/>
+                                    <div class="o_row">
+                                        <field name="sale_order_id" readonly="1" class="fw-bold fs-5 text-primary" nolabel="1"/>
+
+                                        <!-- Bouton de révision -->
+                                        <button name="action_create_revision" 
+                                                string="Créer Révision" 
+                                                type="object" 
+                                                class="btn-warning"
+                                                icon="fa-plus"
+                                                invisible="not sale_order_id or state == 'presale'"/>
+                                    </div>
+
+                                    <div colspan="2" class="alert alert-info" role="alert" invisible="sale_order_id">
+                                        Reliez cette affaire à un devis, en créant un nouveau devis et en cliquant sur "Associer une affaire".
+                                    </div>
                                 </group>
+
+                                <!-- Affichage de l'historique si plus d'un devis -->
+                                <div class="mt-4" invisible="sale_order_count &lt; 2">
+                                    <!-- Message d'alerte dynamique -->
+                                    <field name="has_active_previous_quotes" invisible="1"/>
+
+                                    <div class="alert alert-warning d-flex align-items-center mb-3" 
+                                        role="alert" 
+                                        invisible="not has_active_previous_quotes">
+                                        <i class="fa fa-exclamation-triangle me-2" title="Alerte devis actifs" style="font-size: 1.2rem;"/>
+                                        <div>
+                                            <strong>Attention :</strong> Des devis précédents liés à cette mesure sont encore actifs. 
+                                            Pensez à les <strong>annuler</strong> afin de ne pas fausser les statistiques de vente (doublons).
+                                        </div>
+                                    </div>
+                                    <h4 class="border-bottom pb-2 text-muted">Historique des versions</h4>
+                                    <field name="sale_order_ids" mode="list" readonly="1" class="sale_history_list">
+                                        <!-- decoration-muted="state == 'cancel'" met les anciens devis annulés en gris -->
+                                        <list create="0" delete="0" edit="0" no_open="1" decoration-muted="state == 'cancel'">
+                                            <field name="name" string="Référence" decoration-bf="id == parent.sale_order_id"/>
+                                            <field name="date_order" widget="date" string="Date"/>
+                                            <field name="state" widget="badge" string="Statut" 
+                                                decoration-danger="state == 'cancel'" 
+                                                decoration-info="state == 'draft'"
+                                                decoration-success="state == 'sale'"/>
+                                            <field name="amount_total" string="Total HT" optional="show"/>
+                                            <button name="action_view_sale_order" 
+                                                    type="object" 
+                                                    icon="fa-external-link" 
+                                                    title="Ouvrir ce devis"
+                                                    class="btn-link"/>
+                                        </list>
+                                    </field>
+                                </div>
                             </div>
                         </div>
                         <separator string="OBSERVATIONS"/>
@@ -78,35 +125,52 @@
                     </page>
 
                     <!-- Second Page included in this file -->
-                    <page string="2. Consistance" name="consistency_subtab">
-                        <!-- <separator string="DÉTAILS DE LA CONSISTANCE"/> -->
+                    <page string="2. Consistance" name="consistency_subtab" readonly="state != 'presale'">
+                        
+                        <!-- Message d'information visible uniquement si on n'est plus en presale -->
+                        <div class="alert alert-warning d-flex align-items-center mb-3" 
+                            role="alert" 
+                            invisible="state == 'presale'">
+                            <i class="fa fa-info-circle me-2" title="Alerte consistance" style="font-size: 1.2rem;"/>
+                            <div>
+                                Le devis a déjà été envoyé au client. 
+                                <strong>Pour modifier la consistance, veuillez créer un devis bis.</strong>
+                            </div>
+                        </div>
+
                         <div class="d-flex align-items-center justify-content-between mb-2">
                             <h3 class="m-0">Consistance de la mesure</h3>
+                            <!-- Le bouton d'import est masqué si on n'est plus en presale -->
                             <button name="action_open_import_wizard" 
                                 string="Importer Excel" 
                                 type="object" 
                                 icon="fa-upload" 
-                                class="btn-secondary"/>
+                                class="btn-secondary"
+                                invisible="state != 'presale'"/>
                         </div>
                         <br/>
-                        <field name="consistance_lines" context="{'default_ligne_id': default_ligne_id}">
-                            <list editable="bottom" class="o_rail_wrap_header">
-                                <!-- On utilise des strings longs pour forcer la compréhension -->
+
+                        <field name="consistance_lines" 
+                            context="{'default_ligne_id': default_ligne_id}"
+                            readonly="state != 'presale'">
+                            <list editable="bottom" 
+                                class="o_rail_wrap_header"
+                                create="parent.state == 'presale'" 
+                                delete="parent.state == 'presale'" 
+                                edit="parent.state == 'presale'">
+                                
                                 <field name="ligne_id" string="Ligne Ferroviaire" options="{'no_create': True, 'no_create_edit': True, 'no_open': True, 'no_quick_create': True}"/>
                                 <field name="voie_id" string="Voie" domain="[('id', 'in', parent.voie_ids)]" options="{'no_create': True, 'no_create_edit': True, 'no_open': True, 'no_quick_create': True}"/>
                                 <field name="desc_nature_travaux" string="Type de travaux" options="{'no_create': True, 'no_create_edit': True, 'no_open': True, 'no_quick_create': True}"/>
 
-                                <!-- PKD et PKF restent courts comme demandé -->
                                 <field name="zone_debut" string="Début zone sur" options="{'no_create': True, 'no_create_edit': True, 'no_open': True, 'no_quick_create': True}"/>
                                 <field name="pkd" string="PKD"/>
                                 <field name="pkf" string="PKF"/>
                                 <field name="zone_fin" string="Fin zone sur" options="{'no_create': True, 'no_create_edit': True, 'no_open': True, 'no_quick_create': True}"/>
 
-                                <!-- Noms complets pour les majorations -->
                                 <field name="maj_deb" string="Majoration début"/>
                                 <field name="maj_fin" string="Majoration fin"/>
 
-                                <!-- S9 et détails -->
                                 <field name="limite_amont" string="Limite amont" optional="hide"/>
                                 <field name="limite_aval" string="Limite aval" optional="hide"/>
 
@@ -130,19 +194,20 @@
                                 </div>
                             </group>
                         </group>
-                        <!-- <div style="font-size: 0.85rem;">
-                            <i>Toutes les distances sont en mètre (m).</i>
-                        </div> -->
+
                         <br/>
-                    
+
                         <div class="p-3"> 
                             <div class="row justify-content-between">
                                 <div class="col-lg-5">
                                     <div style="margin-bottom: 20px;">
                                         <separator string="Repérages voie et obstacles" class="o_horizontal_separator"/>
                                     </div>
-                                    <field name="cible_line_ids" nolabel="1">
-                                        <list editable="bottom" create="0" delete="0">
+                                    <field name="cible_line_ids" nolabel="1" readonly="state != 'presale'">
+                                        <list editable="bottom" 
+                                            create="0" 
+                                            delete="parent.state == 'presale'" 
+                                            edit="parent.state == 'presale'">
                                             <field name="line_type" column_invisible="False"/> 
                                             <field name="name" string="Repérages" readonly="1" force_save="1"/>
                                             <field name="qty" string="Qté" width="50px"/>
@@ -151,23 +216,24 @@
                                     </field>
                                 </div>
 
-                                <!-- RIGHT COLUMN (58% width - Aligned Right) -->
                                 <div class="col-lg-5">
                                     <div style="margin-bottom: 20px;">
                                         <separator string="Quais" class="o_horizontal_separator"/>
                                     </div>
-                                    <field name="quai_line_ids" nolabel="1" context="{'default_ligne_id': ligne_id}">
-                                        <list editable="bottom" create="1" delete="1" open_form_view="0">
+                                    <field name="quai_line_ids" nolabel="1" context="{'default_ligne_id': ligne_id}" readonly="state != 'presale'">
+                                        <list editable="bottom" 
+                                            create="parent.state == 'presale'" 
+                                            delete="parent.state == 'presale'" 
+                                            edit="parent.state == 'presale'" 
+                                            open_form_view="0">
                                             <field name="ligne_id" string="Ligne" width="90px"/>
                                             <field name="voie_id" string="Voie" width="60px"/>
                                             <field name="pkd" string="PK D." width="70px"/>
                                             <field name="pkf" string="PK F." width="70px"/>
-                                            <!-- <field name="longueur" string="Long." width="70px"/> -->
                                             <field name="nom_gare" string="Gare"/>
                                         </list>
                                     </field>
                                 </div>
-                                
                             </div>
                         </div>
                     </page>
@@ -282,12 +348,12 @@
                             </div>
                         </div>
                         <div class="text-muted small mt-1 ps-2" invisible="not planning_ids">
-                            <i class="fa fa-info-circle me-1"/>
+                            <i class="fa fa-info-circle me-1" title="Nombre de périodes"/>
                             <span>Nombre de périodes : </span>
                             <field name="total_nb_periods" class="fw-bold"/>
                             <span class="ms-1">(J/N)</span>
                         </div>                                          
-                        <separator string="RESSOURCES CHARIOTS"/>
+                        <!-- <separator string="RESSOURCES CHARIOTS"/>
                         <div class="alert alert-info" role="status" invisible="state != 'presale' and (state != 'production' or prod_substate not in ['material'])">
                             <i class="fa fa-info-circle" title="Information"/> <b>Action requise :</b> Affectez les chariots physiques pour les dates sélectionnées.
                         </div>
@@ -319,7 +385,7 @@
                                     readonly="(parent.state != 'presale' and (parent.state != 'production' or parent.prod_substate not in ['material'])) or not parent.date_start or not parent.date_end"
                                     />
                             </list>
-                        </field>
+                        </field> -->
                     </page>
                 </notebook>
             </xpath>

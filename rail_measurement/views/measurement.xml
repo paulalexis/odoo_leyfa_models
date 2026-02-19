@@ -1,20 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
-<odoo>
-    
+<odoo>    
     <!-- ========== ACTIONS ========== -->
     <record id="action_rail_measurement" model="ir.actions.act_window">
-        <field name="name">Mesures de voie</field>
+        <field name="name">Affaires</field>
         <field name="res_model">rail.measurement</field>
         <!-- On ajoute 'calendar' ici -->
         <field name="view_mode">list,calendar,form</field>
     </record>
 
-    <!-- ========== WIZARD: Création de mesure ========== -->
+    <!-- ========== WIZARD: Création d'affaire ========== -->
     <record id="view_rail_measurement_wizard_form" model="ir.ui.view">
         <field name="name">rail.measurement.wizard.form</field>
         <field name="model">rail.measurement.wizard</field>
         <field name="arch" type="xml">
-            <form string="Associer une mesure">
+            <form string="Associer une affaire">
                 <sheet>
                     <group>
                         <field name="mode" widget="radio"/>
@@ -27,12 +26,12 @@
                         <field name="measurement_id" 
                             options="{'no_create': True}" 
                             required="mode == 'link'"
-                            placeholder="Sélectionnez une mesure déjà créée..."/>
+                            placeholder="Sélectionnez une affaire déjà créée..."/>
                     </group>
 
                     <!-- Helpful note for 'Create' mode -->
                     <div class="alert alert-info" role="alert" invisible="mode != 'create'">
-                        <i class="fa fa-info-circle mr-1"/>
+                        <i class="fa fa-info-circle mr-1" title="Information"/>
                         En cliquant sur <b>Valider</b>, le formulaire complet de configuration LEYFA s'ouvrira dans une nouvelle fenêtre.
                     </div>
                 </sheet>
@@ -94,15 +93,14 @@
         <field name="name">rail.measurement.list</field>
         <field name="model">rail.measurement</field>
         <field name="arch" type="xml">
-            <list string="Mesures de voie" 
+            <list string="Affaire" 
                   decoration-info="state=='presale'" 
                   decoration-warning="state in ('production', 'measure', 'study', 'invoicing')" 
                   decoration-success="state=='done'"
                   decoration-danger="state=='cancelled'">
                 <field name="reference"/>
+                <field name="code_affaire"/>
                 <field name="partner_id"/>
-                <field name="date_start"/>
-                <field name="ligne_id"/>
                 <field name="state" widget="badge" 
                        decoration-info="state == 'presale'"
                        decoration-warning="state in ('production', 'measure', 'study', 'invoicing')"
@@ -116,7 +114,7 @@
         <field name="name">rail.measurement.form</field>
         <field name="model">rail.measurement</field>
         <field name="arch" type="xml">
-            <form string="Mesure de voie">
+            <form string="Affaire">
                 <header>
                     <!-- Buttons and Statusbar remain here -->
                     <button name="action_confirm_fiche_mission" string="Confirmer la fiche mission" type="object" invisible="state != 'production' or prod_substate != 'mission'" class="oe_highlight"/>
@@ -126,11 +124,11 @@
                     <button name="action_matériel_recu" string="Matériel disponible" type="object" invisible="state != 'production' or prod_substate != 'urgence'" class="oe_highlight"/>
                     <!-- <button name="action_done" string="Terminer" type="object" invisible="state != 'in_progress'" class="oe_highlight"/> -->
                     <!-- <button name="action_done" string="Terminer" type="object" class="oe_highlight"/> -->
-                    <button name="action_cancel" string="Annuler la mesure" type="object" invisible="state not in ['presale', 'confirmed', 'planned', 'in_progress']"/>
+                    <button name="action_cancel" string="Annuler l'affaire" type="object" invisible="state not in ['presale', 'confirmed', 'planned', 'in_progress']"/>
                     <button name="action_reset_to_draft" string="Remettre en pré-vente" type="object" invisible="state != 'cancelled'"/>
                     <field name="state" widget="statusbar" statusbar_visible="presale,production,measure,study,invoicing,done"/>
                 </header>
-                <sheet>
+                <sheet class="rail_full_width_sheet">
                     <!-- Identification Header: Only the essential "Who" -->
                     <div class="oe_title">
                         <div class="text-muted fst-italic small">
@@ -194,7 +192,7 @@
         <field name="inherit_id" ref="product.product_template_form_view"/>
         <field name="arch" type="xml">
             <xpath expr="//notebook" position="inside">
-                <page string="Mesure Ferroviaire" name="rail_measurement">
+                <page string="Affaire" name="rail_measurement">
                     <group>
                         <!-- <group>
                             <field name="is_rail_measurement"/>
@@ -207,7 +205,7 @@
                         <div class="d-flex align-items-center justify-content-between">
                             <button name="action_view_rail_measurements" 
                                     type="object" 
-                                    string="Voir les mesures" 
+                                    string="Voir les affaires" 
                                     class="btn btn-primary btn-sm"
                                     icon="fa-list"/>
                         </div>
@@ -224,11 +222,11 @@
         <field name="inherit_id" ref="sale.view_order_form"/>
         <field name="arch" type="xml">
             <xpath expr="//field[@name='sale_order_template_id']" position="after">
-                <label for="measurement_id" string="Mesure associée"/>
+                <label for="measurement_id" string="Affaire associée"/>
                 <div class="o_row w-100">
                     <!-- Bouton Créer (visible si vide) -->
                     <button name="action_create_rail_measurement" 
-                            string="Associer une mesure" 
+                            string="Associer une affaire" 
                             type="object" 
                             icon="fa-train" 
                             class="btn-secondary"
@@ -312,7 +310,7 @@
                         </group>
                     </group>
                     <notebook>
-                        <page string="Historique des mesures">
+                        <page string="Historique des affaires">
                             <field name="measurement_ids" readonly="1">
                                 <list>
                                     <field name="reference"/>
@@ -373,7 +371,7 @@
         <field name="name">rail.measurement.calendar</field>
         <field name="model">rail.measurement</field>
         <field name="arch" type="xml">
-            <calendar string="Planning des mesures" 
+            <calendar string="Planning des affaires" 
                   date_start="date_start" 
                   date_stop="date_end"
                   color="state"
@@ -424,7 +422,7 @@
                 <!-- ÉTAPE 2 : SÉLECTION (Si doublons de PK/Ligne) -->
                 <div invisible="state != 'select'">
                     <div class="alert alert-warning" role="alert">
-                        Plusieurs mesures correspondent aux critères du fichier. Veuillez choisir la bonne :
+                        Plusieurs affaires correspondent aux critères du fichier. Veuillez choisir la bonne :
                     </div>
                     <group>
                         <field name="selected_measurement_id" 
@@ -485,21 +483,4 @@
             </calendar>
         </field>
     </record>
-
-    <!-- ========== MENUS ========== -->
-    <menuitem id="rail_measurement_root"
-              name="Mesure de voie"
-              web_icon="your_module,static/description/icon.png"
-              sequence="50"/>
-
-    <menuitem id="rail_measurement_menu_ops"
-              name="Opérations"
-              parent="rail_measurement_root"
-              sequence="10"/>
-
-    <menuitem id="rail_measurement_menu_action"
-              name="Mesures de voie"
-              parent="rail_measurement_menu_ops"
-              action="action_rail_measurement"
-              sequence="10"/>
 </odoo>

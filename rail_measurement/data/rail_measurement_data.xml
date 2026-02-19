@@ -3,9 +3,9 @@
 
     <!-- Séquence -->
     <record id="seq_rail_measurement" model="ir.sequence">
-        <field name="name">Mesure de voie</field>
+        <field name="name">Affaire</field>
         <field name="code">rail.measurement</field>
-        <field name="prefix">MES</field>
+        <field name="prefix">AFF</field>
         <field name="padding">5</field>
         <field name="number_increment">1</field>
         <field name="implementation">standard</field>

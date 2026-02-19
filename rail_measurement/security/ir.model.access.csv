@@ -25,3 +25,5 @@ rail_measurement.access_rail_consistance_import_wizard,access_rail_consistance_i
 rail_measurement.access_rail_measurement_portal,rail.measurement,model_rail_measurement,base.group_portal,1,1,1,0
 access_leyfa_ligne_portal,access_leyfa_ligne_portal,model_leyfa_ligne,base.group_portal,1,0,0,0
 rail_measurement.access_equipe_terrain,access_equipe_terrain,rail_measurement.model_equipe_terrain,base.group_user,1,1,1,1
+access_equipe_composition_hebdo_user,equipe.composition.hebdo.user,model_equipe_composition_hebdo,base.group_user,1,1,1,1
+access_equipe_composition_hebdo_manager,equipe.composition.hebdo.manager,model_equipe_composition_hebdo,base.group_system,1,1,1,1
