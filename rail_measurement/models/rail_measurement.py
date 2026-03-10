@@ -5,6 +5,7 @@ from odoo.exceptions import UserError, ValidationError
 from odoo.tools import float_compare, float_is_zero
 from datetime import timedelta, time, datetime
 import base64, openpyxl, io
+import math
 
 class RailMeasurement(models.Model):
     _name = 'rail.measurement'
@@ -41,7 +42,6 @@ class RailMeasurement(models.Model):
     ligne_id = fields.Many2one(
         'leyfa.ligne', 
         string='Ligne Ferroviaire', 
-        required=True,
         tracking=True
     )
     exercice_id = fields.Many2one(
@@ -1439,7 +1439,234 @@ class RailMeasurement(models.Model):
                 'active_test': False, 
             },
         }
+    
+    ### CARTE
+    map_svg = fields.Html(
+        string="Visualisation Carte",
+        related='sig_controller_id.map_html',
+        sanitize=False,
+        sanitize_tags=False,
+    )
 
+    sig_controller_id = fields.Many2one(
+        'leyfa.sig.controller',
+        string="Carte SIG",
+        ondelete='set null',
+        compute='_compute_sig_controller',
+        store=True,
+        readonly=False,   # lets the user manually re-link if needed
+    )
+
+    @api.depends('ligne_id', 'consistance_lines')
+    def _compute_sig_controller(self):
+        for rec in self:
+            if rec.sig_controller_id:
+                continue   # never overwrite an existing controller
+            if not rec.ligne_id and not rec.consistance_lines:
+                continue   # nothing to map yet, leave empty
+            rec.sig_controller_id = self.env['leyfa.sig.controller'].create(
+                rec._sig_controller_defaults()
+            )
+
+    
+
+    def _sig_work_zone_bounds(self, padding_factor: float = 1.3):
+        """
+        Return (center_lat, center_lon, zoom) that fits all work zones.
+        padding_factor: >1 adds padding around the bounds (1.3 = 30% padding)
+        """
+        lats, lons = [], []
+
+        for c_line in self.consistance_lines:
+            if not c_line.ligne_id:
+                continue
+            work_start = min(c_line.pkd, c_line.pkf) / 1000.0
+            work_end   = max(c_line.pkd, c_line.pkf) / 1000.0
+
+            for pk_point in c_line.ligne_id.pk_ids:
+                if (work_start - 0.1) <= pk_point.pk <= (work_end + 0.1):
+                    if pk_point.lat and pk_point.lon:
+                        lats.append(pk_point.lat)
+                        lons.append(pk_point.lon)
+
+        if not lats or not lons:
+            return 46.5, 2.5, 6
+
+        min_lat, max_lat = min(lats), max(lats)
+        min_lon, max_lon = min(lons), max(lons)
+
+        center_lat = (min_lat + max_lat) / 2
+        center_lon = (min_lon + max_lon) / 2
+
+        # Apply padding by expanding the span
+        lat_span = max((max_lat - min_lat) * padding_factor, 0.001)
+        lon_span = max((max_lon - min_lon) * padding_factor, 0.001)
+        span = max(lat_span, lon_span)
+
+        # Leaflet zoom: world is 256px at zoom 0, doubles each level
+        # At zoom z, 1 degree ≈ 256 * 2^z / 360 pixels
+        # For a ~600px viewport: zoom = log2(600 / (span * 256/360))
+        zoom = int(math.log2(600 / (span * 256 / 360)))
+        zoom = max(5, min(zoom, 15))  # clamp between 5 and 15
+
+        return center_lat, center_lon, zoom
+
+    def _sig_controller_defaults(self):
+        """
+        Build a controller pre-loaded with one layer per involved line,
+        with highlight ranges from the consistance — no data is copied,
+        only IDs and PK bounds are stored.
+        """
+        from .leyfa_sig import LAYER_COLOURS
+        import json
+
+        layers = []
+        ranges_by_line = {}
+        for c_line in self.consistance_lines:
+            if not c_line.ligne_id:
+                continue
+            pk_start = c_line.pkd / 1000.0
+            pk_end   = c_line.pkf / 1000.0
+            ranges_by_line.setdefault(c_line.ligne_id.id, []).append(
+                (min(pk_start, pk_end), max(pk_start, pk_end))
+            )
+
+        involved_lines = self.consistance_lines.mapped('ligne_id')
+        if self.ligne_id and self.ligne_id not in involved_lines:
+            involved_lines |= self.ligne_id
+
+        for idx, ligne in enumerate(involved_lines):
+            colour = LAYER_COLOURS[idx % len(LAYER_COLOURS)]
+            line_ranges = ranges_by_line.get(ligne.id, [])
+            
+            layers.append(Command.create({
+                'sequence':    (idx + 1) * 10,
+                'label':       ligne.name or "Ligne",
+                'ligne_id':    ligne.id,
+                'colour':      colour,
+                'ranges_json': json.dumps(line_ranges),
+            }))
+
+        center_lat, center_lon, zoom = self._sig_work_zone_bounds()
+        pk_label = ''
+        if self.type_requires_nature:
+            if self.nature_mission == 'E':
+                pk_label = 'À Relever + Études'
+            elif self.nature_mission == 'R':
+                pk_label = 'À Relever'
+
+        import logging
+        _logger = logging.getLogger(__name__)
+        _logger.warning(f"pk_label computed: '{pk_label}'")
+
+        return {
+            'name': f"Affaire — {self.code_affaire or self.reference}",
+            'layer_ids':                layers,
+            'sig_context':              'consistance_view',
+            'pk_filter':                'tenth',
+            'station_filter':           'none',
+            'labels_on':                False,
+            'show_consistance_labels':  True,
+            'zoom':                     zoom,
+            'center_lat':               center_lat,
+            'center_lon':               center_lon,
+            'pk_legend_label':          pk_label,
+        }
+
+    # In rail.measurement
+    def action_open_sig_float(self):
+        self.ensure_one()
+        if not self.sig_controller_id:
+            self.sig_controller_id = self.env['leyfa.sig.controller'].create(
+                self._sig_controller_defaults()
+            )
+        self._update_sig_layers()  # ← always sync before opening
+        return int(self.sig_controller_id.id)
+    
+    # In rail.measurement
+    def action_refresh_sig(self):
+        self.ensure_one()
+        if not self.sig_controller_id:
+            return False
+        self._update_sig_layers()
+        pk_label = ''
+        if self.type_requires_nature:
+            if self.nature_mission == 'E':
+                pk_label = 'À Relever + Études'
+            elif self.nature_mission == 'R':
+                pk_label = 'À Relever'
+        
+        self.sig_controller_id.write({
+            'pk_legend_label': pk_label,
+        })
+        return True
+
+    @api.depends('consistance_lines', 'consistance_lines.pkd', 
+             'consistance_lines.pkf', 'consistance_lines.ligne_id',
+             'ligne_id')
+    def _sync_sig_controller(self):
+        for rec in self:
+            if not rec.sig_controller_id:
+                continue
+            rec._update_sig_layers()
+
+    def _update_sig_layers(self):
+        ctrl = self.sig_controller_id
+        if not ctrl:
+            return
+
+        import logging, json
+        _logger = logging.getLogger(__name__)
+
+        ranges_by_line = {}
+        for idx, c_line in enumerate(self.consistance_lines, start=1):
+            if not c_line.ligne_id:
+                continue
+            work_start   = min(c_line.pkd, c_line.pkf) / 1000.0
+            work_end     = max(c_line.pkd, c_line.pkf) / 1000.0
+            safety_start = (min(c_line.pkd, c_line.pkf) - abs(c_line.maj_deb)) / 1000.0
+            safety_end   = (max(c_line.pkd, c_line.pkf) + abs(c_line.maj_fin)) / 1000.0
+
+            ranges_by_line.setdefault(c_line.ligne_id.id, []).append({
+                'work_start':   work_start,
+                'work_end':     work_end,
+                'safety_start': safety_start,
+                'safety_end':   safety_end,
+                'index':        idx,
+                'voie':         c_line.voie_id.name or '',
+            })
+        
+        involved_lines = self.consistance_lines.mapped('ligne_id')
+        if self.ligne_id and self.ligne_id not in involved_lines:
+            involved_lines |= self.ligne_id
+
+        existing = {l.ligne_id.id: l for l in ctrl.layer_ids if l.ligne_id}
+
+        ctrl.layer_ids.filtered(
+            lambda l: l.ligne_id and l.ligne_id not in involved_lines
+        ).unlink()
+
+        from .leyfa_sig import LAYER_COLOURS
+
+        for seq, (idx, ligne) in enumerate(enumerate(involved_lines), start=10):
+            colour = LAYER_COLOURS[idx % len(LAYER_COLOURS)]
+            ranges = ranges_by_line.get(ligne.id, [])
+            ranges_json = json.dumps(ranges)
+
+            vals = {
+                'sequence':    seq,
+                'label':       ligne.name or "Ligne",
+                'ligne_id':    ligne.id,
+                'ranges_json': ranges_json,
+                'colour':      colour,   # ← assign from palette
+            }
+            if ligne.id in existing:
+                existing[ligne.id].write(vals)
+            else:
+                self.env['leyfa.sig.layer'].create({
+                    'controller_id': ctrl.id,
+                    **vals,
+                })
 
     ### PORTAIL CLIENT
 
@@ -1685,7 +1912,6 @@ class RailMeasurementWizard(models.TransientModel):
             measurement.write({
                 'sale_order_id': quotation.id,
             })
-
             
             # 2. Lien inverse sur la SOL principale
             quotation.measurement_id = measurement.id
@@ -2127,6 +2353,24 @@ class ConsistanceLine(models.Model):
         
         return super().create(vals_list)
     
+    sequence_display = fields.Integer(
+        string="N°",
+        compute='_compute_sequence_display',
+    )
+
+    @api.depends('measurement_id', 'measurement_id.consistance_lines')
+    def _compute_sequence_display(self):
+        for rec in self:
+            if not rec.measurement_id or not rec.id:
+                rec.sequence_display = 0
+                continue
+            for idx, line in enumerate(rec.measurement_id.consistance_lines, start=1):
+                if line.id == rec.id:
+                    rec.sequence_display = idx
+                    break
+            else:
+                rec.sequence_display = 0
+    
 class RailConsistanceImportWizard(models.TransientModel):
     _name = 'rail.consistance.import.wizard'
     _description = 'Wizard Import Excel (Consistance & Quais)'
@@ -2140,7 +2384,7 @@ class RailConsistanceImportWizard(models.TransientModel):
         help="Si coché, les tableaux actuels seront vidés avant l'importation."
     )
 
-    def action_import(self):
+    def action_import_consistance_sheet(self):
         self.ensure_one()
         if not self.file:
             return
@@ -2281,7 +2525,7 @@ class RailConsistanceImportWizard(models.TransientModel):
     def action_download_template(self):
         return {
             'type': 'ir.actions.act_url',
-            'url': '/rail_measurement/static/src/templates/template_consistance_quais'
+            'url': '/rail_measurement/static/src/templates/consistance_et_quais'
             '.xlsx',
             'target': 'new',
         }

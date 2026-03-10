@@ -60,10 +60,14 @@ dans les devis, puis de les configurer avec tous les détails techniques nécess
             'rail_measurement/static/src/xml/list_button.xml',
             'rail_measurement/static/src/js/list_controller_patch.js',
             'rail_measurement/static/src/js/autocomplete_patch.js',
+
+            'rail_measurement/static/src/js/sig_map_service.js',
+            'rail_measurement/static/src/js/sig_open_button.js',
         ],
     },
     'images': ['static/description/icon.png'],
     'demo': [],
+
     'installable': True,
     'application': True,
     'auto_install': False,

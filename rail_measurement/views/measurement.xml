@@ -132,7 +132,7 @@
                     <!-- Identification Header: Only the essential "Who" -->
                     <div class="oe_title">
                         <div class="text-muted fst-italic small">
-                            <field name="reference" readonly="1" nolabel="1"/>
+                            <field name="code_affaire" readonly="1" nolabel="1"/>
                         </div>
                         <label for="partner_id" string="Client"/>
                         <h2 class="d-flex">

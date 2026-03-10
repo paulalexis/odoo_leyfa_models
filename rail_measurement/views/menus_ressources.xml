@@ -17,9 +17,30 @@
               parent="rail_measurement_root" 
               sequence="50"/>
 
+    <!-- GROUPE : BASE DE DONNÉE SNCF -->
+    <menuitem id="menu_category_sncf_db" 
+              name="Base de Données SNCF" 
+              parent="rail_measurement_menu_resources" 
+              sequence="10"/>
+    <menuitem id="menu_leyfa_ligne" 
+              name="Lignes Ferroviaires" 
+              parent="menu_category_sncf_db" 
+              action="action_leyfa_ligne"
+              sequence="20"/>
+    <menuitem id="menu_leyfa_gare" 
+              name="Gares" 
+              parent="menu_category_sncf_db" 
+              action="action_leyfa_gare" 
+              sequence="20"/>
+    <menuitem id="menu_leyfa_type_voie" 
+              name="Types de Voies" 
+              parent="menu_category_sncf_db" 
+              action="action_leyfa_type_voie" 
+              sequence="30"/>
+
     <!-- GROUPE : BASE DE DONNÉE LEYFA -->
     <menuitem id="menu_category_leyfa_db" 
-              name="Base de Donnée Leyfa" 
+              name="Base de Données Leyfa" 
               parent="rail_measurement_menu_resources" 
               sequence="10"/>
 
@@ -28,16 +49,6 @@
               parent="menu_category_leyfa_db" 
               action="action_leyfa_exercice_comptable" 
               sequence="10"/>
-    <menuitem id="menu_leyfa_ligne" 
-              name="Lignes Ferroviaires" 
-              parent="menu_category_leyfa_db" 
-              action="action_leyfa_ligne" 
-              sequence="20"/>
-    <menuitem id="menu_leyfa_type_voie" 
-              name="Types de Voies" 
-              parent="menu_category_leyfa_db" 
-              action="action_leyfa_type_voie" 
-              sequence="30"/>
     <menuitem id="menu_leyfa_type_affaire" 
               name="Types d'affaires" 
               parent="menu_category_leyfa_db" 
@@ -54,7 +65,11 @@
               name="Parc Leyfa" 
               parent="rail_measurement_menu_resources" 
               sequence="20"/>
-
+    <menuitem id="menu_equipe_composition_hebdo"
+              name="Planning Hebdomadaire"
+              parent="menu_category_leyfa_parc"
+              action="action_equipe_composition_hebdo"
+              sequence="15"/>
     <menuitem id="menu_equipe_terrain" 
               name="Équipes" 
               parent="menu_category_leyfa_parc" 

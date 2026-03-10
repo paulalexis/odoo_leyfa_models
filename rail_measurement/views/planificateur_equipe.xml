@@ -401,10 +401,5 @@
     <!-- ========================================
          MENU
          ======================================== -->
-    <menuitem id="menu_equipe_composition_hebdo"
-              name="Planning Hebdomadaire"
-              parent="rail_measurement_menu_resources"
-              action="action_equipe_composition_hebdo"
-              sequence="15"/>
 
 </odoo>

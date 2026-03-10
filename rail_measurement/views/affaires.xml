@@ -47,61 +47,159 @@
         <field name="view_mode">list,form</field>
     </record>
 
-    <!-- ======================== -->
-    <!-- VUES POUR LIGNE          -->
-    <!-- ======================== -->
 
-    <!-- Vue Liste des Lignes -->
-    <record id="view_leyfa_ligne_list" model="ir.ui.view">
-        <field name="name">leyfa.ligne.list</field>
-        <field name="model">leyfa.ligne</field>
-        <field name="arch" type="xml">
-            <list string="Lignes Ferroviaires">
-                <field name="name"/>
-                <field name="surnom"/>
-                <field name="type_voie"/>
-                <field name="gares"/>
-            </list>
-        </field>
+    <!-- ///////// LIGNES /////////////// -->
+
+    <!-- ///////// 1. LES ACTIONS /////////////// -->
+    
+    <record id="action_import_gares_wizard" model="ir.actions.act_window">
+        <field name="name">Importer des données SNCF</field>
+        <field name="res_model">import.gares.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
     </record>
 
-    <!-- Vue Formulaire des Lignes -->
-    <record id="view_leyfa_ligne_form" model="ir.ui.view">
-        <field name="name">leyfa.ligne.form</field>
-        <field name="model">leyfa.ligne</field>
-        <field name="arch" type="xml">
-            <form string="Ligne Ferroviaire">
-                <sheet>
-                    <widget name="web_ribbon" title="Archivé" bg_color="bg-danger" invisible="active"/>
-                    <div class="oe_title">
-                        <h1>
-                            <field name="name" placeholder="Nom de la ligne"/>
-                        </h1>
-                        <h2>
-                            <field name="surnom" placeholder="Surnom de la ligne"/>
-                        </h2>
-                    </div>
-                    <group>
-                        <group string="Informations Techniques">
-                            <field name="type_voie" widget="radio"/>
-                            <field name="longueur"/>
-                            <field name="active" invisible="1"/>
-                        </group>
-                        <group string="Géographie">
-                            <field name="gares"/>
-                        </group>
-                    </group>
-                </sheet>
-            </form>
-        </field>
-    </record>
-
-    <!-- Action pour Lignes -->
     <record id="action_leyfa_ligne" model="ir.actions.act_window">
         <field name="name">Lignes Ferroviaires</field>
         <field name="res_model">leyfa.ligne</field>
         <field name="view_mode">list,form</field>
     </record>
+
+    <record id="action_leyfa_gare" model="ir.actions.act_window">
+        <field name="name">Gares</field>
+        <field name="res_model">leyfa.gare</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <!-- ///////// 2. LES VUES DE LA GARE (SÉPARÉES) /////////////// -->
+    <!-- On définit d'abord comment une gare s'affiche pour éviter les erreurs de modèle -->
+
+    <record id="view_leyfa_gare_list_inline" model="ir.ui.view">
+        <field name="name">leyfa.gare.list.inline</field>
+        <field name="model">leyfa.gare</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="pk_text"/>
+                <field name="name"/>
+                <field name="code_uic"/>
+                <field name="commune"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_leyfa_gare_list" model="ir.ui.view">
+        <field name="name">leyfa.gare.list</field>
+        <field name="model">leyfa.gare</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="name"/>
+                <field name="latitude"/>
+                <field name="longitude"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- ///////// 3. LES VUES DE LA LIGNE /////////////// -->
+
+    <record id="view_leyfa_ligne_list" model="ir.ui.view">
+        <field name="name">leyfa.ligne.list</field>
+        <field name="model">leyfa.ligne</field>
+        <field name="arch" type="xml">
+            <list>
+                <header>
+                    <button name="%(action_import_gares_wizard)d" string="Importer Excel SNCF" type="action" class="btn-primary" icon="fa-upload"/>
+                </header>
+                <field name="name"/>
+                <field name="surnom"/>
+                <field name="type_voie"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_leyfa_ligne_form" model="ir.ui.view">
+        <field name="name">leyfa.ligne.form</field>
+        <field name="model">leyfa.ligne</field>
+        <field name="arch" type="xml">
+            <form string="Ligne Ferroviaire">
+                <header>
+                    <button name="%(action_import_gares_wizard)d" string="Importer Gares" type="action" class="btn-secondary" icon="fa-upload"/>
+                </header>
+                <sheet>
+                    <widget name="web_ribbon" title="Archivé" bg_color="bg-danger" invisible="active"/>
+                    <div class="o_field_widget" style="display:flex;gap:24px;align-items:flex-start;">
+                        <div style="flex:1;min-width:0;">
+                            <div class="oe_title">
+                                <label for="name" string="Code Ligne"/>
+                                <h1><field name="name" placeholder="ex: 325000"/></h1>
+                                <label for="surnom" string="Surnom"/>
+                                <h2><field name="surnom" placeholder="ex: ABA"/></h2>
+                            </div>
+                            <group name="technique" string="Informations Techniques">
+                                <field name="type_voie" widget="radio"/>
+                                <field name="longueur"/>
+                                <field name="statut_ligne"/>
+                                <field name="pk_debut"/>
+                                <field name="pk_fin"/>
+                                <field name="active" invisible="1"/>
+                            </group>
+                        </div>
+                        <div style="flex:1;min-width:0;">
+                            <field name="map_html" widget="html" readonly="1" nolabel="1"/>
+                        </div>
+                    </div>
+                    <notebook>
+                        <page string="Gares de la ligne" name="gares">
+                            <field name="gare_ids" readonly="1">
+                                <list>
+                                    <field name="pk_text"/>
+                                    <field name="name"/>
+                                    <field name="code_uic"/>
+                                    <field name="commune"/>
+                                    <field name="latitude" optional="hide"/>
+                                    <field name="longitude" optional="hide"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Points Kilométriques" name="pks">
+                            <field name="pk_ids" readonly="1">
+                                <list>
+                                    <field name="name"/>
+                                    <field name="vitesse"/>
+                                    <field name="altitude"/>
+                                    <field name="lat" optional="hide"/>
+                                    <field name="lon" optional="hide"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- ///////// 4. LE WIZARD /////////////// -->
+
+    <record id="view_import_gares_wizard_form" model="ir.ui.view">
+        <field name="name">import.gares.wizard.form</field>
+        <field name="model">import.gares.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Importer les données SNCF">
+                <group>
+                    <field name="file" filename="filename" string="Fichier (.xlsx, .csv, .geojson)"/>
+                    <field name="filename" invisible="1"/>
+                </group>
+                <footer>
+                    <button string="Importer Gares (Excel)" name="action_import" type="object" class="btn-primary"/>
+                    <button string="Importer Tracés (GeoJSON)" name="action_import_geometry"
+                        type="object" class="btn-primary"/>
+                    <button string="Importer Liste des PKs (csv)" name="action_import_pks"
+                        type="object" class="btn-primary"/>
+                    <button string="Annuler" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
 
     <!-- ======================== -->
     <!-- MENUS                    -->

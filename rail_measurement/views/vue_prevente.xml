@@ -8,7 +8,7 @@
             
             <!-- We target the notebook in the main view -->
             <xpath expr="//page[@name='sales_tab']" position="inside">
-
+                <field name="sig_controller_id" invisible="1"/>
                 <notebook position="inside">
                     <page string="1. Informations Générales" name="general_info_subtab">
                         <div class="o_row">
@@ -141,23 +141,33 @@
                         <div class="d-flex align-items-center justify-content-between mb-2">
                             <h3 class="m-0">Consistance de la mesure</h3>
                             <!-- Le bouton d'import est masqué si on n'est plus en presale -->
-                            <button name="action_open_import_wizard" 
-                                string="Importer Excel" 
-                                type="object" 
-                                icon="fa-upload" 
-                                class="btn-secondary"
-                                invisible="state != 'presale'"/>
+                            <div class="d-flex align-items-center gap-2">
+                                <widget name="sig_open_map" options="{'label': '🗺️ SIG (Consistance)', 'class': 'btn-secondary'}"/>
+                                
+                                <button name="action_open_import_wizard" 
+                                    string="Importer Excel" 
+                                    type="object" 
+                                    icon="fa-upload" 
+                                    class="btn-secondary"
+                                    invisible="state != 'presale'"/>
+                            </div>
                         </div>
                         <br/>
 
                         <field name="consistance_lines" 
                             context="{'default_ligne_id': default_ligne_id}"
                             readonly="state != 'presale'">
-                            <list editable="bottom" 
-                                class="o_rail_wrap_header"
-                                create="parent.state == 'presale'" 
-                                delete="parent.state == 'presale'" 
+                            <list editable="bottom" class="o_rail_wrap_header"
+                                create="parent.state == 'presale'"
+                                delete="parent.state == 'presale'"
                                 edit="parent.state == 'presale'">
+
+                                <field name="sequence_display" string="N°"
+                                    readonly="1"
+                                    tabindex="-1"
+                                    optional="show"
+                                    widget="integer"
+                                    nolabel="0"/>
                                 
                                 <field name="ligne_id" string="Ligne Ferroviaire" options="{'no_create': True, 'no_create_edit': True, 'no_open': True, 'no_quick_create': True}"/>
                                 <field name="voie_id" string="Voie" domain="[('id', 'in', parent.voie_ids)]" options="{'no_create': True, 'no_create_edit': True, 'no_open': True, 'no_quick_create': True}"/>
@@ -237,7 +247,6 @@
                             </div>
                         </div>
                     </page>
-
                     <page string="3. Planification" name="planification_subtab">
                         <group string="CALENDRIER">
                             <!-- L'affichage des semaines en grand -->
@@ -409,7 +418,7 @@
                     </group>
                 </sheet>
                 <footer>
-                    <button name="action_import" string="Lancer l'importation" type="object" class="btn-primary"/>
+                    <button name="action_import_consistance_sheet" string="Lancer l'importation" type="object" class="btn-primary"/>
                     <button name="action_download_template" 
                                 type="object" 
                                 class="btn-secondary" 

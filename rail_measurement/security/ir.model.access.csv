@@ -27,3 +27,9 @@ access_leyfa_ligne_portal,access_leyfa_ligne_portal,model_leyfa_ligne,base.group
 rail_measurement.access_equipe_terrain,access_equipe_terrain,rail_measurement.model_equipe_terrain,base.group_user,1,1,1,1
 access_equipe_composition_hebdo_user,equipe.composition.hebdo.user,model_equipe_composition_hebdo,base.group_user,1,1,1,1
 access_equipe_composition_hebdo_manager,equipe.composition.hebdo.manager,model_equipe_composition_hebdo,base.group_system,1,1,1,1
+access_leyfa_ligne,access_leyfa_ligne,model_leyfa_ligne,base.group_user,1,1,1,1
+access_leyfa_gare,access_leyfa_gare,model_leyfa_gare,base.group_user,1,1,1,1
+access_import_gares_wizard,access_import_gares_wizard,model_import_gares_wizard,base.group_user,1,1,1,1
+rail_measurement.access_leyfa_pk,access_leyfa_pk,rail_measurement.model_leyfa_pk,base.group_user,1,1,1,1
+rail_measurement.access_leyfa_sig_controller,access_leyfa_sig_controller,rail_measurement.model_leyfa_sig_controller,base.group_user,1,1,1,1
+rail_measurement.access_leyfa_sig_layer,access_leyfa_sig_layer,rail_measurement.model_leyfa_sig_layer,base.group_user,1,1,1,1

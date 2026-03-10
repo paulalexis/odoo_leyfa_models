@@ -65,10 +65,4 @@
         </xpath>
     </field>
 </record>
-
-<menuitem id="menu_contract_terms"
-          name="Config Mentions &amp; CGV"
-          parent="sale.sale_menu_root"
-          action="action_company_contract_terms"
-          sequence="99"/>
 </odoo>

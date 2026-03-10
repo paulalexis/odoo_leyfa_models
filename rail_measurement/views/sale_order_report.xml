@@ -491,7 +491,7 @@
                 <t t-out="doc.measurement_id.desc_annee" t-if="doc.measurement_id"/>
                 <br/>
                 <t t-out="doc.measurement_id.ligne_id.name" t-if="doc.measurement_id.ligne_id"/> 
-                <t t-out="doc.measurement_id.ligne_id.gares" t-if="doc.measurement_id.ligne_id"/> 
+                <!-- <t t-out="doc.measurement_id.ligne_id.gares" t-if="doc.measurement_id.ligne_id"/>  -->
             </div>
             <hr style="border: none !important; border-top: 2px solid #003366 !important; margin: 20px 0;"/>
 
@@ -513,18 +513,16 @@
 
 
         <!-- Suppression radicale du bloc de texte promotionnel s'il est présent dans le DOM -->
-        <xpath expr="//div[hasclass('text-center') and contains(., 'Connect your software')]" position="replace">
+        <!-- <xpath expr="//div[hasclass('text-center') and contains(., 'Connect your software')]" position="replace">
             <div style="display:none;"/>
-        </xpath>
+        </xpath> -->
 
         <!-- Ajout du tableau de consistance -->
         <xpath expr="//div[@id='informations']" position="replace">
             <t t-if="doc.measurement_id and doc.measurement_id.consistance_lines">
-                <!-- Use boolean fields to determine column visibility -->
                 <t t-set="show_courbes_quais" t-value="doc.measurement_id.has_courbes or doc.measurement_id.has_quais"/>
-                
+
                 <div class="rm-consistance-section" style="page-break-before: always;">
-                    <!-- En-tête de page pour les pages de consistance -->
                     <div class="rm-page-header">
                         <img t-if="doc.company_id.logo" t-att-src="image_data_uri(doc.company_id.logo)"/>
                         <div class="rm-page-header-text">
@@ -535,33 +533,35 @@
 
                     <div class="rm-section-header">CONSISTANCE DE L'OPÉRATION</div>
 
-                    <div class="rm-section-title">
-                        Détail linéaire pour chaque ligne et voie
-                    </div>
+                    <div class="rm-section-title">Détail linéaire pour chaque ligne et voie</div>
+
+                    <!-- Main consistance table — full width, with index column -->
                     <table class="rm-consistance-table">
                         <thead>
                             <tr>
-                                <th style="width: 8%;">Ligne</th>
-                                <th style="width: 6%;">Voie</th>
-                                <th style="width: 5%;">Type Travaux</th>
-                                <th style="width: 7%;">Linéaire Amont</th>
-                                <th style="width: 7%;">Linéaire Aval</th>
+                                <th style="width:4%;">N°</th>
+                                <th style="width:8%;">Ligne</th>
+                                <th style="width:6%;">Voie</th>
+                                <th style="width:5%;">Type Tx</th>
+                                <th style="width:7%;">Lin. Amont</th>
+                                <th style="width:7%;">Lin. Aval</th>
                                 <t t-if="doc.measurement_id.has_courbes">
-                                    <th style="width: 6%;">Nb Courbes</th>
-                                    <th style="width: 7%;">Longueur Courbes</th>
+                                    <th style="width:5%;">Nb Crb</th>
+                                    <th style="width:6%;">L. Crb</th>
                                 </t>
                                 <t t-if="doc.measurement_id.has_quais">
-                                    <th style="width: 6%;">Nb Quais</th>
-                                    <th style="width: 7%;">Longueur Quais</th>
+                                    <th style="width:5%;">Nb Qua</th>
+                                    <th style="width:6%;">L. Qua</th>
                                 </t>
-                                <t>
-                                    <th>Observations</th>
-                                </t>
+                                <th>Observations</th>
                             </tr>
                         </thead>
                         <tbody>
                             <t t-foreach="doc.measurement_id.consistance_lines" t-as="cons">
                                 <tr>
+                                    <td style="text-align:center;font-weight:700;">
+                                        <t t-out="cons_index + 1"/>
+                                    </td>
                                     <td><t t-out="cons.ligne_id.name"/></td>
                                     <td><t t-out="cons.voie_id.name"/></td>
                                     <td><t t-out="cons.desc_nature_travaux.name"/></td>
@@ -575,62 +575,61 @@
                                         <td><t t-out="cons.nombres_quais if cons.nombres_quais else ''"/></td>
                                         <td><t t-out="int(cons.longueur_quais) if cons.longueur_quais else ''"/></td>
                                     </t>
-                                    <td class="rm-text-left" style="padding-left: 8px;">
+                                    <td class="rm-text-left" style="padding-left:8px;">
                                         <t t-out="cons.observations"/>
                                     </td>
                                 </tr>
                             </t>
                         </tbody>
                     </table>
-                    
-                    <!-- Two additional tables side by side -->
-                    <div class="rm-additional-tables">
-                        <!-- Left table: Matériel de repérage (Cibles) -->
-                        <div class="rm-table-left">
+
+                    <!-- Bottom section: secondary tables LEFT + map RIGHT -->
+                    <div style="width:100%;overflow:hidden;margin-top:12px;">
+
+                        <!-- RIGHT: map image (floated right FIRST in DOM) -->
+                        <t t-if="doc.measurement_id.sig_controller_id and doc.measurement_id.sig_controller_id.map_png">
+                            <div style="float:right;width:48%;">
+                                <div class="rm-section-title">Localisation des zones de travaux</div>
+                                <img t-att-src="image_data_uri(doc.measurement_id.sig_controller_id.map_png)"
+                                    style="width:100%;border-radius:6px;border:1px solid #e2e8f0;"/>
+                            </div>
+                        </t>
+
+                        <!-- LEFT: secondary tables (floated left) -->
+                        <div style="float:left;width:48%;">
                             <t t-if="doc.measurement_id.cible_line_ids">
-                                <div class="rm-section-title">
-                                    Matériel de repérage
-                                </div>
-                                <table class="rm-small-table">
+                                <div class="rm-section-title">Matériel de repérage</div>
+                                <table class="rm-small-table" style="width:100%;">
                                     <thead>
                                         <tr>
-                                            <th style="width: 60%;">Repérages voie et obstacles</th>
-                                            <th style="width: 15%;">Quantité</th>
-                                            <th style="width: 25%;">Observations</th>
+                                            <th style="width:60%;">Repérages voie et obstacles</th>
+                                            <th style="width:15%;">Qté</th>
+                                            <th style="width:25%;">Observations</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         <t t-foreach="doc.measurement_id.cible_line_ids" t-as="cible">
                                             <tr>
-                                                <td class="rm-text-left" style="padding-left: 8px;">
-                                                    <t t-out="cible.name"/>
-                                                </td>
+                                                <td class="rm-text-left" style="padding-left:8px;"><t t-out="cible.name"/></td>
                                                 <td><t t-out="cible.qty"/></td>
-                                                <td class="rm-text-left" style="padding-left: 8px;">
-                                                    <t t-out="cible.observation"/>
-                                                </td>
+                                                <td class="rm-text-left" style="padding-left:8px;"><t t-out="cible.observation"/></td>
                                             </tr>
                                         </t>
                                     </tbody>
                                 </table>
                             </t>
-                        </div>
-                        
-                        <!-- Right table: Quais à mesurer -->
-                        <div class="rm-table-right">
+
                             <t t-if="doc.measurement_id.quai_line_ids">
-                                <div class="rm-section-title">
-                                    Quais à mesurer
-                                </div>
-                                <table class="rm-small-table">
+                                <div class="rm-section-title" style="margin-top:8px;">Quais à mesurer</div>
+                                <table class="rm-small-table" style="width:100%;">
                                     <thead>
                                         <tr>
-                                            <th style="width: 12%;">Ligne</th>
-                                            <th style="width: 12%;">Voie</th>
-                                            <th style="width: 12%;">PK Début</th>
-                                            <th style="width: 12%;">PK Fin</th>
-                                            <th style="width: 12%;">Longueur</th>
-                                            <th style="width: 40%;">Nom de la gare</th>
+                                            <th style="width:12%;">Ligne</th>
+                                            <th style="width:12%;">Voie</th>
+                                            <th style="width:12%;">PK Déb</th>
+                                            <th style="width:12%;">PK Fin</th>
+                                            <th style="width:12%;">Long.</th>
+                                            <th style="width:40%;">Gare</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -641,17 +640,15 @@
                                                 <td><t t-out="'%d+%03d' % (int(quai.pkd/1000), int(quai.pkd%1000)) if quai.pkd else ''"/></td>
                                                 <td><t t-out="'%d+%03d' % (int(quai.pkf/1000), int(quai.pkf%1000)) if quai.pkf else ''"/></td>
                                                 <td><t t-out="int(quai.longueur) if quai.longueur else ''"/></td>
-                                                <td class="rm-text-left" style="padding-left: 8px;">
-                                                    <t t-out="quai.nom_gare"/>
-                                                </td>
+                                                <td class="rm-text-left" style="padding-left:8px;"><t t-out="quai.nom_gare"/></td>
                                             </tr>
                                         </t>
                                     </tbody>
                                 </table>
                             </t>
                         </div>
-                        
-                        <div style="clear: both;"></div>
+
+                        <div style="clear:both;"></div>
                     </div>
                 </div>
             </t>
