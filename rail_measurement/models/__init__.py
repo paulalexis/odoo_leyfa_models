@@ -1,3 +1,4 @@
+from . import contrat
 from . import chariot
 from . import chariot_type
 from . import rail_measurement
@@ -8,4 +9,3 @@ from . import rail_file_import_wizard
 from . import res_company
 from . import equipe_terrain
 from . import leyfa_sig
-from . import contrat
