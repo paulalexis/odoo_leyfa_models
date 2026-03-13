@@ -38,10 +38,10 @@ dans les devis, puis de les configurer avec tous les détails techniques nécess
         'views/vue_prevente.xml',
         'views/vue_terrain.xml',
         'views/affaires.xml',
-        'views/sale_order_report.xml',
         'views/res_company.xml',
         'views/portal/demande.xml',
         'views/equipe_terrain_views.xml',
+        'views/contrat.xml',
         'views/menus_ressources.xml',
         'views/planificateur_equipe.xml',
         
@@ -49,7 +49,8 @@ dans les devis, puis de les configurer avec tous les détails techniques nécess
         'data/codes_affaires_data.xml',
         'data/custom_quotation.xml',
         'data/consistance_data.xml',
-        'data/equipes_terrain_data.xml'
+        'data/equipes_terrain_data.xml',
+        'data/sale_order_report.xml',
     ],
     'assets': {
         'web.assets_backend': [

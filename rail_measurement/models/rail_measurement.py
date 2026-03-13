@@ -5,7 +5,7 @@ from odoo.exceptions import UserError, ValidationError
 from odoo.tools import float_compare, float_is_zero
 from datetime import timedelta, time, datetime
 import base64, openpyxl, io
-import math
+import math, re
 
 class RailMeasurement(models.Model):
     _name = 'rail.measurement'
@@ -127,15 +127,16 @@ class RailMeasurement(models.Model):
         # We search for the highest code starting with prefix + 3 digits
         # We ignore the current record (self._origin.id) to avoid self-collision
         domain = [
-            # ('code_affaire', '=like', prefix + '___'), On ne cherche pas à ce que les affaires soient regroupé... étrange mais process actuel
-            ('id', '!=', self._origin.id if hasattr(self, '_origin') else False)
+            ('id', '!=', self._origin.id if hasattr(self, '_origin') else False),
+            ('code_affaire', '=like', prefix[0] + '%')
         ]
-        existing = self.env['rail.measurement'].search(domain, order='code_affaire desc', limit=1)
+        existing = self.env['rail.measurement'].search(domain, order='code_affaire desc')
         
+        logging.getLogger(__name__).info(f"Searching for next code with prefix '{prefix}' - Found existing: {[ei.code_affaire for ei in existing]}")
         if existing:
+            indexes = [int(existing.code_affaire[-3:]) for existing in existing if existing.code_affaire]
             try:
-                last_seq = int(existing.code_affaire[-3:])
-                return f"{prefix}{str(last_seq + 1).zfill(3)}"
+                return f"{prefix}{str(max(indexes) + 1).zfill(3)}"
             except (ValueError, TypeError):
                 return f"{prefix}001"
         return f"{prefix}001"
@@ -187,13 +188,13 @@ class RailMeasurement(models.Model):
                 # A4. Collision Check: Does this specific code already exist?
                 # We check the database for the exact code entered
                 
-
                 if code[-3:].isdigit() is False:
                     new_code = self._get_next_available_code(code)
                     self.code_affaire = new_code
                 else:
                     collision = self.env['rail.measurement'].search_count([
-                        ('code_affaire', '=', code),
+                        ('code_affaire', '=like', code[0] + '%'),
+                        ('code_affaire', '=like', '%' + code[-3:]),
                         ('id', '!=', self._origin.id if hasattr(self, '_origin') else False)
                     ])
                     
@@ -202,10 +203,17 @@ class RailMeasurement(models.Model):
                         new_code = self._get_next_available_code(prefix)
                         warning_msg = {
                             'title': _("Code déjà utilisé"),
-                            'message': _("Le code %s existe déjà. Le système a automatiquement généré le numéro suivant : %s.") % (code, new_code)
+                            'message': _("Un code terminant par %s, dans l'exercice %s existe déjà. Le système a automatiquement généré le numéro suivant : %s.") % (code[-3:], code[0], new_code)
                         }
                         self.code_affaire = new_code
                     else:
+                        prefix = code[:-3]
+                        new_code = self._get_next_available_code(prefix)
+                        if new_code != code:
+                            warning_msg = {
+                                'title': _("Code incohérent"),
+                                'message': _("Le code que vous avez entré (%s) est disponible, mais par soucis de cohérence le système suggère : %s. Veuillez vérifier que cela correspond à votre intention.") % (code, new_code)
+                            }
                         self.code_affaire = code
             
             self.last_synced_code = self.code_affaire
@@ -224,10 +232,10 @@ class RailMeasurement(models.Model):
                     prefix = f"{ex_n}{li_s}{ty_c}{na_c}".upper()
                     
                     # Regenerate only if the current code is empty or doesn't match fields
-                    if not self.code_affaire or not self.code_affaire.startswith(prefix):
-                        new_code = self._get_next_available_code(prefix)
-                        self.code_affaire = new_code
-                        self.last_synced_code = new_code
+                    # if not self.code_affaire or not self.code_affaire.startswith(prefix):
+                    new_code = self._get_next_available_code(prefix)
+                    self.code_affaire = new_code
+                    self.last_synced_code = new_code
 
         # 4. Notify user if there was a collision
         if warning_msg:
@@ -276,95 +284,173 @@ class RailMeasurement(models.Model):
     # Informations client et commande
     partner_id = fields.Many2one('res.partner', string='Client', required=True, tracking=True)
     sale_order_id = fields.Many2one(
-        'sale.order', 
-        string='Bon de commande',
+        'sale.order',
+        string='Devis Principal',
         domain="[('partner_id', '=', partner_id)]",
-        tracking=True
+        tracking=True,
     )
 
-    # Logique de devis BIS
     sale_order_ids = fields.One2many(
-        'sale.order', 
-        'measurement_id', 
-        string='Historique des Devis'
+        'sale.order',
+        'measurement_id',
+        string='Devis',
     )
 
-    def action_create_revision(self):
-        self.ensure_one()
-        if not self.sale_order_id:
-            return
+    sale_order_count = fields.Integer(
+        compute='_compute_sale_order_count',
+        string='Nombre de devis'
+    )
 
-        old_so = self.sale_order_id
-        current_name = old_so.name
-        base_name = current_name.split('_')[0]
+    has_active_previous_quotes = fields.Boolean(
+        compute='_compute_has_active_previous_quotes',
+    )
+
+    @api.depends('sale_order_ids')
+    def _compute_sale_order_count(self):
+        for rec in self:
+            rec.sale_order_count = len(rec.sale_order_ids)
+
+    @api.depends('sale_order_ids', 'sale_order_ids.state', 'sale_order_id')
+    def _compute_has_active_previous_quotes(self):
+        for rec in self:
+            other_active = rec.sale_order_ids.filtered(
+                lambda so: so.id != rec.sale_order_id.id and so.state != 'cancel'
+            )
+            rec.has_active_previous_quotes = bool(other_active)
+
+    def _get_next_avenant_index(self):
+        avenants = self.sale_order_ids.filtered(lambda s: s.so_type == 'avenant')
+        indices = []
+        for so in avenants:
+            try:
+                idx = int(so.name.split('+')[-1].split('_')[0])
+                indices.append(idx)
+            except (ValueError, IndexError):
+                pass
+        return max(indices, default=0) + 1
+
+    def _get_top_parent(self, so):
+        """Helper to find the root Sale Order of a revision chain."""
+        current = so
+        while current.so_parent_id:
+            current = current.so_parent_id
+        return current
+
+    def _get_next_revision_name(self, parent_so):
+        """
+        Handles complex naming:
+        Principal: S001 -> S001_A -> S001_B
+        Avenant: S001+1 -> S001+1_A -> S001+1_B
+        """
         existing_names = self.sale_order_ids.mapped('name')
         
-        # 1. Calcul du nouveau nom (Suffixe B, C, D...)
-        alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-        suffix_index = 1 
-        new_name = f"{base_name}_{alphabet[suffix_index]}"
+        # Identify root: Remove trailing '_X' suffix if it exists
+        root_name = re.sub(r'_[A-Z]$', '', parent_so.name)
         
-        while new_name in existing_names:
-            suffix_index += 1
-            if suffix_index >= len(alphabet):
-                new_name = f"{base_name}_REV{suffix_index}"
-                break
-            new_name = f"{base_name}_{alphabet[suffix_index]}"
+        alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        for letter in alphabet:
+            candidate = f"{root_name}_{letter}"
+            if candidate not in existing_names:
+                return candidate
+                
+        return f"{root_name}_REV_{len(existing_names)}"
 
-        # 2. Copie vers le nouveau devis (toujours créé en brouillon/presale)
-        new_so = old_so.copy({
+    def action_create_revision(self):
+        """Entry point for the List View button (uses context)."""
+        self.ensure_one()
+        so_id = self.env.context.get('active_id')
+        if not so_id:
+            return False
+        parent_so = self.env['sale.order'].browse(so_id)
+        return self.action_create_revision_of(parent_so)
+
+    def action_create_revision_of(self, parent_so):
+        """The core logic used by both the UI button and internal code."""
+        self.ensure_one()
+        new_name = self._get_next_revision_name(parent_so)
+
+        # 1. Create the copy
+        new_so = parent_so.copy({
             'name': new_name,
-            'origin': current_name,
-            'client_order_ref': f"Révision/Avenant de {current_name}",
+            'origin': parent_so.name,
+            'client_order_ref': f"Révision de {parent_so.name}",
+            'so_type': 'revision',
+            'so_parent_id': parent_so.id,
+            'measurement_id': self.id,
         })
 
-        # 3. Gestion de l'ancien devis
-        if old_so.state in ['draft', 'sent', 'presale']:
-            # Cas avant-vente : on annule l'ancien car il est remplacé
-            old_so.action_cancel()
-            old_so.message_post(body=f"Annulé : remplacé par la révision {new_name}")
-        else:
-            # Cas "En chantier" (déjà confirmé) : on ne l'annule pas !
-            # On le garde tel quel, et le nouveau servira d'avenant ou de nouvelle base.
-            old_so.message_post(body=f"Une révision ({new_name}) a été créée pour ce contrat. Pensez à l'annuler si nécessaire.")
-
-        # 4. Message et mise à jour du lien actif
-        new_so.message_post(body=f"Ce devis est une révision de {current_name}")
-        self.sale_order_id = new_so
+        # 2. Check the Top Parent to decide if we update 'Principal'
+        top_parent = self._get_top_parent(parent_so)
         
+        if top_parent.so_type != 'avenant':
+            # This is a revision of the main contract
+            self.sale_order_id = new_so
+            parent_so.message_post(body=f"Revision principale créée : {new_name}")
+        else:
+            # This is a revision of an avenant
+            parent_so.message_post(body=f"Revision d'avenant créée : {new_name} (Principal inchangé)")
+
+        new_so.message_post(body=f"Révision créée depuis {parent_so.name}")
+
         return {
             'type': 'ir.actions.act_window',
             'res_model': 'sale.order',
             'res_id': new_so.id,
             'view_mode': 'form',
-            'target': 'current',
+            'target': 'new',
         }
-   
-    sale_order_count = fields.Integer(
-        compute='_compute_sale_order_count', 
-        string="Nombre de devis"
+
+    def action_create_avenant(self):
+        """Create a new avenant (+1, +2...) with fresh template lines."""
+        self.ensure_one()
+        if not self.sale_order_id:
+            return
+
+        base_name = self.sale_order_id.name.split('+')[0]  # keeps S00024_A
+        idx = self._get_next_avenant_index()
+        new_name = f"{base_name}+{idx}"
+
+        new_so = self.sale_order_id.copy({
+            'name': new_name,
+            'origin': self.sale_order_id.name,
+            'client_order_ref': f"Avenant {idx} de {base_name}",
+            'so_type': 'avenant',
+            'so_parent_id': False,
+            'measurement_id': self.id,
+            'order_line': [],  # start empty
+        })
+
+        # Apply fresh template
+        new_so._apply_measurement_template()
+
+        new_so.message_post(body=f"Avenant {idx} créé depuis {self.sale_order_id.name}")
+
+        return {
+            'type': 'ir.actions.act_window',
+            'res_model': 'sale.order',
+            'res_id': new_so.id,
+            'view_mode': 'form',
+            'target': 'new',
+        }
+
+    
+    has_revised_quotes = fields.Boolean(
+        compute='_compute_has_revised_quotes',
+        string="A des devis révisés"
     )
 
-    @api.depends('sale_order_ids')
-    def _compute_sale_order_count(self):
-        for record in self:
-            record.sale_order_count = len(record.sale_order_ids)
-
-    has_active_previous_quotes = fields.Boolean(
-        compute='_compute_has_active_previous_quotes',
-        string="A des devis précédents actifs"
-    )
-
-    @api.depends('sale_order_ids', 'sale_order_ids.state', 'sale_order_id')
-    def _compute_has_active_previous_quotes(self):
+    @api.depends('sale_order_ids.state', 'sale_order_ids.so_parent_id')
+    def _compute_has_revised_quotes(self):
         for rec in self:
-            # On cherche s'il existe des devis dans la liste qui :
-            # 1. Ne sont pas le devis actuellement actif (sale_order_id)
-            # 2. Ne sont pas annulés ('cancel')
-            other_active_quotes = rec.sale_order_ids.filtered(
-                lambda so: so.id != rec.sale_order_id.id and so.state != 'cancel'
+            # 1. Get the IDs of all SOs that are listed as a 'parent' in this measurement
+            parent_ids = rec.sale_order_ids.mapped('so_parent_id').ids
+            
+            # 2. Check if any SO in the list is one of those parents AND is not cancelled
+            # This means: "Is there an active SO that has at least one revision child?"
+            rec.has_revised_quotes = any(
+                so.id in parent_ids and so.state != 'cancel' 
+                for so in rec.sale_order_ids
             )
-            rec.has_active_previous_quotes = bool(other_active_quotes)
 
     ## Voie
     voie_ids = fields.Many2many(
@@ -516,28 +602,32 @@ class RailMeasurement(models.Model):
     ], string='État', default='presale', required=True, tracking=True,
        compute='_compute_state', store=True, readonly=False)
 
-    @api.depends('sale_order_id.state')
+    so_ever_confirmed = fields.Boolean(
+        compute='_compute_so_ever_confirmed',
+        store=True,
+    )
+
+    @api.depends('sale_order_ids.state')
+    def _compute_so_ever_confirmed(self):
+        for rec in self:
+            rec.so_ever_confirmed = any(
+                so.state in ['sale', 'done'] 
+                for so in rec.sale_order_ids
+            )
+
+    @api.depends('sale_order_id.state', 'so_ever_confirmed')
     def _compute_state(self):
         for record in self:
             so_state = record.sale_order_id.state
-            
-            # CAS 1 : La commande est annulée
-            if so_state == 'cancel':
+
+            if so_state == 'cancel' and not record.so_ever_confirmed:
                 record.state = 'cancelled'
-            
-            # CAS 2 : La commande est en Devis (Quotation) ou Envoyée
-            # On force le retour en 'presale' même si on était en 'cancelled' ou en 'production'
-            elif so_state in ['draft', 'sent']:
+            elif so_state in ['draft', 'sent'] and not record.so_ever_confirmed:
                 record.state = 'presale'
-            
-            # CAS 3 : La commande est confirmée (Bon de commande)
-            # On passe en 'production' seulement si on vient du début du flux (presale ou cancelled)
-            elif so_state in ['sale', 'done']:
-                if record.state in ['presale', 'cancelled']:
+            elif record.so_ever_confirmed:
+                if record.state not in ['production', 'planned', 'measured', 'done']:
                     record.state = 'production'
                     record.prod_substate = 'mission'
-            
-            # Sinon, on garde l'état actuel (pour ne pas écraser l'avancement "planned", "measured", etc.)
             else:
                 if not record.state:
                     record.state = 'presale'
@@ -879,7 +969,7 @@ class RailMeasurement(models.Model):
     def _onchange_cibles_logic(self):
         surnom = self.type_affaire_id.code if self.type_affaire_id else False
         
-        target_types = ['cible', 'mire']
+        target_types = ['cible', 'mire_sc', 'mire_quai', 'mire_tunnel', 'palas']
         if surnom == 'P': 
             target_types.append('prov')
         if surnom in ['R', 'C']: 
@@ -908,7 +998,10 @@ class RailMeasurement(models.Model):
             'cible': 'Cibles MT40174',
             'prov': 'Plaquettes provisoires chainage',
             'courbe': 'Plaquettes courbe définitives',
-            'mire': 'Mires sur supports caténaires'
+            'mire_sc': 'Mires sur supports caténaires',
+            'mire_quai': 'Mires sur quai',
+            'mire_tunnel': 'Mires sur tunnel',
+            'palas': 'Cibles PALAS'
         }
 
         for t in target_types:
@@ -929,6 +1022,11 @@ class RailMeasurement(models.Model):
         string='Quais à mesurer'
     )
 
+    tunnel_line_ids = fields.One2many(
+        'rail.measurement.tunnel.line',
+        'measurement_id',
+        string='Tunnels à mesurer'
+    )
 
     ## DEVIS
 
@@ -964,7 +1062,7 @@ class RailMeasurement(models.Model):
         return False
 
     def update_sale_order(self):
-        nb_km_releve = int(self.total_releve_consistance / 1000.0)
+        nb_km_releve = round(self.total_releve_consistance / 1000.0, 1)
 
         ## FORFAIT
 
@@ -980,11 +1078,22 @@ class RailMeasurement(models.Model):
             prov_qty = prov_line.qty if prov_line else 0
             self.change_product_qty('1.2', prov_qty)
             self.change_product_qty('1.5', prov_qty)
+            self.change_product_qty('1.1', prov_qty/10)
         if self.type_affaire_id.code in ['R', 'C']:
             courbe_line = self.cible_line_ids.filtered(lambda l: l.line_type == 'courbe')
             courbe_qty = courbe_line.qty if courbe_line else 0
             self.change_product_qty('1.2', courbe_qty)
             self.change_product_qty('1.5', courbe_qty)
+            self.change_product_qty('1.1', courbe_qty/10)
+        
+        # 1.6 et 1.7
+        palas_line = self.cible_line_ids.filtered(lambda l: l.line_type == 'palas')
+        cible_line = self.cible_line_ids.filtered(lambda l: l.line_type == 'cible')
+        if palas_line:
+            self.change_product_qty('1.6', palas_line.qty)
+        if cible_line:
+            self.change_product_qty('1.7', cible_line.qty)
+            
         
         # 2.1
         self.change_product_qty('2.1', nb_km_releve)
@@ -992,6 +1101,21 @@ class RailMeasurement(models.Model):
         self.change_product_qty('3.2', nb_km_releve)
         self.change_product_qty('3.3', nb_km_releve)
     
+    contrat_id = fields.Many2one(
+        'rail.measurement.contrat',
+        string='Contrat',
+        default=lambda self: self._default_contrat(),
+        help="Contrat en cours à la date de création de la mesure"
+    )
+
+    def _default_contrat(self):
+        today = fields.Date.today()
+        contrat = self.env['rail.measurement.contrat'].search(
+            [('start_date', '<=', today), ('end_date', '>=', today)],
+            order='start_date desc',
+            limit=1,
+        )
+        return contrat or False
 
     ##### PRODUCTION & PLANIFICATION #####
     existing_chariot_type_ids = fields.Many2many(
@@ -1253,20 +1377,17 @@ class RailMeasurement(models.Model):
 
         if records.sale_order_id:
             records.sale_order_id.measurement_id = records.id
+            records.sale_order_id._apply_measurement_template()
+
         
         # 3. Lien inverse et mise à jour de la description de la ligne de commande
         # records.update_sale_order_line()
         return records
 
-    def write(self, vals):
-        # Appel au super pour enregistrer les modifications
-        result = super(RailMeasurement, self).write(vals)
-
-        # Si on modifie des champs qui impactent la description ou le lien
-        # if self.state == 'presale':
-        #     self.update_sale_order_line()
-        
-        return result
+    # def write(self, vals):
+    #     # Appel au super pour enregistrer les modifications
+    #     result = super(RailMeasurement, self).write(vals)
+    #     return result
     
     def unlink(self):
         """ 
@@ -1439,6 +1560,28 @@ class RailMeasurement(models.Model):
                 'active_test': False, 
             },
         }
+
+    total_last_revisions = fields.Monetary(
+        compute='_compute_total_last_revisions',
+        string="Total (Dernières révisions)",
+        currency_field='currency_id' # Ensure your model has a currency_id field
+    )
+    @api.depends('sale_order_ids.amount_total', 'sale_order_ids.state', 'sale_order_ids.name')
+    def _compute_total_last_revisions(self):
+        for rec in self:
+            branches = {}
+            # We only count non-cancelled quotes
+            active_sos = rec.sale_order_ids.filtered(lambda s: s.state != 'cancel')
+            
+            for so in active_sos:
+                # Identify the 'branch' (e.g., S001+1_B -> root is S001+1)
+                root_name = re.sub(r'_[A-Z]$', '', so.name)
+                
+                # If we haven't seen this branch, or if this SO is a later revision (alphabetically)
+                if root_name not in branches or so.name > branches[root_name].name:
+                    branches[root_name] = so
+            
+            rec.total_last_revisions = sum(so.amount_total for so in branches.values())
     
     ### CARTE
     map_svg = fields.Html(
@@ -1915,6 +2058,7 @@ class RailMeasurementWizard(models.TransientModel):
             
             # 2. Lien inverse sur la SOL principale
             quotation.measurement_id = measurement.id
+            quotation._apply_measurement_template()
 
             # 4. Synchronisation des noms, prix et quantités pour les deux lignes
             # measurement.update_sale_order_line()
@@ -1928,7 +2072,7 @@ class RailMeasurementWizard(models.TransientModel):
                 'name': 'Nouvelle Affaire',
                 'res_model': 'rail.measurement',
                 'view_mode': 'form',
-                'target': 'new', # Opens in a popup/sub-window
+                'target': 'current', # Opens in a popup/sub-window
                 'context': {
                     'default_partner_id': self.partner_id.id,
                     'default_sale_order_id': self.sale_order_id.id,
@@ -1960,6 +2104,11 @@ class SaleOrder(models.Model):
 
     measurement_id = fields.Many2one('rail.measurement', string='Mesures de voie')
 
+    def action_create_revision(self):
+        self.ensure_one()
+        if self.measurement_id:
+            return self.measurement_id.action_create_revision_of(self)
+    
     def action_view_measurements(self):
         self.ensure_one()
         return {
@@ -2021,10 +2170,8 @@ class SaleOrder(models.Model):
             })
 
             # 3. Ré-application du modèle SNCF
-            template = self.env.ref('rail_measurement.template_bordereau_sncf_complet', raise_if_not_found=False)
-            if template:
-                self.sale_order_template_id = template
-                self._onchange_sale_order_template_id()
+            self.sale_order_template_id = None
+            self._onchange_sale_order_template_id()
 
         return {
             'type': 'ir.actions.client',
@@ -2142,6 +2289,131 @@ class SaleOrder(models.Model):
             sequence = str(order_index).zfill(3) # Transforme 1 en 001, 18 en 018
             
             order.quote_number_custom = f"{year_month}/{sequence}"
+
+    def _apply_measurement_template(self):
+        _logger = logging.getLogger(__name__)
+        """Apply the contract's quotation template to the sale order lines."""
+        for order in self:
+            if order.measurement_id.contrat_id.quotation_template_id:
+                _logger.warning("Applying measurement template: measurement=%s contrat=%s template=%s",
+                    order.measurement_id.code_affaire,
+                    order.measurement_id.contrat_id.name,
+                    order.measurement_id.contrat_id.quotation_template_id.name)
+                template = order.measurement_id.contrat_id.quotation_template_id
+                order.sale_order_template_id = template
+                order._onchange_sale_order_template_id()
+
+    @api.onchange('measurement_id')
+    def _onchange_measurement_id(self):
+        self._apply_measurement_template()
+
+    # Révisions et avenant
+    so_parent_id = fields.Many2one(
+        'sale.order',
+        string='Devis parent',
+        ondelete='set null',
+    )
+    so_type = fields.Selection([
+        ('main', 'Principal'),
+        ('avenant', 'Avenant'),
+        ('revision', 'Révision'),
+    ], string='Type', default='main')
+
+    so_revision_ids = fields.One2many(
+        'sale.order', 'so_parent_id',
+        string='Révisions',
+        domain=[('so_type', '=', 'revision')],
+    )
+
+    def _apply_measurement_template(self):
+        for order in self:
+            if order.measurement_id.contrat_id.quotation_template_id:
+                template = order.measurement_id.contrat_id.quotation_template_id
+                if order.sale_order_template_id != template:
+                    order.sale_order_template_id = template
+                    order._onchange_sale_order_template_id()
+
+    @api.onchange('measurement_id')
+    def _onchange_measurement_id(self):
+        self._apply_measurement_template()
+
+_logger = logging.getLogger(__name__)
+class IrActionsReport(models.Model):
+    _inherit = 'ir.actions.report'
+
+    def _get_sale_custom_report(self, docids):
+        if not docids:
+            _logger.info("CUSTOM REPORT: no docids")
+            return None
+        order = self.env['sale.order'].browse(docids[:1])
+        _logger.info("CUSTOM REPORT: order=%s measurement=%s contrat=%s template=%s",
+            order,
+            order.measurement_id,
+            order.measurement_id.contrat_id,
+            order.measurement_id.contrat_id.report_template_id,
+        )
+        if order and order.measurement_id.contrat_id.report_template_id:
+            template = order.measurement_id.contrat_id.report_template_id
+            _logger.info("CUSTOM REPORT: template.key=%s", template.key)
+            custom = self.env['ir.actions.report'].search([
+                ('report_name', '=', template.key)
+            ], limit=1)
+            _logger.info("CUSTOM REPORT: found action=%s report_name=%s", custom, custom.report_name if custom else None)
+            return custom
+        return None
+
+    def _normalize_report_ref(self, report_ref):
+        """Return the report_name string regardless of how report_ref was passed."""
+        if isinstance(report_ref, str):
+            return report_ref
+        # Could be an int (id) or a recordset
+        if isinstance(report_ref, int):
+            report = self.env['ir.actions.report'].browse(report_ref)
+        else:
+            report = report_ref  # already a recordset
+        return report.report_name if report else None
+
+    def _get_report_name(self, report_ref):
+        name = self._normalize_report_ref(report_ref)
+        return name
+
+    SALE_REPORT_REFS = {
+        # report_name variants
+        'sale.report_saleorder',
+        'sale.report_saleorder_pro_forma',
+        # action xmlid variants (used by portal and email)
+        'sale.action_report_saleorder',
+        'sale.action_report_pro_forma_invoice',
+    }
+
+    def _normalize_report_ref(self, report_ref):
+        if isinstance(report_ref, str):
+            return report_ref
+        if isinstance(report_ref, int):
+            report = self.env['ir.actions.report'].browse(report_ref)
+        else:
+            report = report_ref
+        return report.report_name if report else None
+
+    def _render_qweb_html(self, report_ref, docids, data=None):
+        if self._normalize_report_ref(report_ref) in self.SALE_REPORT_REFS:
+            custom = self._get_sale_custom_report(docids)
+            if custom and custom.report_name not in self.SALE_REPORT_REFS:
+                _logger.info("CUSTOM REPORT: switching to %s", custom.report_name)
+                return custom._render_qweb_html(custom.report_name, docids, data=data)
+        return super()._render_qweb_html(report_ref, docids, data=data)
+
+    def _render_qweb_pdf(self, report_ref, res_ids=None, data=None):
+        ref_name = self._normalize_report_ref(report_ref)
+        _logger.info("CUSTOM REPORT _render_qweb_pdf: report_ref=%r normalized=%s", report_ref, ref_name)
+        if ref_name in self.SALE_REPORT_REFS:
+            custom = self._get_sale_custom_report(res_ids)
+            if custom and custom.report_name not in self.SALE_REPORT_REFS:
+                _logger.info("CUSTOM REPORT: switching to %s", custom.report_name)
+                return custom._render_qweb_pdf(custom.report_name, res_ids=res_ids, data=data)
+        return super()._render_qweb_pdf(report_ref, res_ids=res_ids, data=data)
+    
+
 
 class ResCompany(models.Model):
     _inherit = 'res.company'
@@ -2402,6 +2674,7 @@ class RailConsistanceImportWizard(models.TransientModel):
             # On vide les deux tableaux liés à la mesure
             self.measurement_id.consistance_lines.unlink()
             self.measurement_id.quai_line_ids.unlink()
+            self.measurement_id.tunnel_line_ids.unlink()
         
         mapping_consistance = {
             'ligne_id': (0, 'm2o', 'leyfa.ligne'),
@@ -2425,7 +2698,14 @@ class RailConsistanceImportWizard(models.TransientModel):
             'voie_id': (1, 'm2o', 'leyfa.type.voie'),
             'pkd': (2, 'float'),
             'pkf': (3, 'float'),
-            'nom_gare': (6, 'char'),
+            'nom_gare': (5, 'char'),
+        }
+
+        mapping_tunnels = {
+            'ligne_id': (0, 'm2o', 'leyfa.ligne'),
+            'pkd': (1, 'float'),
+            'pkf': (2, 'float'),
+            'libelle': (3, 'char'),
         }
 
         # --- EXECUTION ---
@@ -2435,7 +2715,22 @@ class RailConsistanceImportWizard(models.TransientModel):
         # 2. Quais (Optionnel : si l'onglet n'existe pas ou est vide, on ignore)
         if 'process_quais' in wb.sheetnames:
             self._process_sheet(wb, 'process_quais', 'rail.measurement.quai.line', mapping_quais, required=False)
-        
+
+            # Pose de cibles MT40174 dans les quais: une cible tous les 10m + 1 cible POD + 1 cible POF par quai
+            if self.measurement_id.type_affaire_id.code == 'P':
+                prov_line = self.measurement_id.cible_line_ids.filtered(lambda l: l.line_type == 'cible')
+                if prov_line:
+                    prov_line.qty = int(len(self.measurement_id.quai_line_ids) * 2 + sum([line.longueur/10 for line in self.measurement_id.quai_line_ids]))
+
+        if 'process_tunnels' in wb.sheetnames:
+            self._process_sheet(wb, 'process_tunnels', 'rail.measurement.tunnel.line', mapping_tunnels, required=False)
+            
+            # Pose de cibles PALAS tous les 10m en tunnel
+            palas_line = self.measurement_id.cible_line_ids.filtered(lambda l: l.line_type == 'palas')
+            if palas_line:
+                palas_line.qty = int(sum([line.longueur/10 for line in self.measurement_id.tunnel_line_ids]))
+
+
         return {
             'type': 'ir.actions.client',
             'tag': 'display_notification',
@@ -2525,7 +2820,7 @@ class RailConsistanceImportWizard(models.TransientModel):
     def action_download_template(self):
         return {
             'type': 'ir.actions.act_url',
-            'url': '/rail_measurement/static/src/templates/consistance_et_quais'
+            'url': '/rail_measurement/static/src/templates/consistance_affaire'
             '.xlsx',
             'target': 'new',
         }
@@ -2560,7 +2855,10 @@ class RailMeasurementCibleLine(models.Model):
         ('cible', 'Cible'),
         ('prov', 'Provisoire'),
         ('courbe', 'Courbe'),
-        ('mire', 'Mire'),
+        ('mire_sc', 'Mire Support Caténaire'),
+        ('mire_quai', 'Mire Support Quai'),
+        ('mire_tunnel', 'Mire Support Tunnel'),
+        ('palas', 'Cible Palas'),
     ], string="Type")
 
 class QuaiLine(models.Model):
@@ -2573,5 +2871,28 @@ class QuaiLine(models.Model):
     voie_id = fields.Many2one('leyfa.type.voie', string="Voie")
     pkd = fields.Float(string="PK Début", digits=(7, 0))
     pkf = fields.Float(string="PK Fin", digits=(7, 0))
-    longueur = fields.Float(string="Longueur", digits=(7, 0))
+    longueur = fields.Float(string="Longueur", digits=(7, 0), compute='_compute_longueur')
+    
+    @api.depends('pkd', 'pkf')
+    def _compute_longueur(self):
+        for rec in self:
+            rec.longueur = (rec.pkf - rec.pkd) if rec.pkf and rec.pkd else None
+
     nom_gare = fields.Char(string="Nom de la gare")
+
+class TunnelLine(models.Model):
+    _name = 'rail.measurement.tunnel.line'
+    _description = 'Ligne de tableau de tunnels pour une mesure'
+
+    measurement_id = fields.Many2one('rail.measurement', ondelete='cascade')
+
+    ligne_id = fields.Many2one('leyfa.ligne', string='Ligne')
+    pkd = fields.Float(string="PK Début", digits=(7, 0))
+    pkf = fields.Float(string="PK Fin", digits=(7, 0))
+    longueur = fields.Float(string="Longueur", digits=(7, 0), compute='_compute_longueur')
+    @api.depends('pkd', 'pkf')
+    def _compute_longueur(self):
+        for rec in self:
+            rec.longueur = (rec.pkf - rec.pkd) if rec.pkf and rec.pkd else None
+
+    libelle = fields.Char(string="Libellé")

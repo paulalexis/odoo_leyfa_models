@@ -59,6 +59,11 @@
               parent="menu_category_leyfa_db" 
               action="action_chariot_type" 
               sequence="50"/>
+    <menuitem id="menu_contrats" 
+              name="Contrats" 
+              parent="menu_category_leyfa_db" 
+              action="action_contrat" 
+              sequence="60"/>
 
     <!-- GROUPE : PARC LEYFA -->
     <menuitem id="menu_category_leyfa_parc" 

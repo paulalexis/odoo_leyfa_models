@@ -11,9 +11,10 @@
                 <field name="sig_controller_id" invisible="1"/>
                 <notebook position="inside">
                     <page string="1. Informations Générales" name="general_info_subtab">
-                        <div class="o_row">
-                            <!-- COLONNE GAUCHE -->
-                            <div class="col-lg-4 col-md-12">
+                        <!-- BLOC DU HAUT : 2 COLONNES -->
+                        <div class="row">
+                            <!-- COLONNE GAUCHE : CODAGE LEYFA -->
+                            <div class="col-lg-6 col-md-12">
                                 <group string="CODAGE LEYFA" name="codage_leyfa">
                                     <field name="type_requires_nature" invisible="1"/>
                                     <field name="state" invisible="1"/>
@@ -44,8 +45,9 @@
                                         invisible="not type_requires_nature" required="type_requires_nature" readonly="state != 'presale'"/>
                                 </group>
                             </div>
-                            <!-- COLONNE DROITE -->
-                            <div class="col-lg-4 col-md-12">
+
+                            <!-- COLONNE DROITE : INFOS SUPPLEMENTAIRES -->
+                            <div class="col-lg-6 col-md-12">
                                 <group string="Informations supplémentaires">
                                     <field name="voie_ids" 
                                             widget="many2many_tags" 
@@ -58,69 +60,96 @@
                                     <field name="desc_annee" options="{'format': false}" placeholder="Année" widget="char" readonly="state != 'presale'"/>
                                     <field name="itinerary_duration" options="{'horizontal': true}" readonly="state != 'presale'"/>
                                 </group>
-                            
                             </div>
-                            <div class="col-lg-4 col-md-12">
-                                <group string="Suivi Contractuel">
-                                    <!-- Champs techniques pour les conditions -->
-                                    <field name="sale_order_id" invisible="1"/>
-                                    <field name="state" invisible="1"/>
-                                    <field name="sale_order_count" invisible="1"/>
-                                    
-                                    <label for="sale_order_id" string="Devis Actuel"/>
-                                    <div class="o_row">
-                                        <field name="sale_order_id" readonly="1" class="fw-bold fs-5 text-primary" nolabel="1"/>
+                        </div>
 
-                                        <!-- Bouton de révision -->
-                                        <button name="action_create_revision" 
-                                                string="Créer Révision" 
-                                                type="object" 
-                                                class="btn-warning"
-                                                icon="fa-plus"
-                                                invisible="not sale_order_id or state == 'presale'"/>
+                        <!-- BLOC DU BAS : SUIVI CONTRACTUEL ET DEVIS (Pleine largeur) -->
+                        <div class="row mt-4">
+                            <div class="col-12">
+                                <separator string="SUIVI CONTRACTUEL" class="mb-3"/>
+                                
+                                <div class="row">
+                                    <!-- First Column: Contract Info -->
+                                    <div class="col-lg-4 col-md-12">
+                                        <group>
+                                            <field name="sale_order_id" invisible="1"/>
+                                            <field name="state" invisible="1"/>
+                                            <field name="sale_order_count" invisible="1"/>
+                                            <field name="has_revised_quotes" invisible="1"/>
+
+                                            <label for="contrat_id" string="Contrat"/>
+                                            <field name="contrat_id" readonly="state != 'presale'"
+                                                class="fw-bold fs-5 text-primary" nolabel="1"/>
+
+                                            <label for="sale_order_id" string="Devis Principal"/>
+                                            <div class="o_row">
+                                                <field name="sale_order_id" readonly="1"
+                                                    class="fw-bold fs-5 text-primary" nolabel="1"/>
+                                                <button name="action_create_avenant"
+                                                        string="Avenant" type="object"
+                                                        class="btn-primary btn-sm" icon="fa-plus"
+                                                        invisible="not sale_order_id"/>
+                                            </div>
+                                        </group>
                                     </div>
 
-                                    <div colspan="2" class="alert alert-info" role="alert" invisible="sale_order_id">
-                                        Reliez cette affaire à un devis, en créant un nouveau devis et en cliquant sur "Associer une affaire".
-                                    </div>
-                                </group>
-
-                                <!-- Affichage de l'historique si plus d'un devis -->
-                                <div class="mt-4" invisible="sale_order_count &lt; 2">
-                                    <!-- Message d'alerte dynamique -->
-                                    <field name="has_active_previous_quotes" invisible="1"/>
-
-                                    <div class="alert alert-warning d-flex align-items-center mb-3" 
-                                        role="alert" 
-                                        invisible="not has_active_previous_quotes">
-                                        <i class="fa fa-exclamation-triangle me-2" title="Alerte devis actifs" style="font-size: 1.2rem;"/>
-                                        <div>
-                                            <strong>Attention :</strong> Des devis précédents liés à cette mesure sont encore actifs. 
-                                            Pensez à les <strong>annuler</strong> afin de ne pas fausser les statistiques de vente (doublons).
+                                    <!-- Second Column: The Alert -->
+                                    <div class="col-lg-8 col-md-12">
+                                        <div class="alert alert-danger d-flex align-items-center mb-4 py-3 shadow-sm" 
+                                            role="status" 
+                                            invisible="not has_revised_quotes"
+                                            style="border-left: 5px solid #b91d1d;">
+                                            
+                                            <!-- Re-enabled icon for visibility, you can remove it if strictly not wanted -->
+                                            <i class="fa fa-exclamation-circle me-3" style="font-size: 2.5rem;" aria-label="Alerte"/>
+                                            
+                                            <div>
+                                                <h4 class="alert-heading fw-bold mb-1">DEVIS RÉVISÉS DÉTECTÉS</h4>
+                                                <p class="mb-0 fs-6 text-dark">
+                                                    Attention : Certains devis actifs sur ce dossier ont fait l'objet d'une révision. 
+                                                    <strong>Penser à bien les annuler.</strong>
+                                                </p>
+                                            </div>
                                         </div>
                                     </div>
-                                    <h4 class="border-bottom pb-2 text-muted">Historique des versions</h4>
-                                    <field name="sale_order_ids" mode="list" readonly="1" class="sale_history_list">
-                                        <!-- decoration-muted="state == 'cancel'" met les anciens devis annulés en gris -->
-                                        <list create="0" delete="0" edit="0" no_open="1" decoration-muted="state == 'cancel'">
-                                            <field name="name" string="Référence" decoration-bf="id == parent.sale_order_id"/>
+                                </div>
+
+                                <!-- Tableau des devis en pleine largeur -->
+                                <div class="mt-3" invisible="sale_order_count &lt; 1">
+                                    <!-- 1. REMOVE readonly="1" from here -->
+                                    <!-- 2. ADD options to prevent creation/deletion in the popup itself -->
+                                    <field name="sale_order_ids" 
+                                        mode="list" 
+                                        options="{'no_create': True, 'no_delete': True}">
+                                        
+                                        <!-- 3. KEEP create="0" and delete="0" to hide the buttons in the list -->
+                                        <list create="0" delete="0" decoration-muted="state == 'cancel'">
+                                            <field name="name" string="Référence"/>
+                                            <field name="so_type" widget="badge" string="Type"/>
                                             <field name="date_order" widget="date" string="Date"/>
-                                            <field name="state" widget="badge" string="Statut" 
-                                                decoration-danger="state == 'cancel'" 
+                                            <field name="state" widget="badge" string="Statut"
+                                                decoration-danger="state == 'cancel'"
                                                 decoration-info="state == 'draft'"
                                                 decoration-success="state == 'sale'"/>
-                                            <field name="amount_total" string="Total HT" optional="show"/>
-                                            <button name="action_view_sale_order" 
-                                                    type="object" 
-                                                    icon="fa-external-link" 
-                                                    title="Ouvrir ce devis"
-                                                    class="btn-link"/>
+                                            <field name="amount_total" string="Total"/>
+                                            <field name="so_revision_ids" widget="many2many_tags" string="Révisions"
+                                                options="{'no_open': True}"/>
+                                            <button name="action_create_revision" type="object"
+                                                icon="fa-copy" title="Créer une révision" class="btn-warning"
+                                                invisible="state not in ('sale', 'done')"/>
                                         </list>
                                     </field>
+
+                                    <!-- Total consolidé (uniquement les dernières révisions actives) -->
+                                    <div class="d-flex justify-content-end align-items-center p-3 bg-light border-top fw-bold" style="font-size: 1.1rem;">
+                                        <span class="me-3 text-muted">Total (Dernières révisions actives) :</span>
+                                        <field name="total_last_revisions" widget="monetary" class="text-primary fs-4"/>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                        <separator string="OBSERVATIONS"/>
+
+                        <separator string="OBSERVATIONS" class="mt-4"/>
                         <field name="desc_observations" placeholder="Observations..."/>
                     </page>
 
@@ -216,7 +245,7 @@
                                     <field name="cible_line_ids" nolabel="1" readonly="state != 'presale'">
                                         <list editable="bottom" 
                                             create="0" 
-                                            delete="parent.state == 'presale'" 
+                                            delete="0" 
                                             edit="parent.state == 'presale'">
                                             <field name="line_type" column_invisible="False"/> 
                                             <field name="name" string="Repérages" readonly="1" force_save="1"/>
@@ -241,6 +270,21 @@
                                             <field name="pkd" string="PK D." width="70px"/>
                                             <field name="pkf" string="PK F." width="70px"/>
                                             <field name="nom_gare" string="Gare"/>
+                                        </list>
+                                    </field>
+                                    <div style="margin-bottom: 20px;">
+                                        <separator string="Tunnels" class="o_horizontal_separator"/>
+                                    </div>
+                                    <field name="tunnel_line_ids" nolabel="1" context="{'default_ligne_id': ligne_id}" readonly="state != 'presale'">
+                                        <list editable="bottom" 
+                                            create="parent.state == 'presale'" 
+                                            delete="parent.state == 'presale'" 
+                                            edit="parent.state == 'presale'" 
+                                            open_form_view="0">
+                                            <field name="ligne_id" string="Ligne" width="90px"/>
+                                            <field name="pkd" string="PK D." width="70px"/>
+                                            <field name="pkf" string="PK F." width="70px"/>
+                                            <field name="libelle" string="Libellé"/>
                                         </list>
                                     </field>
                                 </div>

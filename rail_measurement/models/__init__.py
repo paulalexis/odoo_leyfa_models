@@ -8,3 +8,4 @@ from . import rail_file_import_wizard
 from . import res_company
 from . import equipe_terrain
 from . import leyfa_sig
+from . import contrat

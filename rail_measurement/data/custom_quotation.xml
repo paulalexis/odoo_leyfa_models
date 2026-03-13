@@ -374,7 +374,7 @@
 
         <!-- === TEMPLATE QUOTATION === -->
         <record id="template_bordereau_sncf_complet" model="sale.order.template">
-            <field name="name">Bordereau de Prix Mesurage SNCF</field>
+            <field name="name">BPU CTR00060532</field>
             <field name="note">Prestations de mesurage ferroviaire conformément au bordereau de prix en vigueur.</field>
         </record>
 
