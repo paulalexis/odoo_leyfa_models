@@ -723,7 +723,7 @@
                     <!-- ============================================================ -->
                     <!-- NOTES / CONDITIONS DE PAIEMENT                               -->
                     <!-- ============================================================ -->
-                    <div>
+                    <!-- <div>
                         <span t-field="doc.note" t-attf-style="#{'text-align:justify;text-justify:inter-word;' if doc.company_id.terms_type != 'html' else ''}" name="order_note"/>
                         <p t-if="not is_html_empty(doc.payment_term_id.note)">
                             <span t-field="doc.payment_term_id.note"/>
@@ -733,7 +733,7 @@
                             <strong>Fiscal Position Remark:</strong>
                             <span t-field="doc.fiscal_position_id.sudo().note"/>
                         </p>
-                    </div>
+                    </div> -->
 
                     <!-- ============================================================ -->
                     <!-- CGV                                                           -->
@@ -742,7 +742,10 @@
                         <div style="page-break-before: always; margin-top: 30px;">
                             <div class="rm-section-header">ANNEXE : Conditions Générales de Vente</div>
                             <div class="rm-cgv-section" style="padding: 10px;">
-                                <t t-out="doc.company_id.cgv_text"/>
+                                <!-- <t t-out="doc.company_id.cgv_text"/> -->
+                                <p t-if="not is_html_empty(doc.sale_order_template_id.note)">
+                                    <t t-out="doc.sale_order_template_id.note"/>
+                                </p>
                             </div>
                         </div>
                     </t>

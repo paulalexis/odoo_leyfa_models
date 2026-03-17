@@ -345,11 +345,14 @@ class EquipeTerrain(models.Model):
             'type': 'ir.actions.act_window',
             'name': f'Planning détaillé : {self.name}',
             'res_model': 'rail.measurement.planning',
+            'views': [
+                (self.env.ref('rail_measurement.view_rail_measurement_planning_calendar').id, 'calendar'),
+                (False, 'list')
+            ],
             'view_mode': 'calendar,list',
             'domain': ['|', ('equipe_id_1', '=', self.id), ('equipe_id_2', '=', self.id)],
-            'context': {
-                'search_default_equipe_id_1': self.id,
-            }
+            'context': {'search_default_equipe_id_1': self.id},
+            'target': 'current',
         }
     
     def _compute_future_compositions_count(self):
@@ -457,14 +460,25 @@ class EquipeTerrain(models.Model):
         string="Détail de toutes les semaines"
     )
 
+    # def _compute_planning_ids_all(self):
+    #     for record in self:
+    #         planning_lines = self.env['rail.measurement'].search([
+    #             '|',
+    #             ('equipe_id_1', '=', record.id),
+    #             ('equipe_id_2', '=', record.id)
+    #         ])
+    #         record.planning_ids_all = planning_lines
+    
     def _compute_planning_ids_all(self):
         for record in self:
-            planning_lines = self.env['rail.measurement'].search([
+            # Search all rail.measurement linked to this team
+            measurements = self.env['rail.measurement'].search([
                 '|',
-                ('measurement_id.equipe_id_1', '=', record.id),
-                ('measurement_id.equipe_id_2', '=', record.id)
+                ('equipe_id_1', '=', record.id),
+                ('equipe_id_2', '=', record.id)
             ])
-            record.planning_ids_all = planning_lines
+            # If planning_ids_all should link to measurement IDs
+            record.planning_ids_all = [(6, 0, measurements.ids)]
     
     def get_composition_for_week(self, week_start):
         """

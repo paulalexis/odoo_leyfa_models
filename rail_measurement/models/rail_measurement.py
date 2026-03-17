@@ -1064,7 +1064,7 @@ class RailMeasurement(models.Model):
     def update_sale_order(self):
         nb_km_releve = round(self.total_releve_consistance / 1000.0, 1)
 
-        ## FORFAIT
+        ## AUTOMATISMES
 
         ## 1.1
         self.change_product_qty('1.1', nb_km_releve/2)
