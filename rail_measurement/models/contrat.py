@@ -17,8 +17,8 @@ class Contrat(models.Model):
     quotation_template_id = fields.Many2one('sale.order.template', string='BPU')
 
     report_template_id = fields.Many2one(
-        'ir.ui.view',
+        'ir.actions.report',
         string='Modèle de rapport PDF',
-        help="Modèle de rapport PDF à utiliser pour les mesures associées à ce contrat. Doit être un template QWeb, le _raw, pas le _document.",
-        domain=[('type', '=', 'qweb')],
+        help="Action de rapport PDF à utiliser pour les mesures de ce contrat.",
+        domain=[('model', '=', 'sale.order')],
     )

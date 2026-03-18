@@ -2343,22 +2343,11 @@ class IrActionsReport(models.Model):
 
     def _get_sale_custom_report(self, docids):
         if not docids:
-            _logger.info("CUSTOM REPORT: no docids")
             return None
         order = self.env['sale.order'].browse(docids[:1])
-        _logger.info("CUSTOM REPORT: order=%s measurement=%s contrat=%s template=%s",
-            order,
-            order.measurement_id,
-            order.measurement_id.contrat_id,
-            order.measurement_id.contrat_id.report_template_id,
-        )
         if order and order.measurement_id.contrat_id.report_template_id:
-            template = order.measurement_id.contrat_id.report_template_id
-            _logger.info("CUSTOM REPORT: template.key=%s", template.key)
-            custom = self.env['ir.actions.report'].search([
-                ('report_name', '=', template.key)
-            ], limit=1)
-            _logger.info("CUSTOM REPORT: found action=%s report_name=%s", custom, custom.report_name if custom else None)
+            custom = order.measurement_id.contrat_id.report_template_id
+            _logger.info("CUSTOM REPORT: found action=%s report_name=%s", custom, custom.report_name)
             return custom
         return None
 
