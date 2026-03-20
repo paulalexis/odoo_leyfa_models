@@ -1,0 +1,62 @@
+#à lancer dans le shell odoo.
+
+env['ir.config_parameter']._invalidate_cache()
+param = env['ir.config_parameter'].sudo().search([('key', '=', 'rail_measurement.sncf_reseau_id')], limit=1)
+sncf = env['res.partner'].browse(int(param.value)) if param else env['res.partner']
+
+def create_company(name, parent):
+    existing = env['res.partner'].search([('name', '=', name), ('parent_id', '=', parent.id)], limit=1)
+    if existing:
+        return existing
+    return env['res.partner'].create({
+        'name': name,
+        'is_company': True,
+        'parent_id': parent.id,
+        'type': 'other',
+    })
+
+# DGOP
+dgop = create_company('DGOP', sncf)
+
+# ZP Atlantique
+zp_atl = create_company('ZP Atlantique', dgop)
+for name in ['INFRAPOLE AQUITAINE', 'INFRAPOLE BRETAGNE', 'INFRAPOLE CENTRE VAL DE LOIRE', 
+             'INFRAPOLE INDRE LIMOUSIN', 'INFRAPOLE MIDI PYRENEES', 
+             'INFRAPOLE PAYS DE LA LOIRE', 'INFRAPOLE POITOU CHARENTES']:
+    create_company(name, zp_atl)
+
+# ZP Ile de France
+zp_idf = create_company('ZP ILE DE FRANCE', dgop)
+for name in ['INFRAPOLE PARIS EST', 'INFRAPOLE PARIS NORD', 
+             'INFRAPOLE PARIS SUD EST', 'INFRAPOLE PARIS SUD OUEST']:
+    create_company(name, zp_idf)
+
+# ZP Nord-Est Normandie
+zp_nen = create_company('ZP Nord-Est Normandie', dgop)
+for name in ['INFRAPOLE CHAMPAGNE ARDENNES', 'INFRAPOLE EST EUROPEEN',
+             'INFRAPOLE HAUTE PICARDIE', 'INFRAPOLE LORRAINE',
+             'INFRAPOLE NORD EUROPEEN', 'INFRAPOLE NORD PAS DE CALAIS',
+             'INFRAPOLE NORMANDIE', 'INFRAPOLE RHENAN']:
+    create_company(name, zp_nen)
+
+# ZP Sud-Est
+zp_se = create_company('ZP Sud-Est', dgop)
+for name in ['INFRAPOLE ALPES', 'INFRAPOLE AUVERGNE', 'INFRAPOLE BOURGOGNE',
+             'INFRAPOLE LANGUEDOC ROUSSILLON', 'INFRAPOLE LGV SUD EST EUROPEEN',
+             'INFRAPOLE PACA', 'INFRAPOLE RHODANIEN']:
+    create_company(name, zp_se)
+
+# DTII
+dtii = create_company('DTII', sncf)
+dtii_structure = {
+    'DZI Atlantique': ['Agence Projet', 'PRI'],
+    'DZI Nord-Est Normandie': ['Agence Projet', 'PRI'],
+    'DZI Sud-Est': ['Agence Projet', 'PRI'],
+}
+for dzi_name, children in dtii_structure.items():
+    dzi = create_company(dzi_name, dtii)
+    for child in children:
+        create_company(child, dzi)
+
+env.cr.commit()
+print("Hiérarchie créée avec succès !")

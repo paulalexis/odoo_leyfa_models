@@ -21,7 +21,7 @@ import json
 import logging
 import os
 
-LAYER_COLOURS = [
+LAYER_COLORS = [
     "#1a56db",
     "#b15eff",
     "#0891b2",
@@ -68,7 +68,7 @@ class LeyfaSIG:
         ranges: list = None,
     ):
         idx = len(self._layers)
-        col = colour or LAYER_COLOURS[idx % len(LAYER_COLOURS)]
+        col = colour or LAYER_COLORS[idx % len(LAYER_COLORS)]
 
         gares_data = []
         for g in (gares or []):
@@ -262,9 +262,6 @@ class LeyfaSIG:
             """
         _show_safety_color = 'true' if show_safety_color else 'false'
         _pk_legend_label   = pk_legend_label.replace("'", "\\'")
-        import logging
-        logging.getLogger(__name__).warning(f"pk_legend_label: '{pk_legend_label}' | show_safety_color: {show_safety_color}")
-
         inner_html = f"""<!DOCTYPE html>
 <html>
 <head>
@@ -370,6 +367,7 @@ body {{ background:#cfe2f3; overflow:hidden; font-family:sans-serif; }}
         <g id="labels-g"></g>
         <!-- Legend lives inside the SVG so it appears in PNG exports -->
         <g id="legend-g"></g>
+        <g id="scale-g" style="pointer-events:none;"></g>
     </svg>
 
     <div id="sig-tooltip" style="
@@ -450,6 +448,12 @@ body {{ background:#cfe2f3; overflow:hidden; font-family:sans-serif; }}
                 <option value="km" selected>km entiers</option>
                 <option value="tenth">1/10 km</option>
             </select>
+            <div class="srow">
+                <label for="chk_pk_labels">
+                    <input type="checkbox" id="chk_pk_labels" checked/>
+                    <span>Étiquettes PK</span>
+                </label>
+            </div>
         </div>
 
         <h4 class="mt">Carte</h4>
@@ -640,6 +644,11 @@ function setLabelsManual(on) {{
     labelMode = 'manual'; labelsOn = on; chkLabels.checked = on;
     labelHint.textContent = 'manuel'; labelHint.style.color = '#1a56db';
 }}
+
+// State — add alongside labelMode/labelsOn at the top of the script
+let pkLabelMode = 'auto';  // 'auto' | 'manual'
+let pkLabelsOn  = true;
+
 chkLabels.addEventListener('change', () => {{ setLabelsManual(chkLabels.checked); renderOverlay(); debouncePersist();}});
 filterSel.addEventListener('change', renderOverlay);
 pkFilter.addEventListener('change', renderOverlay);
@@ -734,6 +743,99 @@ function renderGrid() {{
     }}
 }}
 
+function renderScale() {{
+    const scaleG = document.getElementById('scale-g');
+    scaleG.innerHTML = '';
+
+    const W = overlaySVG.clientWidth  || window.innerWidth;
+    const H = overlaySVG.clientHeight || window.innerHeight;
+
+    // Pick a round target distance (metres) based on zoom
+    const zoom = leafletMap.getZoom();
+    const metersPerPixel = 156543.03392 * Math.cos(leafletMap.getCenter().lat * Math.PI / 180) / Math.pow(2, zoom);
+
+    const TARGET_PX = 100; // aim for ~100px wide bar
+    const rawMeters = TARGET_PX * metersPerPixel;
+
+    // Round to a clean number
+    const magnitude = Math.pow(10, Math.floor(Math.log10(rawMeters)));
+    const nice = [1, 2, 5, 10];
+    let niceMeters = magnitude;
+    for (const n of nice) {{
+        const candidate = n * magnitude;
+        if (candidate / rawMeters >= 0.5) {{ niceMeters = candidate; break; }}
+    }}
+
+    const barPx = niceMeters / metersPerPixel;
+
+    // Label
+    let label;
+    if (niceMeters >= 1000) {{
+        label = (niceMeters / 1000 % 1 === 0)
+            ? (niceMeters / 1000) + ' km'
+            : (niceMeters / 1000).toFixed(1) + ' km';
+    }} else {{
+        label = Math.round(niceMeters) + ' m';
+    }}
+
+    // Position: bottom-right, above the hint
+    const PAD   = 10;
+    const BAR_H = 4;
+    const x0    = W - PAD - barPx;
+    const x1    = W - PAD;
+    const y     = H - 28;
+
+    // White halo background for readability over any tile
+    const halo = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    halo.setAttribute('x',      x0 - 6);
+    halo.setAttribute('y',      y - 20);
+    halo.setAttribute('width',  barPx + 12);
+    halo.setAttribute('height', BAR_H + 22);
+    halo.setAttribute('rx',     3);
+    halo.setAttribute('fill',   'rgba(255,255,255,0.75)');
+    scaleG.appendChild(halo);
+
+    // Ticked bar: left cap | flat bar | right cap
+    const barLine = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    barLine.setAttribute('d',
+        `M${{x0}},${{y - 5}} L${{x0}},${{y}} L${{x1}},${{y}} L${{x1}},${{y - 5}}`
+    );
+    barLine.setAttribute('fill',         'none');
+    barLine.setAttribute('stroke',       '#1e293b');
+    barLine.setAttribute('stroke-width', '1.5');
+    barLine.setAttribute('stroke-linecap', 'round');
+    scaleG.appendChild(barLine);
+
+    // Alternating filled segments (2 halves, like a real scale bar)
+    const midX = x0 + barPx / 2;
+    for (const [sx, sw, fill] of [
+        [x0,   barPx / 2, '#1e293b'],
+        [midX, barPx / 2, '#fff'  ],
+    ]) {{
+        const seg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        seg.setAttribute('x',      sx);
+        seg.setAttribute('y',      y - BAR_H);
+        seg.setAttribute('width',  sw);
+        seg.setAttribute('height', BAR_H);
+        seg.setAttribute('fill',   fill);
+        seg.setAttribute('stroke', '#1e293b');
+        seg.setAttribute('stroke-width', '0.5');
+        scaleG.appendChild(seg);
+    }}
+
+    // Label centred above the bar
+    const txt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    txt.setAttribute('x',           (x0 + x1) / 2);
+    txt.setAttribute('y',           y - BAR_H - 4);
+    txt.setAttribute('text-anchor', 'middle');
+    txt.setAttribute('font-size',   '10');
+    txt.setAttribute('font-weight', '600');
+    txt.setAttribute('font-family', 'sans-serif');
+    txt.setAttribute('fill',        '#1e293b');
+    txt.textContent = label;
+    scaleG.appendChild(txt);
+}}
+
 // ── LABEL PLACEMENT ───────────────────────────────────────────────────────
 function bestLabelPos(px, py, lw, lh, placed, offset) {{
     const r = offset * 1.5;
@@ -765,7 +867,6 @@ const LEGEND_SWATCH  = 14;   // colour square size
 const LEGEND_FONT    = 12;
 
 function renderLegend() {{
-    console.log('PK_LEGEND_LABEL:', PK_LEGEND_LABEL, 'SHOW_SAFETY_COLOR:', SHOW_SAFETY_COLOR);
     legendG.innerHTML = '';
 
     const n = LAYERS.length;  // ← must be BEFORE pkRows/legendH
@@ -982,8 +1083,38 @@ function renderOverlay() {{
                 else                            normalPks.push({{pk, pkColor}});
             }}
 
-            for (const {{pk, pkColor}} of [...normalPks, ...redPks, ...orangePks,]) {{
+            const PK_LABEL_ZOOM = 13;
+            const autoOnPk = zoom >= PK_LABEL_ZOOM;
+            if (pkLabelMode === 'auto') setPkLabelsAuto(autoOnPk);
+
+            const showPkLabels = pkLabelsOn;
+
+            for (const {{pk, pkColor}} of [...normalPks, ...redPks, ...orangePks]) {{
                 const p = geoToPixel(pk.lat, pk.lon);
+
+                // ── wrapper group — one handler for dot + badge ───────────────────
+                const pkG = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+                pkG.style.cursor = 'pointer';
+
+                pkG.addEventListener('mouseenter', (e) => {{
+                    tooltip.textContent = 'PK ' + pk.name;
+                    tooltip.style.display = 'block';
+                }});
+                pkG.addEventListener('mousemove', (e) => {{
+                    const rect = document.getElementById('map-container').getBoundingClientRect();
+                    tooltip.style.left = (e.clientX - rect.left + 12) + 'px';
+                    tooltip.style.top  = (e.clientY - rect.top  - 28) + 'px';
+                }});
+                pkG.addEventListener('mouseleave', () => {{
+                    tooltip.style.display = 'none';
+                }});
+                pkG.addEventListener('click', (e) => {{
+                    e.stopPropagation();
+                    const url = 'https://gecko.imajnet.net/#loc=' + pk.lat + ',' + pk.lon + ';map=OSM;zoom=15;';
+                    window.open(url, '_blank');
+                }});
+
+                // Circle
                 const c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
                 c.setAttribute('cx', p.x);
                 c.setAttribute('cy', p.y);
@@ -991,26 +1122,43 @@ function renderOverlay() {{
                 c.setAttribute('fill', pkColor);
                 c.setAttribute('stroke', pkColor === col ? 'none' : '#fff');
                 c.setAttribute('stroke-width', pkColor === col ? '0' : '0.5');
+                pkG.appendChild(c);
 
-                c.addEventListener('mouseenter', (e) => {{
-                    tooltip.textContent = 'PK ' + pk.name;
-                    tooltip.style.display = 'block';
-                }});
-                c.addEventListener('mousemove', (e) => {{
-                    const rect = document.getElementById('map-container').getBoundingClientRect();
-                    tooltip.style.left = (e.clientX - rect.left + 12) + 'px';
-                    tooltip.style.top  = (e.clientY - rect.top  - 28) + 'px';
-                }});
-                c.addEventListener('mouseleave', () => {{
-                    tooltip.style.display = 'none';
-                }});
-                c.addEventListener('click', (e) => {{
-                    e.stopPropagation();
-                    const url = 'https://web.imajnet.net/#loc=' + pk.lat + ',' + pk.lon + ';map=OSM;zoom=15;';
-                    window.open(url, '_blank');
-                }});
+                // Badge
+                if (showPkLabels && pk.isInt) {{
+                    const label = String(Math.round(pk.pk));
+                    const fontSize = 10;
+                    const padX = 3, padY = 1;
+                    const charW = fontSize * 0.6;
+                    const tw = label.length * charW;
+                    const bw = tw + padX * 2;
+                    const bh = fontSize + padY * 2;
+                    const bx = p.x + pkR + 2;
+                    const by = p.y - bh / 2;
 
-                pksG.appendChild(c);
+                    const bg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                    bg.setAttribute('x',            bx);
+                    bg.setAttribute('y',            by);
+                    bg.setAttribute('width',        bw);
+                    bg.setAttribute('height',       bh);
+                    bg.setAttribute('rx',           2);
+                    bg.setAttribute('fill',         '#22c55e');
+                    bg.setAttribute('stroke',       '#fff');
+                    bg.setAttribute('stroke-width', '0.5');
+                    pkG.appendChild(bg);
+
+                    const lbl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                    lbl.setAttribute('x',           bx + padX);
+                    lbl.setAttribute('y',           by + bh - padY - 0.5);
+                    lbl.setAttribute('font-size',   fontSize);
+                    lbl.setAttribute('font-weight', '700');
+                    lbl.setAttribute('font-family', 'sans-serif');
+                    lbl.setAttribute('fill',        '#14532d');
+                    lbl.textContent = label;
+                    pkG.appendChild(lbl);
+                }}
+
+                pksG.appendChild(pkG);
             }}
         }}
 
@@ -1222,6 +1370,7 @@ function redrawAll() {{
     if (!tilesEnabled) renderRegions();
     renderGrid();
     renderOverlay();
+    renderScale();
 }}
 
 leafletMap.on('move',   redrawAll);
@@ -1391,6 +1540,25 @@ if (chkConsistLabels) chkConsistLabels.checked = INIT_CONSIST;
 if (chkSafetyColor)   chkSafetyColor.checked   = INIT_SAFETY;
 SHOW_CONSISTANCE_LABELS = INIT_CONSIST;
 SHOW_SAFETY_COLOR       = INIT_SAFETY;
+
+const chkPkLabels = document.getElementById('chk_pk_labels');
+// Auto-setter (called from renderOverlay)
+function setPkLabelsAuto(on) {{
+    pkLabelsOn = on;
+    chkPkLabels.checked = on;
+}}
+function setPkLabelsManual(on) {{
+    pkLabelMode = 'manual';
+    pkLabelsOn  = on;
+    chkPkLabels.checked = on;
+}}
+
+// Wire the checkbox
+chkPkLabels.addEventListener('change', () => {{
+    setPkLabelsManual(chkPkLabels.checked);
+    renderOverlay();
+    debouncePersist();
+}});
 
 // ── Persist state back to Odoo ────────────────────────────────────────────
 let _isInitializing = true;
@@ -1793,3 +1961,11 @@ class LeyfaSigLayer(models.Model):
     def has_highlight(self):
         return bool(self.highlight_pk_to and
                     self.highlight_pk_to > self.highlight_pk_from)
+
+    # Pour le td consistance dans le pdf
+    colour_rgba = fields.Char(compute='_compute_colour_rgba')
+    def _compute_colour_rgba(self):
+        for rec in self:
+            c = rec.colour.lstrip('#')
+            r, g, b = int(c[0:2], 16), int(c[2:4], 16), int(c[4:6], 16)
+            rec.colour_rgba = f"rgba({r},{g},{b},0.12)"

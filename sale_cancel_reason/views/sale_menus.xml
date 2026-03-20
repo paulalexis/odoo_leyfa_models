@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Attach under Sales > Configuration (existing menu) -->
+    <menuitem id="menu_sale_cancel_reason"
+              name="Raisons d'annulation"
+              parent="sale.menu_sale_config"
+              action="action_sale_cancel_reason"
+              sequence="50"/>
+
+    <menuitem id="menu_sale_cancel_log"
+              name="Journal des annulations"
+              parent="sale.menu_sale_config"
+              action="action_sale_cancel_log"
+              sequence="51"/>
+
+</odoo>

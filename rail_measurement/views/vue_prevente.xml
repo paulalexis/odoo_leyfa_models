@@ -85,6 +85,11 @@
                                             <div class="o_row">
                                                 <field name="sale_order_id" readonly="1"
                                                     class="fw-bold fs-5 text-primary" nolabel="1"/>
+                                                <button name="action_create_sale_order"
+                                                    string="Créer un devis"
+                                                    type="object"
+                                                    icon="fa-file-text-o"
+                                                    invisible="sale_order_id"/>
                                                 <button name="action_create_avenant"
                                                         string="Avenant" type="object"
                                                         class="btn-primary btn-sm" icon="fa-plus"
@@ -95,8 +100,7 @@
 
                                     <!-- Second Column: The Alert -->
                                     <div class="col-lg-8 col-md-12">
-                                        <div class="alert alert-danger d-flex align-items-center mb-4 py-3 shadow-sm" 
-                                            role="status" 
+                                        <div class="alert alert-danger d-flex align-items-center mb-4 py-3 shadow-sm" role="status" 
                                             invisible="not has_revised_quotes"
                                             style="border-left: 5px solid #b91d1d;">
                                             
@@ -104,7 +108,7 @@
                                             <i class="fa fa-exclamation-circle me-3" style="font-size: 2.5rem;" aria-label="Alerte"/>
                                             
                                             <div>
-                                                <h4 class="alert-heading fw-bold mb-1">DEVIS RÉVISÉS DÉTECTÉS</h4>
+                                                <h4 class="alert-heading fw-bold mb-1" role="status">DEVIS RÉVISÉS DÉTECTÉS</h4>
                                                 <p class="mb-0 fs-6 text-dark">
                                                     Attention : Certains devis actifs sur ce dossier ont fait l'objet d'une révision. 
                                                     <strong>Penser à bien les annuler.</strong>
@@ -157,8 +161,7 @@
                     <page string="2. Consistance" name="consistency_subtab" readonly="state != 'presale'">
                         
                         <!-- Message d'information visible uniquement si on n'est plus en presale -->
-                        <div class="alert alert-warning d-flex align-items-center mb-3" 
-                            role="alert" 
+                        <div class="alert alert-warning d-flex align-items-center mb-3" role="status" 
                             invisible="state == 'presale'">
                             <i class="fa fa-info-circle me-2" title="Alerte consistance" style="font-size: 1.2rem;"/>
                             <div>
@@ -452,7 +455,7 @@
         <field name="arch" type="xml">
             <form string="Importation Spéciale Process">
                 <sheet>
-                    <div class="alert alert-info" role="alert">
+                    <div class="alert alert-info" role="status">
                         Téléchargez le modèle ci-dessous, collez-y vos données et importez les lignes.
                     </div>
                     <group>

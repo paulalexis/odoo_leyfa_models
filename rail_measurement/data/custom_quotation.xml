@@ -325,7 +325,7 @@
             <field name="default_code">6.6</field>
             <field name="list_price">1100.00</field>
             <field name="type">service</field>
-            <field name="uom_id" ref="uom.product_uom_km"/>
+            <field name="uom_id" ref="uom.product_uom_unit"/>
             <field name="categ_id" ref="cat_rail_measurement"/>
            <!-- <field name="taxes_id" eval="[(6, 0, [ref('tax_sale_20')])]"/> -->
         </record>
@@ -374,8 +374,9 @@
 
         <!-- === TEMPLATE QUOTATION === -->
         <record id="template_bordereau_sncf_complet" model="sale.order.template">
-            <field name="name">BPU CTR00060532</field>
+            <field name="name">BPU CTR00179417</field>
             <field name="note">Prestations de mesurage ferroviaire conformément au bordereau de prix en vigueur.</field>
+            <field name="require_signature" eval="False"/>
         </record>
 
         <!-- FORFAIT -->
@@ -624,7 +625,7 @@
         <record id="line_template_sec_7" model="sale.order.template.line">
             <field name="sale_order_template_id" ref="template_bordereau_sncf_complet"/>
             <field name="display_type">line_section</field>
-            <field name="name">7. Remises et Ajustements</field>
+            <field name="name">7. Remises et Majorations</field>
             <field name="sequence">700</field>
         </record>
 

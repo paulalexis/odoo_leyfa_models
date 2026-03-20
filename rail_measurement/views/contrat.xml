@@ -32,7 +32,7 @@
                             <field name="start_date"/>
                             <field name="end_date"/>
                             <field name="quotation_template_id"/>
-                            <field name="report_template_id"/>
+                            <field name="report_actions_template_id"/>
                         </group>
                     </group>
                     <div class="o_field_widget" style="width: 100%;">

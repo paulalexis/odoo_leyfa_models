@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ── Log list ── -->
+    <record id="sale_cancel_log_list" model="ir.ui.view">
+        <field name="name">sale.cancel.log.list</field>
+        <field name="model">sale.cancel.log</field>
+        <field name="arch" type="xml">
+            <list string="Journal des annulations" create="false" delete="false" edit="false"
+                  decoration-danger="True">
+                <field name="cancel_date"/>
+                <field name="order_name"/>
+                <field name="order_id" optional="show"/>
+                <field name="partner_id"/>
+                <field name="user_id"/>
+                <field name="reason_id"/>
+                <field name="amount_total" widget="monetary"
+                       options="{'currency_field': 'currency_id'}"/>
+                <field name="currency_id" column_invisible="True"/>
+                <field name="note" optional="show"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- ── Log form (read-only) ── -->
+    <record id="sale_cancel_log_form" model="ir.ui.view">
+        <field name="name">sale.cancel.log.form</field>
+        <field name="model">sale.cancel.log</field>
+        <field name="arch" type="xml">
+            <form string="Détail d'annulation" create="false" delete="false">
+                <sheet>
+                    <group>
+                        <group string="Commande">
+                            <field name="order_name"/>
+                            <field name="order_id"/>
+                            <field name="partner_id"/>
+                            <field name="amount_total" widget="monetary"
+                                   options="{'currency_field': 'currency_id'}"/>
+                            <field name="currency_id" invisible="1"/>
+                        </group>
+                        <group string="Annulation">
+                            <field name="cancel_date"/>
+                            <field name="user_id"/>
+                            <field name="reason_id"/>
+                        </group>
+                    </group>
+                    <separator string="Note complémentaire"/>
+                    <field name="note" readonly="1"/>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- ── Window action ── -->
+    <record id="action_sale_cancel_log" model="ir.actions.act_window">
+        <field name="name">Journal des annulations</field>
+        <field name="res_model">sale.cancel.log</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+</odoo>

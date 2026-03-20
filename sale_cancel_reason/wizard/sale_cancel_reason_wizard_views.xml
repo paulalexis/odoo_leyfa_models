@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="sale_cancel_reason_wizard_form" model="ir.ui.view">
+        <field name="name">sale.cancel.reason.wizard.form</field>
+        <field name="model">sale.cancel.reason.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Annulation de commande">
+                <sheet>
+                    <!-- Banner showing which orders are affected -->
+                    <div class="alert alert-warning mb-3" role="alert">
+                        <span class="fa fa-exclamation-triangle me-1"/>
+                        <strong>Vous êtes sur le point d'annuler</strong>
+                        <field name="order_count" readonly="1" nolabel="1"
+                               class="d-inline mx-1 fw-bold"/>
+                        commande(s) :
+                        <field name="order_names" readonly="1" nolabel="1"
+                               class="d-inline ms-1 fst-italic"/>
+                    </div>
+
+                    <group>
+                        <field name="order_ids" widget="many2many_tags" readonly="1"
+                               invisible="1"/>
+                        <field name="reason_id"
+                               options="{'no_create': False, 'no_quick_create': False}"
+                               placeholder="Sélectionner une raison…"/>
+                        <field name="require_note" invisible="1"/>
+                        <field name="note"
+                               placeholder="Précisez si nécessaire…"
+                               required="require_note"/>
+                    </group>
+                </sheet>
+                <footer>
+                    <button name="action_confirm_cancel"
+                            string="Confirmer l'annulation"
+                            type="object"
+                            class="btn-danger"
+                            data-hotkey="v"/>
+                    <button string="Abandonner" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+</odoo>

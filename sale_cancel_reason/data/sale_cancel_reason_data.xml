@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+
+    <record id="cancel_reason_revision" model="sale.cancel.reason">
+        <field name="name">Création d'une révision</field>
+        <field name="sequence">10</field>
+    </record>
+
+    <record id="cancel_reason_regroupement" model="sale.cancel.reason">
+        <field name="name">Regroupement d'affaires</field>
+        <field name="sequence">20</field>
+    </record>
+
+    <record id="cancel_reason_erreur_saisie" model="sale.cancel.reason">
+        <field name="name">Erreur de saisie</field>
+        <field name="sequence">30</field>
+    </record>
+
+    <record id="cancel_reason_client" model="sale.cancel.reason">
+        <field name="name">Demande client</field>
+        <field name="sequence">40</field>
+    </record>
+
+    <record id="cancel_reason_doublon" model="sale.cancel.reason">
+        <field name="name">Doublon</field>
+        <field name="sequence">50</field>
+    </record>
+
+    <record id="cancel_reason_autre" model="sale.cancel.reason">
+        <field name="name">Autre (préciser en note)</field>
+        <field name="sequence">99</field>
+        <field name="require_note">True</field>
+    </record>
+
+</odoo>

@@ -30,7 +30,7 @@
                     </group>
 
                     <!-- Helpful note for 'Create' mode -->
-                    <div class="alert alert-info" role="alert" invisible="mode != 'create'">
+                    <div class="alert alert-info" role="status" invisible="mode != 'create'">
                         <i class="fa fa-info-circle mr-1" title="Information"/>
                         En cliquant sur <b>Valider</b>, le formulaire complet de configuration LEYFA s'ouvrira dans une nouvelle fenêtre.
                     </div>
@@ -131,13 +131,35 @@
                 <sheet class="rail_full_width_sheet">
                     <!-- Identification Header: Only the essential "Who" -->
                     <div class="oe_title">
-                        <div class="text-muted fst-italic small">
+                        <div class="text-muted fst-italic mb-1">
                             <field name="code_affaire" readonly="1" nolabel="1"/>
                         </div>
-                        <label for="partner_id" string="Client"/>
-                        <h2 class="d-flex">
-                            <field name="partner_id" placeholder="Nom du client..." readonly="state != 'presale'"/>
+                        <!-- <label for="partner_id" string="Client"/> -->
+                        <h2 class="d-flex align-items-center">
+                            <field name="partner_id" placeholder="Nom du client..." 
+                                readonly="state != 'presale'" 
+                                options="{'no_create': True, 'no_create_edit': True}"
+                                style="width: 100%;"/>
+                            <button name="action_open_new_contact_wizard" 
+                                    type="object"
+                                    invisible="state != 'presale'"
+                                    class="btn btn-link p-0 ps-2 fw-bold fs-4">
+                                <i class="fa fa-user-plus"/>
+                            </button>
                         </h2>
+                        <div class="d-flex align-items-start mt-1" style="margin-left: -4px;">
+                            <field name="description_affaire" placeholder="Libellé de l'affaire" 
+                                widget="html" class="flex-grow-1" 
+                                style="padding: 0 !important;"/>
+                            <button name="action_reset_description_affaire" 
+                                    type="object" 
+                                    class="btn btn-sm btn-light ms-2" 
+                                    title="Réinitialiser la description"
+                                    invisible="not description_affaire_manual">
+                                <i class="fa fa-refresh"/>
+                            </button>
+                        </div>
+                        <field name="description_affaire_manual" invisible="1"/>
                     </div>
 
                     <notebook>
@@ -201,7 +223,7 @@
 
                     <separator string="Suivi des prestations" class="mt-4"/>
                     
-                    <div class="alert alert-info" role="alert">
+                    <div class="alert alert-info" role="status">
                         <div class="d-flex align-items-center justify-content-between">
                             <button name="action_view_rail_measurements" 
                                     type="object" 
@@ -391,7 +413,7 @@
         <field name="model">rail.urgent.assignment.wizard</field>
         <field name="arch" type="xml">
             <form string="Demande Urgente">
-                <div class="alert alert-warning" role="alert">
+                <div class="alert alert-warning" role="status">
                     <field name="message"/>
                 </div>
                 <footer>
@@ -421,7 +443,7 @@
 
                 <!-- ÉTAPE 2 : SÉLECTION (Si doublons de PK/Ligne) -->
                 <div invisible="state != 'select'">
-                    <div class="alert alert-warning" role="alert">
+                    <div class="alert alert-warning" role="status">
                         Plusieurs affaires correspondent aux critères du fichier. Veuillez choisir la bonne :
                     </div>
                     <group>

@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ── Reason list (drag-to-reorder) ── -->
+    <record id="sale_cancel_reason_list" model="ir.ui.view">
+        <field name="name">sale.cancel.reason.list</field>
+        <field name="model">sale.cancel.reason</field>
+        <field name="arch" type="xml">
+            <list string="Raisons d'annulation" editable="bottom">
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="require_note"/>
+                <field name="active"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- ── Reason form ── -->
+    <record id="sale_cancel_reason_form" model="ir.ui.view">
+        <field name="name">sale.cancel.reason.form</field>
+        <field name="model">sale.cancel.reason</field>
+        <field name="arch" type="xml">
+            <form string="Raison d'annulation">
+                <sheet>
+                    <group>
+                        <field name="name"/>
+                        <field name="sequence"/>
+                        <field name="require_note"/>
+                        <field name="active"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- ── Window action ── -->
+    <record id="action_sale_cancel_reason" model="ir.actions.act_window">
+        <field name="name">Raisons d'annulation</field>
+        <field name="res_model">sale.cancel.reason</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+</odoo>

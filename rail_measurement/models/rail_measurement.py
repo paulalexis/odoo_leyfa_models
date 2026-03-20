@@ -18,7 +18,7 @@ class RailMeasurement(models.Model):
         for record in self:
             name = record.reference or ""
             if record.code_affaire:
-                record.display_name = f"[{record.code_affaire}] {name}"
+                record.display_name = f"{record.code_affaire}"
             else:
                 record.display_name = name
 
@@ -185,36 +185,24 @@ class RailMeasurement(models.Model):
                         print(f"Parsed Ligne: {line.surnom}, Type: {type_code}")
                         break
 
-                # A4. Collision Check: Does this specific code already exist?
-                # We check the database for the exact code entered
-                
-                if code[-3:].isdigit() is False:
-                    new_code = self._get_next_available_code(code)
-                    self.code_affaire = new_code
-                else:
+                # A4. On accepte le code tel quel, sans forcer le suivant disponible
+                if code[-3:].isdigit():
+                    # Juste vérifier la collision exacte (même code exact)
                     collision = self.env['rail.measurement'].search_count([
-                        ('code_affaire', '=like', code[0] + '%'),
-                        ('code_affaire', '=like', '%' + code[-3:]),
+                        ('code_affaire', '=', code),
                         ('id', '!=', self._origin.id if hasattr(self, '_origin') else False)
                     ])
-                    
                     if collision > 0:
-                        prefix = code[:-3]
-                        new_code = self._get_next_available_code(prefix)
                         warning_msg = {
                             'title': _("Code déjà utilisé"),
-                            'message': _("Un code terminant par %s, dans l'exercice %s existe déjà. Le système a automatiquement généré le numéro suivant : %s.") % (code[-3:], code[0], new_code)
+                            'message': _("Le code %s est déjà attribué à une autre affaire.") % code
                         }
-                        self.code_affaire = new_code
-                    else:
-                        prefix = code[:-3]
-                        new_code = self._get_next_available_code(prefix)
-                        if new_code != code:
-                            warning_msg = {
-                                'title': _("Code incohérent"),
-                                'message': _("Le code que vous avez entré (%s) est disponible, mais par soucis de cohérence le système suggère : %s. Veuillez vérifier que cela correspond à votre intention.") % (code, new_code)
-                            }
-                        self.code_affaire = code
+                    # On garde le code entré tel quel dans tous les cas
+                    self.code_affaire = code
+                else:
+                    # Pas de numéro à la fin → on génère le suivant
+                    new_code = self._get_next_available_code(code)
+                    self.code_affaire = new_code
             
             self.last_synced_code = self.code_affaire
 
@@ -282,13 +270,54 @@ class RailMeasurement(models.Model):
             record.code_affaire = f"{prefix}{str(next_number).zfill(3)}"
 
     # Informations client et commande
-    partner_id = fields.Many2one('res.partner', string='Client', required=True, tracking=True)
+    partner_id = fields.Many2one('res.partner', string='Client', tracking=True)
+
+    def action_open_new_contact_wizard(self):
+        return {
+            'type': 'ir.actions.act_window',
+            'res_model': 'rail.wizard.new.contact',
+            'view_mode': 'form',
+            'target': 'new',
+            'context': {
+                'default_origin_res_model': self._name,
+                'default_origin_res_id': self.id,
+            },
+        }
+
     sale_order_id = fields.Many2one(
         'sale.order',
         string='Devis Principal',
         domain="[('partner_id', '=', partner_id)]",
         tracking=True,
     )
+
+    def action_create_sale_order(self):
+        self.ensure_one()
+
+        if not self.partner_id:
+            return {
+                'type': 'ir.actions.client',
+                'tag': 'display_notification',
+                'params': {
+                    'title': _('Référencer un client avant de créer un nouveau devis'),
+                    'type': 'warning',
+                    'next': {'type': 'ir.actions.act_window_close'},
+                }
+            }
+
+        quotation = self.env['sale.order'].create({
+            'partner_id': self.partner_id.id,
+            'measurement_id': self.id,
+        })
+        self.sale_order_id = quotation.id
+        quotation._apply_measurement_template()
+        return {
+            'type': 'ir.actions.act_window',
+            'res_model': 'sale.order',
+            'res_id': quotation.id,
+            'view_mode': 'form',
+            'target': 'new',
+        }
 
     sale_order_ids = fields.One2many(
         'sale.order',
@@ -337,23 +366,17 @@ class RailMeasurement(models.Model):
         return current
 
     def _get_next_revision_name(self, parent_so):
-        """
-        Handles complex naming:
-        Principal: S001 -> S001_A -> S001_B
-        Avenant: S001+1 -> S001+1_A -> S001+1_B
-        """
         existing_names = self.sale_order_ids.mapped('name')
         
-        # Identify root: Remove trailing '_X' suffix if it exists
-        root_name = re.sub(r'_[A-Z]$', '', parent_so.name)
+        # Identify root: Remove trailing ' IndX' suffix if it exists
+        root_name = re.sub(r' Ind\d+$', '', parent_so.name)
         
-        alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-        for letter in alphabet:
-            candidate = f"{root_name}_{letter}"
+        idx = 2
+        while True:
+            candidate = f"{root_name} Ind{idx}"
             if candidate not in existing_names:
                 return candidate
-                
-        return f"{root_name}_REV_{len(existing_names)}"
+            idx += 1
 
     def action_create_revision(self):
         """Entry point for the List View button (uses context)."""
@@ -878,7 +901,7 @@ class RailMeasurement(models.Model):
                 </div>
             '''
 
-    show_chatter = fields.Boolean(string='Afficher le suivi', default=False)
+    show_chatter = fields.Boolean(string='Afficher le suivi', default=True)
 
     ### VENTE & DEVIS ###
     ## Consistance
@@ -1374,6 +1397,7 @@ class RailMeasurement(models.Model):
             
         # 2. Création des enregistrements
         records = super(RailMeasurement, self).create(vals_list)
+        records._check_partner_consistency()
 
         if records.sale_order_id:
             records.sale_order_id.measurement_id = records.id
@@ -1384,10 +1408,135 @@ class RailMeasurement(models.Model):
         # records.update_sale_order_line()
         return records
 
-    # def write(self, vals):
-    #     # Appel au super pour enregistrer les modifications
-    #     result = super(RailMeasurement, self).write(vals)
-    #     return result
+    def _check_partner_consistency(self):
+        if self.sale_order_id and not self.partner_id:
+            raise UserError(_('Un client doit être référencé'))
+        if self.sale_order_id and self.partner_id and self.sale_order_id.partner_id.id != self.partner_id.id:
+            raise UserError(_('Le client doit être identique à celui du devis'))
+
+    description_affaire_manual = fields.Boolean(default=False)
+    description_affaire = fields.Html(string="Description de l'affaire")
+
+    description_consistance = fields.Char(
+        string="Description consistance",
+        compute="_compute_description_consistance",
+        store=True,
+    )
+
+    @api.depends('consistance_lines', 'consistance_lines.ligne_id',
+                'consistance_lines.pkd', 'consistance_lines.pkf',
+                'consistance_lines.maj_deb', 'consistance_lines.maj_fin',
+                'consistance_lines.voie_id')
+    def _compute_description_consistance(self):
+        for m in self:
+            if not m.consistance_lines:
+                m.description_consistance = ""
+                continue
+
+            groups = {}
+            for line in m.consistance_lines:
+                if not line.ligne_id:
+                    continue
+                lid = line.ligne_id.id
+                if lid not in groups:
+                    groups[lid] = {
+                        'ligne': line.ligne_id,
+                        'pkd_min': line.limite_amont,
+                        'pkf_max': line.limite_aval,
+                        'voies': set(),
+                        'total_length': 0,
+                    }
+                else:
+                    groups[lid]['pkd_min'] = min(groups[lid]['pkd_min'], line.limite_amont)
+                    groups[lid]['pkf_max'] = max(groups[lid]['pkf_max'], line.limite_aval)
+                if line.voie_id:
+                    groups[lid]['voies'].add(line.voie_id.name)
+                groups[lid]['total_length'] += (line.limite_aval - line.limite_amont)
+
+            sorted_groups = sorted(groups.values(), key=lambda g: g['total_length'], reverse=True)
+
+            parts = []
+            for g in sorted_groups:
+                ligne = g['ligne']
+                pkd_min = g['pkd_min']
+                pkf_max = g['pkf_max']
+
+                gares = self.env['leyfa.gare'].search([
+                    ('ligne_id', '=', ligne.id),
+                    ('pk_metrique', '>=', pkd_min - 400),
+                    ('pk_metrique', '<=', pkf_max + 400),
+                ], order='pk_metrique asc')
+
+                gares_str = f"{gares[0].name}/{gares[-1].name}" if gares else f"{int(pkd_min)}m/{int(pkf_max)}m"
+                voies = ", ".join(sorted(g['voies']))
+                voies_str = f" ({voies})" if voies else ""
+
+                parts.append(f"{ligne.name} {gares_str}{voies_str}")
+
+            m.description_consistance = " & ".join(parts)
+
+    def _get_default_description_affaire(self):
+        self.ensure_one()
+        self.with_context(skip_description_update=True)._compute_description_consistance()
+
+        parts = []
+        if self.type_affaire_id:
+            parts.append(self.type_affaire_id.name)
+        if self.desc_typologie_detail:
+            parts.append(dict(self._fields['desc_typologie_detail'].selection).get(self.desc_typologie_detail, ''))
+        if self.desc_nature_travaux:
+            parts.append(dict(self._fields['desc_nature_travaux'].selection).get(self.desc_nature_travaux, ''))
+        if self.desc_methodologie:
+            parts.append(dict(self._fields['desc_methodologie'].selection).get(self.desc_methodologie, ''))
+
+        html = ", ".join(parts)
+
+        if self.desc_annee:
+            html += " -- " + str(self.desc_annee)
+        if self.description_consistance:
+            html += f"<br/>{self.description_consistance}"
+        return html
+
+    def action_reset_description_affaire(self):
+        for m in self:
+            m.with_context(skip_description_update=True).write({
+                'description_affaire_manual': False,
+                'description_affaire': m._get_default_description_affaire(),
+            })
+
+    def write(self, vals):
+        if self.env.context.get('skip_description_update'):
+            return super().write(vals)
+
+        if 'description_affaire' in vals:
+            default = self._get_default_description_affaire()
+            if vals['description_affaire'] != default:
+                vals['description_affaire_manual'] = True
+            else:
+                vals['description_affaire_manual'] = False
+
+        res = super().write(vals)
+        self._check_partner_consistency()
+
+        for m in self:
+            if not m.description_affaire_manual:
+                m.with_context(skip_description_update=True).write({
+                    'description_affaire': m._get_default_description_affaire()
+                })
+        return res
+    
+    @api.onchange('type_affaire_id', 'desc_typologie_detail', 'desc_nature_travaux', 
+                'desc_methodologie', 'desc_annee', 'ligne_id')
+    def _onchange_description_affaire(self):
+        for m in self:
+            if not m.description_affaire_manual:
+                m.description_affaire = m._get_default_description_affaire()
+    
+    @api.onchange('description_affaire')
+    def _onchange_description_affaire_manual(self):
+        for m in self:
+            default = m._get_default_description_affaire()
+            m.description_affaire_manual = (m.description_affaire != default)
     
     def unlink(self):
         """ 
@@ -1660,7 +1809,7 @@ class RailMeasurement(models.Model):
         with highlight ranges from the consistance — no data is copied,
         only IDs and PK bounds are stored.
         """
-        from .leyfa_sig import LAYER_COLOURS
+        from .leyfa_sig import LAYER_COLORS
         import json
 
         layers = []
@@ -1679,7 +1828,7 @@ class RailMeasurement(models.Model):
             involved_lines |= self.ligne_id
 
         for idx, ligne in enumerate(involved_lines):
-            colour = LAYER_COLOURS[idx % len(LAYER_COLOURS)]
+            colour = LAYER_COLORS[idx % len(LAYER_COLORS)]
             line_ranges = ranges_by_line.get(ligne.id, [])
             
             layers.append(Command.create({
@@ -1789,10 +1938,10 @@ class RailMeasurement(models.Model):
             lambda l: l.ligne_id and l.ligne_id not in involved_lines
         ).unlink()
 
-        from .leyfa_sig import LAYER_COLOURS
+        from .leyfa_sig import LAYER_COLORS
 
         for seq, (idx, ligne) in enumerate(enumerate(involved_lines), start=10):
-            colour = LAYER_COLOURS[idx % len(LAYER_COLOURS)]
+            colour = LAYER_COLORS[idx % len(LAYER_COLORS)]
             ranges = ranges_by_line.get(ligne.id, [])
             ranges_json = json.dumps(ranges)
 
@@ -2151,6 +2300,7 @@ class SaleOrder(models.Model):
     
     def action_update_sale_order_from_measurement(self):
         self.measurement_id.update_sale_order()
+        self._onchange_rail_discounts()
 
     def action_remove_measurement(self):
         self.ensure_one()
@@ -2254,40 +2404,59 @@ class SaleOrder(models.Model):
         default="""<p>Nous avons le plaisir de vous faire parvenir notre proposition pour...</p>"""
     )
 
-    quote_number_custom = fields.Char(string="Numéro de Devis Personnalisé", compute="_compute_quote_number_custom")
+    quote_number_custom = fields.Char(
+        string="Nom du devis",
+        compute="_compute_quote_number_custom",
+        inverse="_inverse_quote_number_custom",
+        store=True
+    )
 
-    @api.depends('date_order', 'name')
+    def _inverse_quote_number_custom(self):
+        pass
+
+    @api.depends('date_order', 'name', 'measurement_id', 'so_type', 'so_parent_id')
     def _compute_quote_number_custom(self):
         for order in self:
             if not order.date_order:
                 order.quote_number_custom = "/"
                 continue
+
+            # Trouver le SO de référence pour le numéro
+            reference_order = order
             
-            # 1. Récupérer le mois et l'année de la commande
-            date_ref = order.date_order
+            if order.so_type == 'revision':
+                # Remonter jusqu'au parent non-revision (principal ou avenant)
+                current = order
+                while current.so_parent_id and current.so_type == 'revision':
+                    current = current.so_parent_id
+                reference_order = current
+            
+            # Pour les avenants et les principaux : reference_order = order lui-même
+            # Pour les revisions d'avenant : reference_order = l'avenant parent
+            # Pour les revisions de principal : reference_order = le principal parent
+
+            date_ref = reference_order.date_order
+            if not date_ref:
+                order.quote_number_custom = "/"
+                continue
+
             first_day_month = date_ref.replace(day=1, hour=0, minute=0, second=0)
-            
-            # 2. Compter combien de devis ont été créés avant celui-ci dans le même mois
-            # On compte les devis de la même société créés entre le 1er du mois et la date de l'ordre actuel
+
             domain = [
                 ('date_order', '>=', first_day_month),
                 ('date_order', '<=', date_ref),
-                ('company_id', '=', order.company_id.id)
+                ('company_id', '=', order.company_id.id),
             ]
-            # On trie par ID pour garantir que le "018" ne change pas si on change l'heure
             monthly_orders = self.search(domain, order='id asc')
-            
-            # 3. Trouver la position (index) de l'ordre actuel dans la liste du mois
+
             try:
-                # On récupère l'index (commence à 0, donc +1)
-                order_index = list(monthly_orders.ids).index(order.id) + 1
+                order_index = list(monthly_orders.ids).index(reference_order.id) + 1
             except ValueError:
                 order_index = 1
 
-            # 4. Formater le résultat : AAAA/MM/000
             year_month = date_ref.strftime('%Y/%m')
-            sequence = str(order_index).zfill(3) # Transforme 1 en 001, 18 en 018
-            
+            sequence = str(order_index).zfill(3)
+
             order.quote_number_custom = f"{year_month}/{sequence}"
 
     def _apply_measurement_template(self):
@@ -2336,6 +2505,20 @@ class SaleOrder(models.Model):
     @api.onchange('measurement_id')
     def _onchange_measurement_id(self):
         self._apply_measurement_template()
+    
+    revision_avenant_prefix = fields.Char(
+        string="Préfixe",
+        compute="_compute_revision_avenant_prefix",
+        store=True,
+    )
+
+    @api.depends('name')
+    def _compute_revision_avenant_prefix(self):
+        for so in self:
+            name = so.name or ''
+            idx = name.find(' ')
+            so.revision_avenant_prefix = name[idx:].strip() if idx != -1 else ''
+
 
 _logger = logging.getLogger(__name__)
 class IrActionsReport(models.Model):
@@ -2345,8 +2528,8 @@ class IrActionsReport(models.Model):
         if not docids:
             return None
         order = self.env['sale.order'].browse(docids[:1])
-        if order and order.measurement_id.contrat_id.report_template_id:
-            custom = order.measurement_id.contrat_id.report_template_id
+        if order and order.measurement_id.contrat_id.report_actions_template_id:
+            custom = order.measurement_id.contrat_id.report_actions_template_id
             _logger.info("CUSTOM REPORT: found action=%s report_name=%s", custom, custom.report_name)
             return custom
         return None
@@ -2408,7 +2591,6 @@ class ResCompany(models.Model):
     _inherit = 'res.company'
     # Celui à qui evoyer la commande par défaut (peut être différent du commercial qui crée le devis)    
     default_user_receive_commande = fields.Many2one('res.users', string='Utilisateur de réception par défaut')
-
 
 class RailMeasurementPlanning(models.Model):
     _name = 'rail.measurement.planning'

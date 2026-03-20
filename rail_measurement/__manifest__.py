@@ -29,6 +29,7 @@ dans les devis, puis de les configurer avec tous les détails techniques nécess
         'web_widget_mermaid_field',
         'website',
         'portal',
+        'base_setup'
     ],
     'data': [
         'security/ir.model.access.csv',
@@ -44,6 +45,8 @@ dans les devis, puis de les configurer avec tous les détails techniques nécess
         'views/contrat.xml',
         'views/menus_ressources.xml',
         'views/planificateur_equipe.xml',
+        'views/res_config_settings_views.xml',
+        'views/wizard_new_contact_views.xml',
         
         'data/rail_measurement_data.xml',
         'data/codes_affaires_data.xml',

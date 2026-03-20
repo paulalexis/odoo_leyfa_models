@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="res_config_settings_view_form_rail" model="ir.ui.view">
+        <field name="name">res.config.settings.view.form.rail</field>
+        <field name="model">res.config.settings</field>
+        <field name="inherit_id" ref="base_setup.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+            <form position="inside">
+                <app string="Modules LEYFA" name="rail_measurement" groups="base.group_system">
+                    <setting string="SNCF Réseau">
+                        <field name="sncf_reseau_id"/>
+                        <div class="text-muted">
+                            Société parente utilisée par défaut lors de la création de contacts SNCF.
+                        </div>
+                    </setting>
+                </app>
+            </form>
+        </field>
+    </record>
+</odoo>

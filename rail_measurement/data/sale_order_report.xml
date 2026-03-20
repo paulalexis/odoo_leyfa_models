@@ -1,21 +1,43 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <!--
-        Template standalone (no inherit_id) pour CTR00060532
+        Template standalone (no inherit_id) pour CTR00179417
         Ne modifie PAS sale.report_saleorder_document
         Version finale pour Odoo 19.0
     -->
     <data noupdate="0">
-        <template id="report_saleorder_CTR00060532_raw">
+        <template id="report_saleorder_CTR00179417_raw">
             <t t-call="web.html_container">
                 <t t-foreach="docs" t-as="doc">
-                    <t t-call="rail_measurement.report_saleorder_CTR00060532_document"
+                    <t t-call="rail_measurement.report_saleorder_CTR00179417_document"
                     t-lang="doc.partner_id.lang"/>
                 </t>
             </t>
         </template>
 
-        <template id="report_saleorder_CTR00060532_document">
+        <template id="report_layout_footer_custom" inherit_id="web.external_layout_standard">
+            <xpath expr="//div[hasclass('o_footer_content')]/.." position="replace">
+                <div t-attf-class="footer o_company_#{company.id}_layout {{report_type != 'pdf' and 'mt-auto'}}">
+                    <div class="o_footer_content d-flex border-top pt-2">
+                        <div class="flex-grow-1 me-2 text-start" style="font-size:7pt; color:#888;">
+                            <t t-if="o and o._name == 'sale.order' and o.measurement_id">
+                                <t t-out="o.measurement_id.code_affaire"/>, Réf. <t t-out="o.name"/>
+                            </t>
+                            <t t-else="">
+                                <span t-field="company.report_footer"/>
+                            </t>
+                        </div>
+                        <div class="text-end text-muted" style="font-size:8pt;">
+                            <div t-if="report_type == 'pdf'" class="text-nowrap">
+                                Page <span class="page"/> / <span class="topage"/>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </xpath>
+        </template>
+
+        <template id="report_saleorder_CTR00179417_document">
             <t t-call="web.external_layout">
                 <t t-set="doc" t-value="doc.with_context(lang=doc.partner_id.lang)"/>
                 <t t-set="forced_vat" t-value="doc.fiscal_position_id.foreign_vat"/>
@@ -160,6 +182,10 @@
                             font-size: 9pt;
                             color: #666;
                         }
+                        .rm-code-affaire{
+                            font-size: 17pt;
+                            color: #666;
+                        }
 
                         .rm-client-section {
                             padding: 10px 0;
@@ -185,22 +211,31 @@
                             width: 100%;
                             border-collapse: collapse;
                             margin: 10px 0;
-                            font-size: 8pt;
+                            font-size: 9pt;
                         }
                         .rm-table th {
                             background: #003366 !important;
                             color: white !important;
-                            padding: 6px 4px;
+                            padding: 4px 2px;
                             text-align: center;
                             border: 1px solid #003366 !important;
-                            font-size: 9pt;
+                            font-size: 10pt;
                             font-weight: bold;
                         }
                         .rm-table td {
                             text-align: center;
                             border: 1px solid #ddd !important;
                             vertical-align: middle;
-                            font-size: 8pt;
+                            font-size: 9pt;
+                            padding: 3px 3px;
+                            line-height: 1.2;
+                        }
+                        /* Colonne TVA plus étroite */
+                        .rm-table td:nth-child(6),
+                        .rm-table th:nth-child(6) {
+                            padding-left: 2px !important;
+                            padding-right: 2px !important;
+                            width: 30px;
                         }
                         .rm-text-left { text-align: left !important; }
 
@@ -208,9 +243,14 @@
                             background: #b8c5d6 !important;
                             font-weight: bold !important;
                             color: #003366 !important;
-                            font-size: 9pt !important;
-                            padding: 6px 8px 6px 15px !important;
+                            font-size: 10pt !important;
+                            padding: 3px 8px 3px 15px !important;
                             text-indent: 5px;
+                        }
+                        .rm-subtotal-row td {
+                            padding: 3px 4px !important;
+                            background: #e8edf2 !important;
+                            border-top: 2px solid #003366 !important;
                         }
 
                         .rm-bottom-section {
@@ -309,6 +349,7 @@
                             border: 1px solid #ddd !important;
                             vertical-align: middle;
                             font-size: 8pt;
+                            -webkit-print-color-adjust: exact !important;
                         }
 
                         .rm-additional-tables {
@@ -342,6 +383,10 @@
                         .o_report_layout_boxed h2,
                         .o_report_layout_standard h2 {
                             display: none !important;
+                        }
+
+                        @page {
+                            -webkit-print-color-adjust: exact;
                         }
                     </style>
 
@@ -381,6 +426,7 @@
                     <!-- ============================================================ -->
                     <div style="float: right; text-align: right; width: 60%; margin-top: 20px;">
                         <div class="rm-company-name" style="text-transform: uppercase;">
+                            SNCF Réseau, 
                             <t t-if="doc.partner_id.parent_id">
                                 <t t-out="doc.partner_id.parent_id.name"/>
                             </t>
@@ -391,31 +437,26 @@
 
                         <div class="rm-company-location">
                             <div style="margin-bottom: 10px;">
+                                <t t-if="doc.partner_id.street">
+                                    <t t-out="doc.partner_id.street"/><br/>
+                                </t>
                                 <t t-if="doc.partner_id.street2">
                                     <t t-out="doc.partner_id.street2"/><br/>
                                 </t>
-                                <t t-if="doc.partner_id.zip" t-out="doc.partner_id.zip"/>
-                                <t t-if="doc.partner_id.city" t-out="(doc.partner_id.city or '').upper()"/>
+
+                                <t t-if="doc.partner_id.city">
+                                    <t t-if="doc.partner_id.zip" t-out="doc.partner_id.zip"/>
+                                    <t t-if="doc.partner_id.city" t-out="(doc.partner_id.city or '').upper()"/>
+                                </t>
                             </div>
 
                             <strong>Contact :</strong><br/>
                             <span style="color: #777;">
-                                <t t-if="doc.partner_id.name" t-out="doc.partner_id.name"/>
+                                <t t-if="doc.partner_id.name" t-out="doc.partner_id.name"/><br/>
                             </span>
 
                             <t t-if="doc.partner_id.function">
-                                , <t t-out="doc.partner_id.function"/><br/>
-                            </t>
-
-                            <t t-if="doc.partner_id.street">
-                                <t t-out="doc.partner_id.street"/><br/>
-                            </t>
-                            <t t-if="doc.partner_id.street2">
-                                <t t-out="doc.partner_id.street2"/><br/>
-                            </t>
-
-                            <t t-if="doc.partner_id.city">
-                                <t t-out="doc.partner_id.zip"/> <t t-out="doc.partner_id.city"/><br/>
+                                <t t-out="doc.partner_id.function"/><br/>
                             </t>
 
                             <t t-if="doc.partner_id.phone">
@@ -430,22 +471,21 @@
 
                     <div style="clear: both;"/>
                     <div class="rm-quote-title">
-                        Devis n°<t t-out="doc.quote_number_custom"/> du <t t-out="doc.date_order" t-options='{"widget": "date", "format": "dd/MM/yyyy"}'/>
+                        Devis n°<t t-out="doc.quote_number_custom"/>
+                        <t t-if="doc.revision_avenant_prefix"> <t t-out="doc.revision_avenant_prefix"/></t>
                     </div>
-                    <div class="rm-company-location">
-                        Code affaire : <t t-out="doc.measurement_id.code_affaire" t-if="doc.measurement_id"/>, réf devis : <t t-out="doc.name"/>, réf. pièce : <t t-out="doc.id"/>
+                    <div class="rm-code-affaire">
+                        <strong>Code affaire : <t t-out="doc.measurement_id.code_affaire" t-if="doc.measurement_id"/></strong>
+                        <t t-if="doc.measurement_id.contrat_id">
+                            <span style="font-size:13pt; color:#999; margin-left:8px;">
+                                 (Marché <t t-out="doc.measurement_id.contrat_id.name"/>)
+                            </span>
+                        </t>
                     </div>
 
                     <hr style="border: none !important; border-top: 2px solid #003366 !important; margin: 20px 0;"/>
                     <div style="text-align: center; margin: 20px 0;">
-                        <t t-out="doc.measurement_id.type_affaire_id.name" t-if="doc.measurement_id"/>
-                        <span t-field="doc.measurement_id.desc_typologie_detail"/>
-                        <span t-field="doc.measurement_id.desc_nature_travaux"/>
-                        <span t-field="doc.measurement_id.desc_methodologie"/>
-                        <t t-out="doc.measurement_id.desc_annee" t-if="doc.measurement_id"/>
-                        <br/>
-                        Ligne 
-                        <t t-out="doc.measurement_id.ligne_id.name" t-if="doc.measurement_id.ligne_id"/>
+                        <span t-field="doc.measurement_id.description_affaire" t-if="doc.measurement_id"/>
                     </div>
                     <hr style="border: none !important; border-top: 2px solid #003366 !important; margin: 20px 0;"/>
 
@@ -474,7 +514,9 @@
                                 <img t-if="doc.company_id.logo" t-att-src="image_data_uri(doc.company_id.logo)"/>
                                 <div class="rm-page-header-text">
                                     Devis n°<t t-out="doc.quote_number_custom"/>
-                                    - <t t-out="doc.partner_id.parent_id.name"/>, <t t-out="doc.partner_id.name"/>
+                                    <t t-if="doc.revision_avenant_prefix"> <t t-out="doc.revision_avenant_prefix"/></t>, 
+                                    <strong>Affaire <t t-out="doc.measurement_id.code_affaire" t-if="doc.measurement_id"/></strong>, 
+                                    <t t-out="doc.partner_id.parent_id.name"/>, <t t-out="doc.partner_id.name"/>
                                 </div>
                             </div>
 
@@ -502,23 +544,31 @@
                                     </tr>
                                 </thead>
                                 <tbody>
+                                    <t t-set="ligne_colors" t-value="{
+                                        layer.ligne_id.id: layer.colour_rgba
+                                        for layer in doc.measurement_id.sig_controller_id.layer_ids
+                                        if layer.ligne_id
+                                    }"/>
                                     <t t-foreach="doc.measurement_id.consistance_lines" t-as="cons">
+                                        <t t-set="current_color" t-value="ligne_colors.get(cons.ligne_id.id, '#ffffff')"/>
+                                        <t t-set="row_style" t-value="'background-color: %s !important;' % current_color"/>
+                                        
                                         <tr>
-                                            <td style="text-align:center;font-weight:700;"><t t-out="cons_index + 1"/></td>
-                                            <td><t t-out="cons.ligne_id.name"/></td>
-                                            <td><t t-out="cons.voie_id.name"/></td>
-                                            <td><t t-out="cons.desc_nature_travaux.name"/></td>
-                                            <td><t t-out="'%d+%03d' % (int(cons.limite_amont/1000), int(cons.limite_amont%1000)) if cons.limite_amont else ''"/></td>
-                                            <td><t t-out="'%d+%03d' % (int(cons.limite_aval/1000), int(cons.limite_aval%1000)) if cons.limite_aval else ''"/></td>
+                                            <td t-att-style="row_style" style="text-align:center;font-weight:700;"><t t-out="cons_index + 1"/></td>
+                                            <td t-att-style="row_style"><t t-out="cons.ligne_id.name"/></td>
+                                            <td t-att-style="row_style"><t t-out="cons.voie_id.name"/></td>
+                                            <td t-att-style="row_style"><t t-out="cons.desc_nature_travaux.name"/></td>
+                                            <td t-att-style="row_style"><t t-out="'%d+%03d' % (int(cons.limite_amont/1000), int(cons.limite_amont%1000)) if cons.limite_amont else ''"/></td>
+                                            <td t-att-style="row_style"><t t-out="'%d+%03d' % (int(cons.limite_aval/1000), int(cons.limite_aval%1000)) if cons.limite_aval else ''"/></td>
                                             <t t-if="doc.measurement_id.has_courbes">
-                                                <td><t t-out="cons.nombre_courbes if cons.nombre_courbes else ''"/></td>
-                                                <td><t t-out="int(cons.longueur_courbes) if cons.longueur_courbes else ''"/></td>
+                                                <td t-att-style="row_style"><t t-out="cons.nombre_courbes if cons.nombre_courbes else ''"/></td>
+                                                <td t-att-style="row_style"><t t-out="int(cons.longueur_courbes) if cons.longueur_courbes else ''"/></td>
                                             </t>
                                             <t t-if="doc.measurement_id.has_quais">
-                                                <td><t t-out="cons.nombres_quais if cons.nombres_quais else ''"/></td>
-                                                <td><t t-out="int(cons.longueur_quais) if cons.longueur_quais else ''"/></td>
+                                                <td t-att-style="row_style"><t t-out="cons.nombres_quais if cons.nombres_quais else ''"/></td>
+                                                <td t-att-style="row_style"><t t-out="int(cons.longueur_quais) if cons.longueur_quais else ''"/></td>
                                             </t>
-                                            <td class="rm-text-left" style="padding-left:8px;"><t t-out="cons.observations"/></td>
+                                            <td t-att-style="row_style" class="rm-text-left" style="padding-left:8px;"><t t-out="cons.observations"/></td>
                                         </tr>
                                     </t>
                                 </tbody>
@@ -624,7 +674,9 @@
                             <img t-if="doc.company_id.logo" t-att-src="image_data_uri(doc.company_id.logo)"/>
                             <div class="rm-page-header-text">
                                 Devis n°<t t-out="doc.quote_number_custom"/>
-                                - <t t-out="doc.partner_id.parent_id.name"/>, <t t-out="doc.partner_id.name"/>
+                                <t t-if="doc.revision_avenant_prefix"> <t t-out="doc.revision_avenant_prefix"/></t>, 
+                                <strong>Affaire <t t-out="doc.measurement_id.code_affaire" t-if="doc.measurement_id"/></strong>, 
+                                <t t-out="doc.partner_id.parent_id.name"/>, <t t-out="doc.partner_id.name"/>
                             </div>
                         </div>
 
@@ -642,16 +694,37 @@
                                 </tr>
                             </thead>
                             <tbody>
+                                <t t-set="subtotal_prestations" t-value="sum(
+                                    l.price_subtotal for l in doc.order_line
+                                    if not l.display_type and l.sequence &lt; min(
+                                        (s.sequence for s in doc.order_line if s.display_type == 'line_section' and '7.' in (s.name or '')),
+                                        default=999999
+                                    )
+                                )"/>
                                 <t t-set="in_section_7" t-value="False"/>
                                 <t t-foreach="doc.order_line" t-as="line">
                                     <t t-set="is_section" t-value="line.display_type == 'line_section'"/>
                                     <t t-set="is_note" t-value="line.display_type == 'line_note'"/>
+
                                     <t t-if="is_section" t-set="in_section_7" t-value="'7.' in (line.name or '')"/>
+
+                                    <!-- Sous-total inséré juste avant la section 7 -->
+                                    <t t-if="is_section and '7.' in (line.name or '')">
+                                        <tr class="rm-subtotal-row">
+                                            <td colspan="6" style="text-align:right; font-weight:bold;">Sous-total prestations HT</td>
+                                            <td style="font-weight:bold;">
+                                                <t t-out="subtotal_prestations" t-options='{"widget": "monetary", "display_currency": doc.currency_id}'/>
+                                            </td>
+                                        </tr>
+                                    </t>
+
                                     <tr t-if="is_section" class="rm-category-row">
                                         <td colspan="7" class="rm-text-left"><t t-out="line.name"/></td>
-                                    </tr><tr t-elif="is_note">
+                                    </tr>
+                                    <tr t-elif="is_note">
                                         <td colspan="7" class="rm-text-left" style="font-style: italic;"><t t-out="line.name"/></td>
-                                    </tr><tr t-else="">
+                                    </tr>
+                                    <tr t-else="">
                                         <td><t t-out="line.product_id.default_code"/></td>
                                         <td class="rm-text-left">
                                             <t t-if="line.name and line.name.startswith('[') and ']' in line.name">
@@ -738,7 +811,7 @@
                     <!-- ============================================================ -->
                     <!-- CGV                                                           -->
                     <!-- ============================================================ -->
-                    <t t-if="doc.company_id.cgv_text">
+                    <t t-if="not is_html_empty(doc.sale_order_template_id.note)">
                         <div style="page-break-before: always; margin-top: 30px;">
                             <div class="rm-section-header">ANNEXE : Conditions Générales de Vente</div>
                             <div class="rm-cgv-section" style="padding: 10px;">
@@ -759,15 +832,20 @@
     <!-- ============================================================ -->
     <!-- RAPPORT (optionnel - garde votre action existante)           -->
     <!-- ============================================================ -->
-    <record id="action_report_saleorder_custom" model="ir.actions.report">
-        <field name="name">Devis / Commande (Rail Measurement)</field>
+    <record id="action_report_saleorder_CTR00179417" model="ir.actions.report">
+        <field name="name">Devis CTR00179417</field>
         <field name="model">sale.order</field>
         <field name="report_type">qweb-pdf</field>
-        <field name="report_name">rail_measurement.report_saleorder_CTR00060532_raw</field>
-        <field name="report_file">rail_measurement.report_saleorder_CTR00060532_raw</field>
-        <field name="binding_model_id" ref="sale.model_sale_order"/>
-        <field name="binding_type">report</field>
-        <field name="print_report_name">'Devis - %s' % (object.name)</field>
+        <field name="report_name">rail_measurement.report_saleorder_CTR00179417_raw</field>
+        <field name="report_file">rail_measurement.report_saleorder_CTR00179417_raw</field>
+        <field name="print_report_name">'Devis - %s' % (object.measurement_id.sudo().code_affaire or object.name)</field>
+        <field name="paperformat_id" ref="base.paperformat_euro"/>
+        <!-- Pas de binding_model_id ici : ce rapport n'apparaît pas dans le menu impression -->
     </record>
 
+    <record id="sale.action_report_saleorder" model="ir.actions.report">
+        <field name="print_report_name">
+            (object.measurement_id and object.measurement_id.contrat_id.report_actions_template_id and 'Devis - %s%s' % (object.measurement_id.code_affaire or object.name, (' ' + object.revision_avenant_prefix) if object.revision_avenant_prefix else '')) or ((object.state in ('draft', 'sent') and 'Quotation - %s' % object.name) or 'Order - %s' % object.name)
+        </field>
+    </record>
 </odoo>

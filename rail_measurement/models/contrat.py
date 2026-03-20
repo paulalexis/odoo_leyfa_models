@@ -16,7 +16,7 @@ class Contrat(models.Model):
     # Modèle de devis associé au contrat
     quotation_template_id = fields.Many2one('sale.order.template', string='BPU')
 
-    report_template_id = fields.Many2one(
+    report_actions_template_id = fields.Many2one(
         'ir.actions.report',
         string='Modèle de rapport PDF',
         help="Action de rapport PDF à utiliser pour les mesures de ce contrat.",

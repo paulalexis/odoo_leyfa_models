@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_wizard_new_contact_form" model="ir.ui.view">
+        <field name="name">rail.wizard.new.contact.form</field>
+        <field name="model">rail.wizard.new.contact</field>
+        <field name="arch" type="xml">
+            <form string="Nouveau Contact">
+                <sheet>
+                    <div class="row">
+
+                        <!-- COLONNE GAUCHE : arbre de sélection -->
+                        <div class="col-7">
+                            <group string="Sélectionner le parent">
+
+                                <div class="d-flex align-items-center mb-2">
+                                    <field name="level_1_id"
+                                        domain="[('is_company','=',True),('parent_id','=',False)]"
+                                        options="{'no_create': True, 'no_open': True, 'no_quick_create': True, 'no_create_edit': True}"
+                                        readonly="1"
+                                        nolabel="1"
+                                        class="flex-grow-1 border rounded"/>
+                                    <!-- <button string="✓" type="object"
+                                        name="action_select_level_1"
+                                        class="btn-sm btn-outline-primary ms-2"
+                                        title="Choisir comme parent"/> -->
+                                </div>
+
+                                <div class="d-flex align-items-center mb-2">
+                                    <field name="level_2_id"
+                                        domain="[('parent_id','=',level_1_id),('is_company','=',True)] if level_1_id else [('id','=',False)]"
+                                        options="{'no_create': True, 'no_open': True, 'no_quick_create': True, 'no_create_edit': True}"
+                                        nolabel="1"
+                                        class="flex-grow-1 border rounded"/>
+                                    <!-- <button string="✓" type="object"
+                                        name="action_select_level_2"
+                                        class="btn-sm btn-outline-primary ms-2"
+                                        invisible="not level_2_id"
+                                        title="Choisir comme parent"/> -->
+                                </div>
+
+                                <div class="d-flex align-items-center mb-2">
+                                    <field name="level_3_id"
+                                        domain="[('parent_id','=',level_2_id),('is_company','=',True)] if level_2_id else [('id','=',False)]"
+                                        options="{'no_create': True, 'no_open': True, 'no_quick_create': True, 'no_create_edit': True}"
+                                        nolabel="1"
+                                        class="flex-grow-1 border rounded"/>
+                                    <!-- <button string="✓" type="object"
+                                        name="action_select_level_3"
+                                        class="btn-sm btn-outline-primary ms-2"
+                                        invisible="not level_3_id"
+                                        title="Choisir comme parent"/> -->
+                                </div>
+
+                                <div class="d-flex align-items-center mb-2">
+                                    <field name="level_4_id"
+                                        domain="[('parent_id','=',level_3_id),('is_company','=',True)] if level_3_id else [('id','=',False)]"
+                                        options="{'no_create': True, 'no_open': True, 'no_quick_create': True, 'no_create_edit': True}"
+                                        nolabel="1"
+                                        class="flex-grow-1 border rounded"/>
+                                    <!-- <button string="✓" type="object"
+                                        name="action_select_level_4"
+                                        class="btn-sm btn-outline-primary ms-2"
+                                        invisible="not level_4_id"
+                                        title="Choisir comme parent"/> -->
+                                </div>
+                            </group>
+                            <div class="mt-3 border-top pt-2" invisible="not selected_parent_id">
+                                <div class="fw-bold text-primary mb-2">
+                                    <field name="selected_parent_id" readonly="1" nolabel="1"/>
+                                </div>
+                                <div class="px-1 w-100">
+                                    <field name="parent_street" nolabel="1"
+                                        placeholder="Rue..."
+                                        class="w-100 d-block mb-1"/>
+                                    <field name="parent_street2" nolabel="1"
+                                        placeholder="Complément d'adresse..."
+                                        class="w-100 d-block mb-1"/>
+                                    <div class="d-flex gap-2 w-100">
+                                        <field name="parent_zip" nolabel="1"
+                                            placeholder="Code postal"
+                                            class="w-25"/>
+                                        <field name="parent_city" nolabel="1"
+                                            placeholder="Ville"
+                                            class="flex-grow-1"/>
+                                    </div>
+                                </div>
+                                <div class="fw-bold mb-2">
+                                    SIGNATURE MAIL
+                                </div>
+                                <div class="row g-0 align-items-start">
+                                    <div class="col-10">
+                                        <field name="signature_text"
+                                            nolabel="1"
+                                            placeholder="Coller la signature email ici..."
+                                            widget="text"
+                                            style="min-height: 90px; width: 100%;"/>
+                                    </div>
+                                    <div class="col-2 ps-2 d-flex flex-column align-items-start">
+                                        <button string="Analyser" type="object"
+                                            name="action_parse_signature"
+                                            class="btn-secondary"
+                                            invisible="not signature_text"/>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- COLONNE DROITE : formulaire contact -->
+                        <div class="col-5">
+                            <!-- <group string="Nouveau sous-département (optionnel)"
+                                invisible="not selected_parent_id">
+                                <field name="new_department_name"
+                                    nolabel="1"
+                                    placeholder="Laisser vide si inutile"/>
+                            </group> -->
+
+                            <group string="Contact" invisible="not selected_parent_id">
+                                <field name="contact_name"/>
+                                <field name="contact_job"/>
+                                <field name="contact_email"/>
+                                <field name="contact_phone"/>
+                            </group>
+
+                        </div>
+                    </div>
+                </sheet>
+                <footer>
+                    <button string="✓ Créer le contact" type="object"
+                        name="action_confirm" class="btn-primary"
+                        invisible="not selected_parent_id or not contact_name"/>
+                    <button string="Annuler" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_wizard_new_contact" model="ir.actions.act_window">
+        <field name="name">Nouveau Contact</field>
+        <field name="res_model">rail.wizard.new.contact</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+    <menuitem id="menu_wizard_new_contact"
+        name="Nouveau Contact"
+        parent="rail_measurement_root"
+        action="action_wizard_new_contact"
+        sequence="20"/>
+</odoo>
