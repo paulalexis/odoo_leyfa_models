@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Task List View -->
+    <record id="view_rasci_task_list" model="ir.ui.view">
+        <field name="name">rasci.task.list</field>
+        <field name="model">rasci.task</field>
+        <field name="arch" type="xml">
+            <list string="Tâches"
+                decoration-success="state == 'done'"
+                decoration-warning="state == 'in_progress'"
+                decoration-danger="state == 'blocked'">
+                <field name="sequence" widget="handle"/>
+                <!-- <field name="project_id"/>
+                <field name="name"/>
+                <field name="state" widget="badge"
+                       decoration-secondary="state == 'not_started'"
+                       decoration-warning="state == 'in_progress'"
+                       decoration-danger="state == 'blocked'"
+                       decoration-success="state == 'done'"/>
+                <field name="open_help_request_count"/>
+                <button name="action_request_help" type="object"
+                        string="Ask for Help" class="btn-sm btn-warning"
+                        invisible="state == 'done'"/> -->
+            </list>
+        </field>
+    </record>
+
+    <!-- Task Form View -->
+    <record id="view_rasci_task_form" model="ir.ui.view">
+        <field name="name">rasci.task.form</field>
+        <field name="model">rasci.task</field>
+        <field name="arch" type="xml">
+            <form string="Tâche">
+                <header>
+                    <button name="action_request_help" type="object"
+                            string="Demander de l'aide" class="btn-warning"/>
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="not_started,in_progress,done"
+                           clickable="1"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button class="oe_stat_button" icon="fa-question-circle"
+                                name="action_open_help_requests" type="object">
+                            <field name="open_help_request_count" widget="statinfo" string="Help"/>
+                        </button>
+                    </div>
+                    <div class="oe_title">
+                        <label for="name"/>
+                        <h1>
+                            <field name="name" placeholder="Nom de la tâche..."/>
+                        </h1>
+                    </div>
+                    <group>
+                        <field name="project_id"/>
+                        <field name="sequence"/>
+                        <field name="description"/>
+                    </group>
+                    <notebook>
+                        <page string="Assignations RASCI" name="rasci">
+                            <field name="role_assignment_ids">
+                                <list editable="bottom">
+                                    <field name="employee_id"/>
+                                    <field name="role"/>
+                                </list>
+                            </field>
+                        </page>
+                        <!-- <page string="Demandes de support" name="help">
+                            <field name="help_request_ids">
+                                <list>
+                                    <field name="name"/>
+                                    <field name="requester_id"/>
+                                    <field name="state" widget="badge"/>
+                                    <field name="volunteer_count"/>
+                                    <field name="create_date"/>
+                                </list>
+                            </field>
+                        </page> -->
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Action -->
+    <record id="action_rasci_task" model="ir.actions.act_window">
+        <field name="name">Tâches
+        </field>
+        <field name="res_model">rasci.task</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+</odoo>

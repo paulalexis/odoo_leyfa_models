@@ -1,0 +1,208 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Project Kanban View -->
+    <record id="view_rasci_project_kanban" model="ir.ui.view">
+        <field name="name">rasci.project.kanban</field>
+        <field name="model">rasci.project</field>
+        <field name="arch" type="xml">
+            <kanban default_group_by="state" class="o_kanban_small_column" records_draggable="false">
+                <field name="name"/>
+                <field name="client"/>
+                <field name="deadline"/>
+                <field name="progress"/>
+                <field name="state"/>
+                <field name="color"/>
+                <field name="task_count"/>
+                <field name="done_task_count"/>
+                <field name="my_roles_summary"/>
+                <templates>
+                    <t t-name="card">
+                        <div t-attf-class="oe_kanban_color_#{record.color.raw_value} border-bottom">
+                            <div class="o_kanban_record_top">
+                                <div class="o_kanban_record_headings">
+                                    <strong class="o_kanban_record_title fs-5">
+                                        <field name="name"/>
+                                    </strong>
+                                </div>
+                            </div>
+                            <div class="o_kanban_record_body">
+                                <div class="small mb-1 text-muted">
+                                    <i class="fa fa-user-circle me-1"/> Pilot: <span class="fw-bold text-dark"><field name="pilot_id"/></span>
+                                </div>
+                                <t t-if="record.client.raw_value">
+                                    <div class="text-muted small">
+                                        <i class="fa fa-building-o me-1"/> <field name="client"/>
+                                    </div>
+                                </t>
+                                <t t-if="record.my_roles_summary.raw_value and record.my_roles_summary.raw_value.length > 5">
+                                    <div class="mt-2 p-2 bg-light border-start border-primary border-3 rounded-end small">
+                                        <div class="fw-bold mb-2 text-primary" style="font-size: 0.75rem; text-transform: uppercase;">
+                                            <i class="fa fa-tasks me-1"/> Mes Tâches
+                                        </div>
+                                        <field name="my_roles_summary"/>
+                                    </div>
+                                </t>
+                                <div class="mt-3">
+                                    <div class="d-flex justify-content-between small mb-1">
+                                        <span class="text-muted">Progression</span>
+                                        <span class="fw-bold"><t t-esc="record.done_task_count.raw_value"/>/<t t-esc="record.task_count.raw_value"/></span>
+                                    </div>
+                                    <div class="progress" style="height: 6px; background-color: #eee;">
+                                        <div class="progress-bar bg-success" t-attf-style="width: #{record.progress.raw_value}%"/>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <!-- Project List View -->
+    <record id="view_rasci_project_list" model="ir.ui.view">
+        <field name="name">rasci.project.list</field>
+        <field name="model">rasci.project</field>
+        <field name="arch" type="xml">
+            <list string="Projets"
+                  decoration-success="state == 'done'"
+                  decoration-warning="state == 'on_hold'"
+                  decoration-muted="state == 'cancelled'">
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="client"/>
+                <field name="deadline"/>
+                <field name="state" widget="badge"
+                       decoration-info="state == 'draft'"
+                       decoration-primary="state == 'active'"
+                       decoration-warning="state == 'on_hold'"
+                       decoration-success="state == 'done'"
+                       decoration-danger="state == 'cancelled'"/>
+                <field name="task_count"/>
+                <field name="progress" widget="progressbar"/>
+                <field name="open_help_request_count" optional="show"/>
+                <button name="action_view_matrix" type="object"
+                        string="Matrice" class="btn btn-sm btn-secondary"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Matrix Form View -->
+    <record id="view_rasci_project_matrix_form" model="ir.ui.view">
+        <field name="name">rasci.project.matrix.form</field>
+        <field name="model">rasci.project</field>
+        <field name="priority">20</field>
+        <field name="arch" type="xml">
+            <form string="Matrice RASCI">
+                <header>
+                    <button name="action_active" string="Activer" type="object"
+                            invisible="state != 'draft'" class="btn-primary"
+                            readonly="not can_edit"/>
+                    <button name="action_done" string="→ Terminé" type="object"
+                            invisible="state not in ('active', 'on_hold')" class="btn-primary"
+                            readonly="not can_edit"/>
+                    <button name="action_reset_draft" string="→ Brouillon" type="object"
+                            invisible="state == 'draft'"
+                            readonly="not can_edit"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,active,done"/>
+                    <field name="can_edit" invisible="1"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button class="oe_stat_button" icon="fa-check-circle"
+                                name="action_open_tasks" type="object">
+                            <div class="o_field_widget o_stat_info">
+                                <span class="o_stat_value">
+                                    <field name="done_task_count"/>/<field name="task_count"/>
+                                </span>
+                                <span class="o_stat_text">Tâches terminées</span>
+                            </div>
+                        </button>
+                    </div>
+                    <div class="oe_title">
+                        <span class="o_form_label">Nom du projet</span>
+                        <h1>
+                            <field name="name" readonly="not can_edit" required="1"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="pilot_id" readonly="not can_edit" required="1"/>
+                            <field name="client" readonly="not can_edit"/>
+                            <field name="deadline" readonly="not can_edit"/>
+                        </group>
+                        <group>
+                            <field name="progress" widget="progressbar"/>
+                        </group>
+                    </group>
+                    <field name="matrix_project_id" widget="rasci_matrix" nolabel="1" class="mt-3"/>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Action: Tous les projets (admin/manager only) -->
+    <record id="action_rasci_project" model="ir.actions.act_window">
+        <field name="name">Tous les projets</field>
+        <field name="res_model">rasci.project</field>
+        <field name="view_mode">kanban,list,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Créez votre première matrice RASCI !</p>
+        </field>
+    </record>
+
+    <record id="action_rasci_project_view_kanban" model="ir.actions.act_window.view">
+        <field name="sequence" eval="1"/>
+        <field name="view_mode">kanban</field>
+        <field name="view_id" ref="view_rasci_project_kanban"/>
+        <field name="act_window_id" ref="action_rasci_project"/>
+    </record>
+
+    <record id="action_rasci_project_view_list" model="ir.actions.act_window.view">
+        <field name="sequence" eval="2"/>
+        <field name="view_mode">list</field>
+        <field name="view_id" ref="view_rasci_project_list"/>
+        <field name="act_window_id" ref="action_rasci_project"/>
+    </record>
+
+    <record id="action_rasci_project_view_form" model="ir.actions.act_window.view">
+        <field name="sequence" eval="3"/>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="view_rasci_project_matrix_form"/>
+        <field name="act_window_id" ref="action_rasci_project"/>
+    </record>
+
+    <!-- Action: Mes projets (pilot or member) -->
+    <record id="action_rasci_project_my_pilot" model="ir.actions.act_window">
+        <field name="name">Mes projets</field>
+        <field name="res_model">rasci.project</field>
+        <field name="view_mode">kanban,list,form</field>
+        <field name="domain">[('pilot_id.user_id', '=', uid)]</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Vous n'êtes pilote d'aucun projet.</p>
+        </field>
+    </record>
+
+    <!-- Action: Mes tâches (member involvement) -->
+    <record id="action_rasci_project_involved" model="ir.actions.act_window">
+        <field name="name">Mes tâches</field>
+        <field name="res_model">rasci.project</field>
+        <field name="view_mode">kanban,list,form</field>
+        <field name="domain">[
+            ('member_ids.employee_id.user_id', '=', uid),
+            ('state', '=', 'active')
+        ]</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Aucun projet actif ne vous est assigné.</p>
+        </field>
+    </record>
+
+    <!-- Action: Mes tâches (rasci.task) -->
+    <record id="action_rasci_my_task" model="ir.actions.act_window">
+        <field name="name">Mes tâches</field>
+        <field name="res_model">rasci.task</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('role_assignment_ids.employee_id.user_id', '=', uid)]</field>
+    </record>
+</odoo>

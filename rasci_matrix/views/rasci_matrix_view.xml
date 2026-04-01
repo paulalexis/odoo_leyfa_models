@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- This file intentionally minimal: the matrix rendering is handled
+         entirely by the JS OWL widget (rasci_matrix_widget.js) which mounts
+         itself onto the .rasci-matrix-mount div inside the project matrix form view. -->
+</odoo>

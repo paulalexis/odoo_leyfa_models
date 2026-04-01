@@ -1,0 +1,10 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_rasci_project_user,rasci.project user,model_rasci_project,base.group_user,1,1,1,1
+access_rasci_project_manager,rasci.project manager,model_rasci_project,base.group_system,1,1,1,1
+access_rasci_task_user,rasci.task user,model_rasci_task,base.group_user,1,1,1,1
+access_rasci_task_manager,rasci.task manager,model_rasci_task,base.group_system,1,1,1,1
+access_rasci_role_assignment_user,rasci.role.assignment user,model_rasci_role_assignment,base.group_user,1,1,1,1
+access_rasci_help_request_user,rasci.help.request user,model_rasci_help_request,base.group_user,1,1,1,1
+access_rasci_help_request_manager,rasci.help.request manager,model_rasci_help_request,base.group_system,1,1,1,1
+access_rasci_schedule_meeting_wizard,rasci.schedule.meeting.wizard,model_rasci_schedule_meeting_wizard,base.group_user,1,1,1,1
+rasci_matrix.access_rasci_project_member,access_rasci_project_member,rasci_matrix.model_rasci_project_member,base.group_user,1,1,1,1

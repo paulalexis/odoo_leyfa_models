@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Help Request List View -->
+    <record id="view_rasci_help_request_list" model="ir.ui.view">
+        <field name="name">rasci.help.request.list</field>
+        <field name="model">rasci.help.request</field>
+        <field name="arch" type="xml">
+            <list string="Demandes de support"
+                  decoration-warning="state == 'open'"
+                  decoration-info="state == 'meeting_scheduled'"
+                  decoration-success="state == 'resolved'"
+                  decoration-muted="state == 'cancelled'">
+                <field name="priority" widget="priority"/>
+                <field name="project_id"/>
+                <field name="task_id"/>
+                <field name="name"/>
+                <field name="requester_id"/>
+                <field name="state" widget="badge"
+                       decoration-warning="state == 'open'"
+                       decoration-info="state == 'meeting_scheduled'"
+                       decoration-success="state == 'resolved'"
+                       decoration-muted="state == 'cancelled'"/>
+                <field name="volunteer_count"/>
+                <field name="meeting_date" optional="show"/>
+                <field name="create_date"/>
+                <button name="action_volunteer" type="object"
+                        string="Participer" class="btn-sm btn-success"
+                        invisible="state not in ('open', 'meeting_scheduled')"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Help Request Form View -->
+    <record id="view_rasci_help_request_form" model="ir.ui.view">
+        <field name="name">rasci.help.request.form</field>
+        <field name="model">rasci.help.request</field>
+        <field name="arch" type="xml">
+            <form string="Demande de support">
+                <header>
+                    <button name="action_volunteer" string="Participer" type="object"
+                            class="btn-success"
+                            invisible="state not in ('open', 'meeting_scheduled')"/>
+                    <button name="action_schedule_meeting" string="Programmer une réunion" type="object"
+                            class="btn-primary"
+                            invisible="state not in ('open', 'meeting_scheduled')"/>
+                    <button name="action_resolve" string="Marquer comme résolue" type="object"
+                            invisible="state not in ('open', 'meeting_scheduled')"/>
+                    <button name="action_reopen" string="Rouvrir" type="object"
+                            invisible="state not in ('resolved', 'cancelled')"/>
+                    <button name="action_cancel" string="Annuler" type="object"
+                            invisible="state not in ('open', 'meeting_scheduled')"/>
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="open,meeting_scheduled,resolved"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <label for="name"/>
+                        <h1>
+                            <field name="name" placeholder="Quel est le besoin ?"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group string="Contexte">
+                            <field name="project_id"/>
+                            <field name="task_id"
+                                   domain="[('project_id', '=', project_id)]"/>
+                            <field name="priority" widget="priority"/>
+                        </group>
+                        <group string="Personnes">
+                            <field name="requester_id"/>
+                            <field name="volunteer_count"/>
+                            <field name="meeting_id" readonly="1"/>
+                            <field name="meeting_date" readonly="1"/>
+                        </group>
+                    </group>
+                    <group string="Description">
+                        <field name="description" nolabel="1"
+                               placeholder="Describe what you need help with..."/>
+                    </group>
+                    <group string="Bénévoles">
+                        <field name="volunteer_ids" nolabel="1" widget="many2many_tags"/>
+                    </group>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <!-- Kanban for help requests dashboard -->
+    <record id="view_rasci_help_request_kanban" model="ir.ui.view">
+        <field name="name">rasci.help.request.kanban</field>
+        <field name="model">rasci.help.request</field>
+        <field name="arch" type="xml">
+            <kanban default_group_by="state" class="o_kanban_small_column">
+                <field name="name"/>
+                <field name="project_id"/>
+                <field name="task_id"/>
+                <field name="requester_id"/>
+                <field name="volunteer_count"/>
+                <field name="state"/>
+                <field name="priority"/>
+                <templates>
+                    <t t-name="card">
+                        <div>
+                            <field name="priority" widget="priority" class="float-end"/>
+                            <strong><field name="name"/></strong>
+                            <div class="text-muted small mt-1">
+                                <i class="fa fa-folder me-1"/>
+                                <field name="project_id"/>
+                            </div>
+                            <div class="text-muted small">
+                                <i class="fa fa-tasks me-1"/>
+                                <field name="task_id"/>
+                            </div>
+                            <div class="mt-2 d-flex justify-content-between align-items-center">
+                                <field name="requester_id" widget="many2one_avatar_employee"/>
+                                <span class="badge bg-success">
+                                    <i class="fa fa-users me-1"/>
+                                    <field name="volunteer_count"/> bénévoles
+                                </span>
+                            </div>
+                            <div class="mt-2 d-flex gap-1">
+                                <button name="action_volunteer" type="object"
+                                        string="Help!" class="btn btn-sm btn-success w-100"
+                                        invisible="state not in ('open', 'meeting_scheduled')"/>
+                                <button name="action_schedule_meeting" type="object"
+                                        string="Meeting" class="btn btn-sm btn-primary w-100"
+                                        invisible="state not in ('open', 'meeting_scheduled')"/>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <!-- Search view -->
+
+    <!-- Action -->
+    <record id="action_rasci_help_request" model="ir.actions.act_window">
+        <field name="name">Demandes de support</field>
+        <field name="res_model">rasci.help.request</field>
+        <field name="view_mode">kanban,list,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Pas de demande de support pour le moment.
+            </p>
+            <p>
+                Tout membre de l'équipe peut demander de l'aide pour une tâche.
+                Des collègues peuvent se porter volontaires, et vous pouvez programmer une réunion directement ici.
+            </p>
+        </field>
+    </record>
+
+</odoo>

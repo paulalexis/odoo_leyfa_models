@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_rasci_schedule_meeting_wizard_form" model="ir.ui.view">
+        <field name="name">rasci.schedule.meeting.wizard.form</field>
+        <field name="model">rasci.schedule.meeting.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Schedule Help Meeting">
+                <sheet>
+                    <div class="oe_title">
+                        <h2>Schedule a Help Meeting</h2>
+                    </div>
+                    <group>
+                        <group string="Meeting Details">
+                            <field name="help_request_id" readonly="1"/>
+                            <field name="meeting_name"/>
+                            <field name="start_datetime"/>
+                            <field name="duration"/>
+                            <field name="location" placeholder="Room / Video link..."/>
+                        </group>
+                        <group string="Attendees">
+                            <field name="attendee_ids" widget="many2many_tags" nolabel="1"/>
+                        </group>
+                    </group>
+                    <group string="Agenda / Notes">
+                        <field name="notes" nolabel="1"
+                               placeholder="What will be discussed? Add agenda points here..."/>
+                    </group>
+                </sheet>
+                <footer>
+                    <button name="action_create_meeting" string="Create Meeting &amp; Notify Attendees"
+                            type="object" class="btn-primary"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+</odoo>

@@ -1,0 +1,573 @@
+/* ============================================================
+   RASCI Matrix – Custom Stylesheet
+   ============================================================ */
+
+/* ---------- Role badge colours ---------- */
+.rasci-badge-R,
+.rasci-cell[data-role="R"] .rasci-role-label {
+    background: #198754;
+    color: #fff;
+}
+.rasci-badge-A,
+.rasci-cell[data-role="A"] .rasci-role-label {
+    background: #0d6efd;
+    color: #fff;
+}
+.rasci-badge-S,
+.rasci-cell[data-role="S"] .rasci-role-label {
+    background: #6f42c1;
+    color: #fff;
+}
+.rasci-badge-C,
+.rasci-cell[data-role="C"] .rasci-role-label {
+    background: #fd7e14;
+    color: #fff;
+}
+.rasci-badge-I,
+.rasci-cell[data-role="I"] .rasci-role-label {
+    background: #6c757d;
+    color: #fff;
+}
+
+/* Generic badge for legend */
+.rasci-badge-R, .rasci-badge-A, .rasci-badge-S,
+.rasci-badge-C, .rasci-badge-I {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-weight: 700;
+    font-size: 0.8rem;
+}
+
+/* ---------- Matrix wrapper ---------- */
+.rasci-matrix-wrapper {
+    width: 100%;
+    overflow-x: auto;
+}
+
+/* ---------- Matrix table ---------- */
+.rasci-matrix-table {
+    border-collapse: collapse;
+    min-width: 100%;
+    font-size: 0.85rem;
+}
+
+.rasci-matrix-table th,
+.rasci-matrix-table td {
+    border: 1px solid #dee2e6;
+    padding: 0;
+    white-space: nowrap;
+}
+
+/* ---------- Group header row ---------- */
+.rasci-group-header th {
+    background: #343a40;
+    color: #fff;
+    text-align: center;
+    font-weight: 700;
+    padding: 6px 10px;
+    letter-spacing: 0.05em;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+}
+
+/* ---------- Employee header row ---------- */
+.rasci-employee-header th {
+    background: #f8f9fa;
+    text-align: center;
+    font-weight: 600;
+    padding: 6px 8px;
+    min-width: 80px;
+    max-width: 110px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 0.78rem;
+    border-bottom: 2px solid #adb5bd;
+}
+
+.rasci-employee-header th.rasci-task-col-header {
+    min-width: 140px;
+    text-align: left;
+    background: #212529;
+}
+
+/* ---------- Task rows ---------- */
+.rasci-task-row td.rasci-task-name {
+    padding: 6px 12px;
+    font-weight: 600;
+    background: #f8f9fa;
+    min-width: 140px;
+    position: sticky;
+    left: 0;
+    z-index: 2;
+    border-right: 2px solid #adb5bd;
+}
+
+/* Task state colour strip on left */
+.rasci-task-row td.rasci-task-name::before {
+    content: '';
+    display: inline-block;
+    width: 6px;
+    height: 14px;
+    border-radius: 3px;
+    margin-right: 8px;
+    vertical-align: middle;
+}
+
+.rasci-task-row[data-state="not_started"] td.rasci-task-name::before { background: #adb5bd; }
+.rasci-task-row[data-state="in_progress"] td.rasci-task-name::before { background: #ffc107; }
+.rasci-task-row[data-state="blocked"]     td.rasci-task-name::before { background: #dc3545; }
+.rasci-task-row[data-state="done"]        td.rasci-task-name::before { background: #198754; }
+
+/* ---------- Role cells ---------- */
+.rasci-cell {
+    text-align: center;
+    vertical-align: middle;
+    cursor: pointer;
+    transition: background 0.1s ease;
+    min-width: 60px;
+    height: 36px;
+    user-select: none;
+    position: relative;
+}
+
+.rasci-cell:hover {
+    background: #e9ecef !important;
+}
+
+.rasci-cell:active {
+    background: #dee2e6 !important;
+}
+
+.rasci-cell .rasci-role-label {
+    display: inline-block;
+    width: 26px;
+    height: 26px;
+    line-height: 26px;
+    border-radius: 50%;
+    font-weight: 800;
+    font-size: 0.85rem;
+    text-align: center;
+}
+
+
+/* ---------- Help request button in task row ---------- */
+.rasci-task-help-btn {
+    display: inline-block;
+    margin-left: 6px;
+    padding: 1px 6px;
+    font-size: 0.7rem;
+    border-radius: 10px;
+    border: 1px solid #ffc107;
+    color: #856404;
+    background: #fff3cd;
+    cursor: pointer;
+    vertical-align: middle;
+    transition: background 0.15s;
+}
+
+.rasci-task-help-btn:hover {
+    background: #ffc107;
+    color: #000;
+}
+
+.rasci-task-help-badge {
+    display: inline-block;
+    margin-left: 4px;
+    padding: 1px 5px;
+    font-size: 0.65rem;
+    border-radius: 10px;
+    background: #dc3545;
+    color: #fff;
+    vertical-align: middle;
+    font-weight: 700;
+}
+
+/* ---------- Loading / saving indicator ---------- */
+.rasci-cell.rasci-saving {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+/* ---------- Tooltip ---------- */
+.rasci-tooltip {
+    position: absolute;
+    bottom: calc(100% + 4px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: #212529;
+    color: #fff;
+    font-size: 0.72rem;
+    padding: 3px 8px;
+    border-radius: 4px;
+    white-space: nowrap;
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0;
+    transition: opacity 0.15s;
+}
+
+.rasci-cell:hover .rasci-tooltip {
+    opacity: 1;
+}
+
+/* ---------- State selector in task row ---------- */
+.rasci-state-select {
+    border: none;
+    background: transparent;
+    font-size: 0.75rem;
+    cursor: pointer;
+    padding: 1px 4px;
+    border-radius: 4px;
+    outline: none;
+    margin-left: 4px;
+}
+
+.rasci-state-not_started { color: #6c757d; }
+.rasci-state-in_progress { color: #856404; background: #fff3cd; }
+.rasci-state-blocked      { color: #842029; background: #f8d7da; }
+.rasci-state-done         { color: #0f5132; background: #d1e7dd; }
+
+
+/* ── Task name cell ───────────────────────────────────────────────────────── */
+
+.rasci-task-name {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    grid-template-rows: 1fr;
+    align-items: center;
+    gap: 0 8px;
+    padding: 6px 8px;
+    min-width: 220px;
+}
+
+.rasci-task-label {
+    grid-column: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-weight: 500;
+    cursor: default;
+}
+
+.rasci-task-label:hover { text-decoration: underline dotted; }
+
+.rasci-state-select {
+    grid-column: 2;
+    width: fit-content;
+}
+
+.rasci-task-delete-btn {
+    grid-column: 3;
+    background: none;
+    border: none;
+    color: #dc3545;
+    cursor: pointer;
+    font-size: 12px;
+    padding: 0 2px;
+    opacity: 0;
+    transition: opacity 0.15s;
+}
+
+.rasci-task-row:hover .rasci-task-delete-btn { opacity: 1; }
+
+.rasci-task-input {
+    border: 1px solid #86b7fe;
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-size: 13px;
+    width: 100%;
+    outline: none;
+}
+
+/* ── Add task row ─────────────────────────────────────────────────────────── */
+
+.rasci-add-task-row td { padding: 6px 8px; }
+
+.rasci-add-task-btn {
+    background: none;
+    border: 1px dashed #adb5bd;
+    border-radius: 4px;
+    color: #6c757d;
+    cursor: pointer;
+    font-size: 13px;
+    padding: 4px 12px;
+    width: 100%;
+    text-align: left;
+    transition: all 0.15s;
+}
+
+.rasci-add-task-btn:hover {
+    border-color: #0d6efd;
+    color: #0d6efd;
+    background: #f0f5ff;
+}
+
+.rasci-new-task-input {
+    width: 100%;
+    border: 1px solid #86b7fe;
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-size: 13px;
+}
+
+/* ── Header ───────────────────────────────────────────────────────────────── */
+
+.rasci-employee-header th {
+    background: #212529;
+    color: #fff;
+    text-align: center;
+    padding: 8px 6px;
+    font-size: 12px;
+    font-weight: 600;
+    min-width: 80px;
+}
+
+.rasci-task-col-header {
+    text-align: left !important;
+    min-width: 220px;
+}
+
+.rasci-emp-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 2px;
+}
+
+.rasci-emp-header > span {
+    font-weight: 600;
+    font-size: 12px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 80px;
+}
+
+.rasci-emp-dept {
+    font-size: 10px;
+    color: #adb5bd;
+    font-weight: 400;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 80px;
+    display: block;
+}
+
+/* ── Add column button ────────────────────────────────────────────────────── */
+
+.rasci-add-col-header {
+    text-align: center;
+    min-width: 36px !important;
+    width: 36px !important;
+    padding: 0 !important;
+}
+
+.rasci-add-support-header {
+    min-width: 137px !important;
+    width: 137px !important;
+}
+
+.rasci-add-col-btn {
+    background: rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.4);
+    border-radius: 50%;
+    color: #fff;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 300;
+    width: 22px; height: 22px;
+    line-height: 1;
+    transition: background 0.15s;
+}
+
+.rasci-add-col-btn:hover { background: rgba(255,255,255,0.3); }
+
+/* ── Remove column button ─────────────────────────────────────────────────── */
+
+.rasci-remove-col-btn {
+    background: none;
+    border: none;
+    color: #dc3545;
+    cursor: pointer;
+    font-size: 10px;
+    padding: 0;
+    opacity: 0;
+    transition: opacity 0.15s;
+}
+
+th:hover .rasci-remove-col-btn { opacity: 1; }
+
+/* ── Add member dropdown ──────────────────────────────────────────────────── */
+
+.rasci-add-overlay {
+    position: fixed; inset: 0;
+    z-index: 9998;
+}
+
+.rasci-add-menu {
+    position: fixed;
+    background: #fff;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+    width: 320px;
+    z-index: 9999;
+    overflow: hidden;
+}
+
+.rasci-add-menu-search { padding: 8px; border-bottom: 1px solid #dee2e6; }
+
+.rasci-add-search-input {
+    width: 100%; border: 1px solid #dee2e6;
+    border-radius: 4px; padding: 6px 10px; font-size: 13px;
+}
+
+.rasci-add-menu-list { max-height: 300px; overflow-y: auto; }
+
+.rasci-add-menu-item {
+    padding: 8px 12px; cursor: pointer; font-size: 13px;
+    border-bottom: 1px solid #f8f9fa;
+    transition: background 0.1s;
+}
+
+.rasci-add-menu-item:hover { background: #f0f5ff; }
+.rasci-add-dept { background: #f8f9fa; }
+.rasci-add-dept:hover { background: #e8f0fe; }
+.rasci-add-menu-empty { padding: 12px; text-align: center; color: #6c757d; font-size: 13px; }
+
+/* ── Description modal ────────────────────────────────────────────────────── */
+
+.rasci-desc-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.4);
+    z-index: 9999;
+    display: flex; align-items: center; justify-content: center;
+}
+
+.rasci-desc-modal {
+    background: #fff; border-radius: 8px; padding: 20px;
+    min-width: 380px; max-width: 500px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+}
+
+.rasci-desc-modal-header {
+    display: flex; justify-content: space-between;
+    align-items: center; margin-bottom: 12px;
+}
+
+.rasci-desc-close {
+    background: none; border: none; font-size: 16px; cursor: pointer; color: #666;
+}
+
+.rasci-desc-textarea {
+    width: 100%; min-height: 100px;
+    border: 1px solid #dee2e6; border-radius: 4px;
+    padding: 8px; font-size: 13px; resize: vertical;
+}
+
+.rasci-desc-footer { margin-top: 12px; text-align: right; }
+
+
+.rasci-badge-toggle {
+    display: inline-block;
+    width: 18px;
+    height: 18px;
+    line-height: 18px;
+    text-align: center;
+    border-radius: 3px;
+    font-size: 10px;
+    font-weight: bold;
+    cursor: pointer;
+    margin: 1px;
+    transition: opacity 0.15s;
+}
+.rasci-badge-toggle.inactive {
+    opacity: 0.12;
+    background: #aaa;
+    color: #fff;
+}
+.rasci-badge-toggle.active { opacity: 1; }
+
+/* Reuse your existing per-role colors, e.g.: */
+.rasci-badge-R.active { background: #198754; color: #fff; }
+.rasci-badge-A.active { background: #0d6efd; color: #fff; }
+.rasci-badge-S.active { background: #6f42c1; color: #fff; }
+.rasci-badge-C.active { background: #fd7e14; color: #fff; }
+.rasci-badge-I.active { background: #6c757d; color: #fff; }
+
+.rasci-emp-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 2px;
+}
+
+.rasci-edit-toggle {
+    cursor: pointer;
+    font-size: 11px;
+    transition: color 0.15s;
+}
+.rasci-edit-on {
+    color: #0d6efd;  /* blue = active */
+}
+.rasci-edit-off {
+    color: #ced4da;  /* grey = inactive */
+}
+.rasci-edit-off:hover {
+    color: #6c757d;
+}
+
+.rasci-edit-locked {
+    cursor: default !important;
+    opacity: 1 !important;
+    color: #0d6efd !important;
+}
+
+.rasci-desc-modal {
+    width: 540px;
+    max-width: 95vw;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+.rasci-desc-body {
+    display: flex;
+    flex-direction: column;
+    margin: 16px 0;
+}
+.rasci-desc-label {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: #6c757d;
+    margin-bottom: 4px;
+}
+.rasci-desc-label.mt-3 {
+    margin-top: 16px;
+}
+.rasci-desc-input {
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    padding: 6px 10px;
+    font-size: 13px;
+    outline: none;
+    width: 100%;
+}
+.rasci-desc-input:focus {
+    border-color: #0d6efd;
+}
+.rasci-desc-textarea {
+    height: 120px;
+    resize: vertical;
+}
+
+.rasci-badge-toggle.active.has-report {
+    box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.6);
+}

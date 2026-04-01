@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <menuitem id="menu_rasci_root"
+              name="RASCI"
+              sequence="50"
+              web_icon="rasci_matrix,static/src/img/icon.png"/>
+
+    <menuitem id="menu_rasci_projects_root"
+              name="Projets"
+              parent="menu_rasci_root"
+              sequence="10"/>
+
+    <menuitem id="menu_rasci_all_projects"
+              name="Tous les projets"
+              parent="menu_rasci_projects_root"
+              action="action_rasci_project"
+              sequence="10"
+              groups="base.group_system,rasci_matrix.group_rasci_manager"/>
+
+    <menuitem id="menu_rasci_my_projects"
+              name="Mes projets"
+              parent="menu_rasci_projects_root"
+              action="action_rasci_project_my_pilot"
+              sequence="20"/>
+
+    <menuitem id="menu_rasci_my_tasks"
+              name="Mes tâches"
+              parent="menu_rasci_projects_root"
+              action="action_rasci_project_involved"
+              sequence="30"/>
+
+    <menuitem id="menu_rasci_config"
+              name="Configuration"
+              parent="menu_rasci_root"
+              sequence="90"
+              groups="base.group_system"/>
+
+</odoo>
