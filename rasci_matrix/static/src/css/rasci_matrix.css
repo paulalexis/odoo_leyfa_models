@@ -571,3 +571,10 @@ th:hover .rasci-remove-col-btn { opacity: 1; }
 .rasci-badge-toggle.active.has-report {
     box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.6);
 }
+
+.rasci-external-icon {
+    color: #6c757d;
+    font-size: 10px;
+    margin-left: 3px;
+    vertical-align: middle;
+}

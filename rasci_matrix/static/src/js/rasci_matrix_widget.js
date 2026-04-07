@@ -13,7 +13,7 @@ const STATE_OPTIONS = [
     { value: "not_started", label: "○ Non commencé" },
     { value: "in_progress", label: "◐ En cours" },
     { value: "blocked",     label: "✕ Bloqué"     },
-    { value: "done",        label: "✓ Terminé"         },
+    { value: "done",        label: "✓ Terminé"     },
 ];
 
 class RasciMatrixWidget extends Component {
@@ -36,7 +36,7 @@ class RasciMatrixWidget extends Component {
                     <div class="rasci-add-menu-search">
                         <input
                             class="rasci-add-search-input"
-                            placeholder="Rechercher un employé ou un département…"
+                            placeholder="Rechercher ou saisir un nom externe…"
                             t-att-value="state.addSearch"
                             t-on-input="(ev) => this.onAddSearch(ev)"
                             t-on-keydown="(ev) => this.onAddSearchKey(ev)"
@@ -46,12 +46,18 @@ class RasciMatrixWidget extends Component {
                         <t t-foreach="filteredAddOptions" t-as="opt" t-key="opt.key">
                             <div
                                 class="rasci-add-menu-item"
-                                t-att-class="opt.type === 'department' ? 'rasci-add-dept' : 'rasci-add-emp'"
+                                t-att-class="opt.type === 'department' ? 'rasci-add-dept' : opt.type === 'external' ? 'rasci-add-external' : 'rasci-add-emp'"
                                 t-on-click="() => this.onAddMember(opt)">
                                 <t t-if="opt.type === 'department'">
                                     <i class="fa fa-building-o me-2"/>
                                     <strong t-esc="opt.name"/>
-                                    <span class="text-muted ms-1">(<t t-esc="opt.count"/> employees)</span>
+                                    <span class="text-muted ms-1">(<t t-esc="opt.count"/> employés)</span>
+                                </t>
+                                <t t-elif="opt.type === 'external'">
+                                    <i class="fa fa-globe me-2 text-muted"/>
+                                    <span>Ajouter </span>
+                                    <strong t-esc="opt.name"/>
+                                    <span class="text-muted ms-1"> comme externe</span>
                                 </t>
                                 <t t-else="">
                                     <i class="fa fa-user me-2"/>
@@ -63,7 +69,7 @@ class RasciMatrixWidget extends Component {
                             </div>
                         </t>
                         <t t-if="!filteredAddOptions.length">
-                            <div class="rasci-add-menu-empty">No results</div>
+                            <div class="rasci-add-menu-empty">Aucun résultat</div>
                         </t>
                     </div>
                 </div>
@@ -79,20 +85,23 @@ class RasciMatrixWidget extends Component {
                             <th>
                                 <div class="rasci-emp-header">
                                     <span t-att-title="emp.name" t-esc="emp.shortName"/>
+                                    <t t-if="emp.isExternal">
+                                        <i class="fa fa-globe rasci-external-icon" title="Membre externe (hors entreprise)"/>
+                                    </t>
                                     <t t-if="emp.deptName">
                                         <small class="rasci-emp-dept" t-esc="emp.deptName"/>
                                     </t>
                                     <div class="rasci-emp-actions">
                                         <t t-if="state.currentUserCanEdit">
-                                            <!-- Pencil: toggles edit permission for this member -->
-                                            <i
-                                                t-attf-class="fa fa-pencil rasci-edit-toggle #{isMemberPilot(emp) || emp.canEdit ? 'rasci-edit-on' : 'rasci-edit-off'} #{isMemberPilot(emp) ? 'rasci-edit-locked' : ''}"
-                                                t-att-title="isMemberPilot(emp) ? 'Pilote du projet — édition toujours autorisée'
-                                                            : emp.canEdit ? 'Retirer le droit d\'édition'
-                                                            : 'Autoriser l\'édition'"
-                                                t-on-click="() => this.onToggleCanEdit(emp)"
-                                            />
-                                            <!-- X: remove from matrix -->
+                                            <t t-if="!emp.isExternal">
+                                                <i
+                                                    t-attf-class="fa fa-pencil rasci-edit-toggle #{isMemberPilot(emp) || emp.canEdit ? 'rasci-edit-on' : 'rasci-edit-off'} #{isMemberPilot(emp) ? 'rasci-edit-locked' : ''}"
+                                                    t-att-title="isMemberPilot(emp) ? 'Pilote du projet — édition toujours autorisée'
+                                                                : emp.canEdit ? 'Retirer le droit d\'édition'
+                                                                : 'Autoriser l\'édition'"
+                                                    t-on-click="() => this.onToggleCanEdit(emp)"
+                                                />
+                                            </t>
                                             <button
                                                 class="rasci-remove-col-btn"
                                                 t-on-click="() => this.onRemoveMember(emp)"
@@ -105,21 +114,13 @@ class RasciMatrixWidget extends Component {
                             </th>
                         </t>
                         <th class="rasci-add-col-header" style="width:36px; padding:0;">
-                            <button class="rasci-add-col-btn" t-on-click="(ev) => this.openAddMenu(ev)" title="Add employee or department">
+                            <button class="rasci-add-col-btn" t-on-click="(ev) => this.openAddMenu(ev)" title="Ajouter un employé, département ou externe">
                                 +
                             </button>
                         </th>
-                        <!-- <th class="rasci-add-support-header">Demandes de support</th> -->
                     </tr>
                 </thead>
                 <tbody>
-                    <!-- <t t-if="!state.members.length">
-                        <tr>
-                            <td t-att-colspan="3" class="text-center text-muted p-4">
-                                Cliquez sur <strong>+</strong> pour ajouter des employés ou des départements.
-                            </td>
-                        </tr>
-                    </t> -->
                     <t t-foreach="state.tasks" t-as="task" t-key="task.id">
                         <tr class="rasci-task-row" t-att-data-state="task.state">
                             <td class="rasci-task-name">
@@ -143,9 +144,6 @@ class RasciMatrixWidget extends Component {
                                     class="rasci-state-select"
                                     t-att-class="'rasci-state-' + task.state"
                                     t-att-disabled="!state.currentUserCanEdit or this.props.record.data.state !== 'active'"
-                                    t-att-title="!state.currentUserCanEdit ? 'Vous n\'avez pas les droits pour modifier l\'état'
-                                                : this.props.record.data.state !== 'active' ? 'Activer le projet pour changer d\'état'
-                                                : ''"
                                     t-on-change="(ev) => this.onStateChange(ev, task)">
                                     <t t-foreach="stateOptions" t-as="opt" t-key="opt.value">
                                         <option
@@ -162,7 +160,6 @@ class RasciMatrixWidget extends Component {
                                 </t>
                             </td>
                             <t t-foreach="state.members" t-as="emp" t-key="emp.id">
-                                <t t-set="assignment" t-value="getAssignment(task.id, emp.id)"/>
                                 <td
                                     class="rasci-cell rasci-cell-multi"
                                     t-on-contextmenu="(ev) => ev.preventDefault()">
@@ -179,14 +176,6 @@ class RasciMatrixWidget extends Component {
                                 </td>
                             </t>
                             <td style="width:36px; padding:0;"/>
-                            <!-- <td class="text-center" style="padding:4px 6px; vertical-align:middle;">
-                                <t t-if="task.openHelp > 0">
-                                    <span class="rasci-task-help-badge" t-esc="task.openHelp"/>
-                                </t>
-                                <button class="rasci-task-help-btn" t-on-click="() => this.onRequestHelp(task)">
-                                    ? Support
-                                </button>
-                            </td> -->
                         </tr>
                     </t>
                     <tr class="rasci-add-task-row">
@@ -245,6 +234,7 @@ class RasciMatrixWidget extends Component {
                 </div>
             </div>
         </t>
+
         <div class="mt-3 p-2 bg-light border rounded d-flex flex-wrap gap-3 align-items-center small">
             <strong>Legende :</strong>
             <t t-foreach="roleEntries" t-as="entry" t-key="entry.key">
@@ -253,7 +243,14 @@ class RasciMatrixWidget extends Component {
                     <span class="ms-1" t-esc="entry.label"/>
                 </span>
             </t>
-            <span class="text-muted">— Clic pour assigner les rôles. Clic droit pour éditer la description. Double-clic sur une tâche pour la renommer.</span>
+            <span><i class="fa fa-globe text-muted"/> = Membre externe</span>
+            
+            <!-- Help Icon with Tooltip -->
+            <span class="ms-auto" 
+                title="Clic pour assigner les rôles. Clic droit pour éditer la description. Double-clic sur une tâche pour la renommer." 
+                data-bs-toggle="tooltip">
+                <i class="fa fa-question-circle text-muted" style="cursor: help;"/>
+            </span>
         </div>
     </t>
 </div>`;
@@ -279,7 +276,7 @@ class RasciMatrixWidget extends Component {
             addMenuX: 0,
             addMenuY: 0,
             addSearch: "",
-            currentUserCanEdit: this.props.record.data.state === 'draft',  // ← true immediately for draft
+            currentUserCanEdit: this.props.record.data.state === 'draft',
             currentEmployeeId: false,
             allEmployees: [],
             allDepartments: [],
@@ -289,29 +286,21 @@ class RasciMatrixWidget extends Component {
         onWillUpdateProps((nextProps) => {
             const nextId = nextProps.record?.resId || nextProps.record?.data?.matrix_project_id || false;
             const isNew = nextProps.record?.isNew;
-            
+
             if (isNew) {
-                // Reset everything for a blank new record
                 Object.assign(this.state, {
                     loading: false,
-                    members: [],
-                    tasks: [],
-                    assignments: {},
-                    addingTask: false,
-                    editingCell: null,
-                    showAddMenu: false,
-                    addSearch: "",
-                    currentUserCanEdit: true,  // new record → creator can always edit
-                    currentEmployeeId: this.state.currentEmployeeId,  // keep, no need to reload
-                    allEmployees: this.state.allEmployees,            // keep, no need to reload
-                    allDepartments: this.state.allDepartments,        // keep, no need to reload
+                    members: [], tasks: [], assignments: {},
+                    addingTask: false, editingCell: null,
+                    showAddMenu: false, addSearch: "",
+                    currentUserCanEdit: true,
+                    currentEmployeeId: this.state.currentEmployeeId,
+                    allEmployees: this.state.allEmployees,
+                    allDepartments: this.state.allDepartments,
                 });
                 return;
             }
-
-            if (nextId && nextId !== this.projectId) {
-                this._load(nextId);
-            }
+            if (nextId && nextId !== this.projectId) this._load(nextId);
         });
     }
 
@@ -335,111 +324,63 @@ class RasciMatrixWidget extends Component {
             this.orm.call("rasci.project", "get_current_user_can_edit", [projectId]),
         ]);
 
-        const projectState = this.props.record.data.state;
         const pilotId = this.props.record.data.pilot_id?.[0];
         const isPilot = !!pilotId && !!currentEmployeeId && pilotId === currentEmployeeId;
-
-        // serverCanEdit already accounts for pilot check on Python side
         const editable = serverCanEdit || isPilot;
 
         Object.assign(this.state, {
-            loading: false,
-            members,
-            tasks,
-            assignments,
-            allEmployees,
-            allDepartments,
-            currentEmployeeId,
+            loading: false, members, tasks, assignments,
+            allEmployees, allDepartments, currentEmployeeId,
             currentUserCanEdit: editable,
         });
     }
 
     async _loadCurrentEmployeeId() {
         const result = await this.orm.searchRead(
-            "hr.employee",
-            [["user_id", "=", this.env.uid]],
-            ["id"],
-            { limit: 1 }
+            "hr.employee", [["user_id", "=", this.env.uid]], ["id"], { limit: 1 }
         );
         return result?.[0]?.id || false;
     }
 
-    // Separate lightweight reload that preserves currentUserCanEdit
     async _reloadTasks() {
-        const tasks = await this._loadTasks(this.projectId);
-        this.state.tasks = tasks;
-    }
-
-    async _createTask(name) {
-        try {
-            const result = await this.orm.create("rasci.task", [{
-                name, project_id: this.projectId,
-                state: "not_started",
-                sequence: (this.state.tasks.length + 1) * 10,
-            }]);
-            const id = Array.isArray(result) ? result[0] : result;
-            // Push directly to state — no full reload needed
-            this.state.tasks.push({ id, name, state: "not_started", openHelp: 0, editing: false });
-            this._recomputeProgress();
-            this.notif.add(`Tâche "${name}" créée.`, { type: "success", sticky: false });
-        } catch(e) {
-            console.error("create task error:", e);
-            this.notif.add("N'a pas pu créer la tâche.", { type: "danger" });
-        }
-    }
-
-    _recomputeProgress() {
-        // Does NOT touch currentUserCanEdit — safe to call anytime
-        const tasks = this.state.tasks;
-        const total = tasks.length;
-        const done  = tasks.filter(t => t.state === "done").length;
-        this.props.record.update({ progress: total ? (done / total * 100) : 0 });
-    }
-
-    async _ensureSaved() {
-        if (this.props.record.isNew) {
-            const wasEditable = this.state.currentUserCanEdit;
-            await this.props.record.save();
-            await this._load();
-            if (wasEditable) {
-                this.state.currentUserCanEdit = true;
-            }
-        }
+        this.state.tasks = await this._loadTasks(this.projectId);
     }
 
     async _loadMembers(projectId) {
         const rows = await this.orm.searchRead(
             "rasci.project.member",
             [["project_id", "=", projectId]],
-            ["id", "employee_id", "department_id", "sequence", "can_edit"],  // ← add can_edit
+            ["id", "employee_id", "department_id", "sequence", "can_edit", "is_external", "external_name"],
             { order: "sequence asc, id asc" }
         );
-        return rows.map(r => ({
-            id:        r.employee_id[0],
-            name:      r.employee_id[1],
-            shortName: this._toShortName(r.employee_id[1]),
-            deptId:    r.department_id ? r.department_id[0] : false,
-            deptName:  r.department_id ? r.department_id[1] : "",
-            memberId:  r.id,
-            canEdit:   r.can_edit || r.employee_id[0] === this.props.record.data.pilot_id?.[0],  // ← pilot always true
-        }));
+        return rows.map(r => {
+            const isExternal = r.is_external;
+            const name = isExternal ? (r.external_name || "?") : r.employee_id[1];
+            // External members use "ext_{memberId}" as their widget-side id
+            // so they never collide with real employee ids
+            const empId = isExternal ? `ext_${r.id}` : r.employee_id[0];
+            return {
+                id:         empId,
+                name:       name,
+                shortName:  this._toShortName(name),
+                deptId:     r.department_id ? r.department_id[0] : false,
+                deptName:   r.department_id ? r.department_id[1] : "",
+                memberId:   r.id,
+                canEdit:    !isExternal && (r.can_edit || r.employee_id?.[0] === this.props.record.data.pilot_id?.[0]),
+                isExternal: isExternal,
+            };
+        });
     }
 
     async _loadAllEmployees() {
         return await this.orm.searchRead(
-            "hr.employee",
-            [["active", "=", true]],
-            ["id", "name", "department_id"],
-            { order: "name asc" }
+            "hr.employee", [["active", "=", true]], ["id", "name", "department_id"], { order: "name asc" }
         );
     }
 
     async _loadAllDepartments() {
         return await this.orm.searchRead(
-            "hr.department",
-            [],
-            ["id", "name"],
-            { order: "name asc" }
+            "hr.department", [], ["id", "name"], { order: "name asc" }
         );
     }
 
@@ -463,69 +404,66 @@ class RasciMatrixWidget extends Component {
     // ── Add member menu ───────────────────────────────────────────────────────
 
     get filteredAddOptions() {
-        const search = this.state.addSearch.toLowerCase();
-        const existingIds = new Set(this.state.members.map(m => m.id));
+        const search = this.state.addSearch.toLowerCase().trim();
+        // Collect already-present internal employee ids
+        const existingEmpIds = new Set(
+            this.state.members.filter(m => !m.isExternal).map(m => m.id)
+        );
         const options = [];
 
-        // Departments first
+        // ① External guest — shown whenever user has typed something
+        if (search.length >= 1) {
+            options.push({
+                key:  'external_new',
+                type: 'external',
+                name: this.state.addSearch.trim(),
+            });
+        }
+
+        // ② Departments
         for (const dept of this.state.allDepartments) {
             const empsInDept = this.state.allEmployees.filter(
-                e => e.department_id?.[0] === dept.id && !existingIds.has(e.id)
+                e => e.department_id?.[0] === dept.id && !existingEmpIds.has(e.id)
             );
             if (!empsInDept.length) continue;
             if (!search || dept.name.toLowerCase().includes(search)) {
                 options.push({
-                    key:   `dept_${dept.id}`,
-                    type:  "department",
-                    id:    dept.id,
-                    name:  dept.name,
-                    count: empsInDept.length,
-                    employees: empsInDept,
+                    key: `dept_${dept.id}`, type: "department",
+                    id: dept.id, name: dept.name,
+                    count: empsInDept.length, employees: empsInDept,
                 });
             }
         }
 
-        // Individual employees
+        // ③ Individual employees
         for (const emp of this.state.allEmployees) {
-            if (existingIds.has(emp.id)) continue;
+            if (existingEmpIds.has(emp.id)) continue;
             if (!search || emp.name.toLowerCase().includes(search)) {
                 options.push({
-                    key:     `emp_${emp.id}`,
-                    type:    "employee",
-                    id:      emp.id,
-                    name:    emp.name,
+                    key: `emp_${emp.id}`, type: "employee",
+                    id: emp.id, name: emp.name,
                     deptName: emp.department_id?.[1] || "",
                 });
             }
         }
 
-        return options.slice(0, 20);  // cap at 20 for performance
+        return options.slice(0, 21);
     }
 
     async openAddMenu(ev) {
         if (!this.state.currentUserCanEdit) return;
-        
         // Capture rect BEFORE any await — ev.currentTarget becomes null after async suspension
         const rect = ev.currentTarget.getBoundingClientRect();
-        
         await this._ensureSaved();
-        
-        const menuWidth = 280;
-        const menuHeight = 320;
 
-        let x = rect.left;
-        let y = rect.bottom + 4;
+        const menuWidth = 280, menuHeight = 320;
+        let x = rect.left, y = rect.bottom + 4;
+        if (x + menuWidth  > window.innerWidth)  x = window.innerWidth  - menuWidth  - 8;
+        if (y + menuHeight > window.innerHeight) y = rect.top - menuHeight - 4;
 
-        if (x + menuWidth > window.innerWidth) {
-            x = window.innerWidth - menuWidth - 8;
-        }
-        if (y + menuHeight > window.innerHeight) {
-            y = rect.top - menuHeight - 4;
-        }
-
-        this.state.addMenuX  = Math.max(8, x);
-        this.state.addMenuY  = Math.max(8, y);
-        this.state.addSearch = "";
+        this.state.addMenuX    = Math.max(8, x);
+        this.state.addMenuY    = Math.max(8, y);
+        this.state.addSearch   = "";
         this.state.showAddMenu = true;
 
         setTimeout(() => {
@@ -535,9 +473,7 @@ class RasciMatrixWidget extends Component {
     }
 
     onAddOverlayClick(ev) {
-        if (ev.target.classList.contains("rasci-add-overlay")) {
-            this.state.showAddMenu = false;
-        }
+        if (ev.target.classList.contains("rasci-add-overlay")) this.state.showAddMenu = false;
     }
 
     onAddSearch(ev) { this.state.addSearch = ev.target.value; }
@@ -546,70 +482,82 @@ class RasciMatrixWidget extends Component {
 
     async onAddMember(opt) {
         this.state.showAddMenu = false;
+
+        // ── External guest ────────────────────────────────────────────────────
+        if (opt.type === 'external') {
+            const name = opt.name.trim();
+            if (!name) return;
+            try {
+                const result = await this.orm.create("rasci.project.member", [{
+                    project_id:    this.projectId,
+                    is_external:   true,
+                    external_name: name,
+                    sequence:      (this.state.members.length + 1) * 10,
+                }]);
+                const memberId = Array.isArray(result) ? result[0] : result;
+                this.state.members.push({
+                    id:         `ext_${memberId}`,
+                    name:       name,
+                    shortName:  this._toShortName(name),
+                    deptId:     false,
+                    deptName:   "",
+                    memberId:   memberId,
+                    canEdit:    false,
+                    isExternal: true,
+                });
+            } catch(e) {
+                console.error("Erreur ajout externe:", e);
+                this.notif.add(`Erreur lors de l'ajout de "${name}".`, { type: "danger" });
+            }
+            return;
+        }
+
+        // ── Employee / Department (unchanged logic) ───────────────────────────
         const toAdd = opt.type === "department"
             ? opt.employees
             : [{ id: opt.id, name: opt.name, department_id: [null, opt.deptName] }];
 
-        const existingIds = new Set(this.state.members.map(m => m.id));
+        const existingEmpIds = new Set(
+            this.state.members.filter(m => !m.isExternal).map(m => m.id)
+        );
         for (const emp of toAdd) {
-            if (existingIds.has(emp.id)) continue;
+            if (existingEmpIds.has(emp.id)) continue;
             try {
-                const memberId = await this.orm.create("rasci.project.member", [{
+                const result = await this.orm.create("rasci.project.member", [{
                     project_id:  this.projectId,
                     employee_id: emp.id,
                     sequence:    (this.state.members.length + 1) * 10,
                 }]);
-                const id = Array.isArray(memberId) ? memberId[0] : memberId;
-                const newMember = {
-                    id:        emp.id,
-                    name:      emp.name,
-                    shortName: this._toShortName(emp.name),
-                    deptId:    emp.department_id?.[0] || false,
-                    deptName:  emp.department_id?.[1] || "",
-                    memberId:  id,
-                    canEdit:   false,
-                };
-                this.state.members.push(newMember);
-                existingIds.add(emp.id);
+                const memberId = Array.isArray(result) ? result[0] : memberId;
+                this.state.members.push({
+                    id:         emp.id,
+                    name:       emp.name,
+                    shortName:  this._toShortName(emp.name),
+                    deptId:     emp.department_id?.[0] || false,
+                    deptName:   emp.department_id?.[1] || "",
+                    memberId:   Array.isArray(result) ? result[0] : result,
+                    canEdit:    false,
+                    isExternal: false,
+                });
+                existingEmpIds.add(emp.id);
             } catch(e) {
-                console.error("Nouveau membre erreur:", e);
+                console.error("Erreur ajout membre:", e);
                 this.notif.add(`Erreur sur l'ajout de ${emp.name}.`, { type: "danger" });
             }
         }
     }
 
     async onRemoveMember(emp) {
-        // 1. Restriction: Only allow modification if project is active
-        // if (this.props.record.data.state !== 'active') {
-        //     this.notif.add("Le projet doit être 'Actif' pour modifier les membres.", { type: "warning" });
-        //     return;
-        // }
-
-        // 2. Confirmation
-        if (!confirm(`Retirer ${emp.name} de la matrice? Tous ses rôles sur ce projet seront définitivement supprimés.`)) {
-            return;
-        }
-
+        if (!confirm(`Retirer ${emp.name} de la matrice ? Tous ses rôles sur ce projet seront définitivement supprimés.`)) return;
         try {
-            // 3. Delete the member record (Python unlink handles role cleanup)
             await this.orm.unlink("rasci.project.member", [emp.memberId]);
-
-            // 4. Update Local State (UI)
-            // Remove all role assignments for this employee from the local state object
+            // Clean local assignments — key uses emp.id (which is "ext_N" or integer)
             for (const key of Object.keys(this.state.assignments)) {
-                if (key.endsWith(`_${emp.id}`)) {
-                    delete this.state.assignments[key];
-                }
+                if (key.endsWith(`_${emp.id}`)) delete this.state.assignments[key];
             }
-
-            // Remove the employee from the column headers list
             const idx = this.state.members.findIndex(m => m.id === emp.id);
-            if (idx !== -1) {
-                this.state.members.splice(idx, 1);
-            }
-
+            if (idx !== -1) this.state.members.splice(idx, 1);
             this.notif.add(`${emp.name} a été retiré du projet.`, { type: "success" });
-            
         } catch(e) {
             console.error("Retirer membre erreur:", e);
             this.notif.add("Erreur lors du retrait du membre.", { type: "danger" });
@@ -617,37 +565,47 @@ class RasciMatrixWidget extends Component {
     }
 
     isMemberPilot(emp) {
-        return emp.id === this.props.record.data.pilot_id?.[0];
+        return !emp.isExternal && emp.id === this.props.record.data.pilot_id?.[0];
     }
-    
+
     async onToggleCanEdit(emp) {
-        if (this.isMemberPilot(emp)) return;
+        if (emp.isExternal || this.isMemberPilot(emp)) return;
         const newVal = !emp.canEdit;
-        emp.canEdit = newVal;  // optimistic
+        emp.canEdit = newVal;
         try {
             await this.orm.write("rasci.project.member", [emp.memberId], { can_edit: newVal });
             this.notif.add(
                 newVal ? `${emp.name} peut maintenant modifier la matrice.`
-                    : `${emp.name} ne peut plus modifier la matrice.`,
+                       : `${emp.name} ne peut plus modifier la matrice.`,
                 { type: "success", sticky: false }
             );
         } catch(e) {
-            emp.canEdit = !newVal;  // rollback
+            emp.canEdit = !newVal;
             this.notif.add("Erreur lors de la mise à jour des droits.", { type: "danger" });
         }
     }
 
-    // ── Helpers ───────────────────────────────────────────────────────────────
+    // ── Badge / role helpers ──────────────────────────────────────────────────
+
+    /**
+     * The "member key" passed to Python is:
+     *   - emp.id  (integer)  for internal employees
+     *   - "ext_{memberId}"   for external members
+     * This must match what get_matrix_data uses as the second part of the
+     * assignment dict key "{taskId}_{memberKey}".
+     */
+    _memberKey(emp) {
+        return emp.isExternal ? emp.id : emp.id;  // emp.id is already "ext_N" or integer
+    }
 
     async onBadgeClick(ev, taskId, empId, role) {
         if (!this.state.currentUserCanEdit) return;
         ev.stopPropagation();
-        const key = `${taskId}_${empId}`;
+        const key     = `${taskId}_${empId}`;
         const current = this.state.assignments[key] || [];
         const isActive = current.some(a => a.role === role);
-        const desc = current.find(a => a.role === role)?.description || '';
+        const desc     = current.find(a => a.role === role)?.description || '';
 
-        // Optimistic update
         const ROLE_ORDER = ['R', 'A', 'S', 'C', 'I'];
         if (isActive) {
             this.state.assignments[key] = current.filter(a => a.role !== role);
@@ -658,17 +616,17 @@ class RasciMatrixWidget extends Component {
         }
 
         try {
+            // Pass empId directly — it is already the correct member key
+            // (integer for internal, "ext_N" string for external)
             await this.orm.call("rasci.role.assignment", "set_role", [taskId, empId, role, desc]);
         } catch(e) {
-            // Rollback
             this.state.assignments[key] = current;
             this.notif.add("N'a pas pu enregistrer l'attribution de rôle.", { type: "danger" });
         }
     }
 
     hasReport(taskId, empId, role) {
-        const a = this.getAssignment(taskId, empId).find(r => r.role === role);
-        return !!(a?.report);
+        return !!(this.getAssignment(taskId, empId).find(r => r.role === role)?.report);
     }
 
     onBadgeContextMenu(ev, taskId, empId, role) {
@@ -677,8 +635,7 @@ class RasciMatrixWidget extends Component {
         if (!this.hasRole(taskId, empId, role)) return;
         const task = this.state.tasks.find(t => t.id === taskId);
         const emp  = this.state.members.find(e => e.id === empId);
-        const assignments = this.getAssignment(taskId, empId);
-        const current = assignments.find(a => a.role === role) || {};
+        const current = this.getAssignment(taskId, empId).find(a => a.role === role) || {};
         this.state.editingCell = {
             taskId, empId, role,
             taskName:    task?.name || '',
@@ -697,52 +654,23 @@ class RasciMatrixWidget extends Component {
         return this.getAssignment(taskId, empId).some(a => a.role === role);
     }
 
-    getRoleDescription(taskId, empId, role) {
-        const a = this.getAssignment(taskId, empId).find(r => r.role === role);
-        return a?.description || '';
-    }
-
     _toShortName(full) {
         if (!full) return "?";
         const parts = full.trim().split(/\s+/);
-        if (parts.length === 1) return parts[0]; // single word → show fully
+        if (parts.length === 1) return parts[0];
         return `${parts[0]} ${parts[parts.length - 1][0]}.`;
     }
 
-    // ── Cell handlers ─────────────────────────────────────────────────────────
+    // ── Description modal ─────────────────────────────────────────────────────
 
-    onCellContextMenu(ev, taskId, empId) {
-        ev.preventDefault();
-        const current = this.state.assignments[`${taskId}_${empId}`] || { role: "", description: "" };
-        if (!current.role) return;
-        const task = this.state.tasks.find(t => t.id === taskId);
-        const emp  = this.state.members.find(e => e.id === empId);
-        this.state.editingCell = {
-            taskId, empId,
-            taskName:    task?.name || "",
-            empName:     emp?.name || "",
-            roleName:    ROLE_LABELS[current.role] || current.role,
-            description: current.description || "",
-        };
-    }
-
-    onDescInput(ev) {
-        if (this.state.editingCell) this.state.editingCell.description = ev.target.value;
-    }
-
-    onReportInput(ev) {
-        if (this.state.editingCell) this.state.editingCell.report = ev.target.value;
-    }
+    onDescInput(ev)   { if (this.state.editingCell) this.state.editingCell.description = ev.target.value; }
+    onReportInput(ev) { if (this.state.editingCell) this.state.editingCell.report = ev.target.value; }
 
     async saveDescription() {
         const { taskId, empId, role, description, report } = this.state.editingCell;
-        const key = `${taskId}_${empId}`;
-        const current = this.state.assignments[key] || [];
-        const entry = current.find(a => a.role === role);
-        if (entry) {
-            entry.description = description;
-            entry.report = report;
-        }
+        const key   = `${taskId}_${empId}`;
+        const entry = (this.state.assignments[key] || []).find(a => a.role === role);
+        if (entry) { entry.description = description; entry.report = report; }
         try {
             await this.orm.call("rasci.role.assignment", "update_role", [taskId, empId, role, description, report]);
             this.notif.add("Enregistré.", { type: "success", sticky: false });
@@ -752,25 +680,54 @@ class RasciMatrixWidget extends Component {
         this.closeDescModal();
     }
 
-    closeDescModal() { this.state.editingCell = null; }
-
+    closeDescModal()  { this.state.editingCell = null; }
     onOverlayClick(ev) {
         if (ev.target.classList.contains("rasci-desc-overlay")) this.closeDescModal();
     }
 
     // ── Task CRUD ─────────────────────────────────────────────────────────────
 
+    _recomputeProgress() {
+        const tasks = this.state.tasks;
+        const total = tasks.length;
+        const done  = tasks.filter(t => t.state === "done").length;
+        this.props.record.update({ progress: total ? (done / total * 100) : 0 });
+    }
+
+    async _ensureSaved() {
+        if (this.props.record.isNew) {
+            const wasEditable = this.state.currentUserCanEdit;
+            await this.props.record.save();
+            await this._load();
+            if (wasEditable) this.state.currentUserCanEdit = true;
+        }
+    }
+
+    async _createTask(name) {
+        try {
+            const result = await this.orm.create("rasci.task", [{
+                name, project_id: this.projectId,
+                state: "not_started",
+                sequence: (this.state.tasks.length + 1) * 10,
+            }]);
+            const id = Array.isArray(result) ? result[0] : result;
+            this.state.tasks.push({ id, name, state: "not_started", openHelp: 0, editing: false });
+            this._recomputeProgress();
+            this.notif.add(`Tâche "${name}" créée.`, { type: "success", sticky: false });
+        } catch(e) {
+            this.notif.add("N'a pas pu créer la tâche.", { type: "danger" });
+        }
+    }
+
     async onAddTask() {
         if (!this.state.currentUserCanEdit) return;
         await this._ensureSaved();
         this.state.addingTask = true;
-        // Wait for OWL to render the input, then focus it
         setTimeout(() => {
             const input = document.querySelector(".rasci-new-task-input");
             if (input) input.focus();
         }, 50);
     }
-
 
     async onNewTaskBlur(ev) {
         if (ev.target.dataset.confirmed) return;
@@ -791,10 +748,7 @@ class RasciMatrixWidget extends Component {
         }
     }
 
-    onTaskNameDblClick(task) {
-        if (!this.state.currentUserCanEdit) return;
-        task.editing = true; 
-    }
+    onTaskNameDblClick(task) { if (this.state.currentUserCanEdit) task.editing = true; }
 
     async onTaskNameBlur(ev, task) {
         const name = ev.target.value.trim();
@@ -825,7 +779,7 @@ class RasciMatrixWidget extends Component {
 
     async onDeleteTask(task) {
         if (!this.state.currentUserCanEdit) return;
-        if (!confirm(`Delete task "${task.name}"?`)) return;
+        if (!confirm(`Supprimer la tâche "${task.name}" ?`)) return;
         try {
             await this.orm.unlink("rasci.task", [task.id]);
             const idx = this.state.tasks.findIndex(t => t.id === task.id);
@@ -836,7 +790,6 @@ class RasciMatrixWidget extends Component {
             this._recomputeProgress();
             this.notif.add(`Tâche "${task.name}" supprimée.`, { type: "success", sticky: false });
         } catch(e) {
-            console.error("Delete error:", e);
             this.notif.add("N'a pas pu supprimer la tâche.", { type: "danger" });
         }
     }
@@ -845,7 +798,7 @@ class RasciMatrixWidget extends Component {
         if (!this.state.currentUserCanEdit) return;
         const newState = ev.target.value;
         const prev     = task.state;
-        task.state = newState;
+        task.state     = newState;
         try {
             await this.orm.write("rasci.task", [task.id], { state: newState });
             this.notif.add(
@@ -856,27 +809,6 @@ class RasciMatrixWidget extends Component {
         } catch(e) {
             task.state = prev;
             this.notif.add("N'a pas pu mettre à jour l'état de la tâche.", { type: "danger" });
-        }
-    }
-
-    async onRequestHelp(task) {
-        await this.actionSvc.doAction({
-            type: "ir.actions.act_window",
-            name: `Request Help — ${task.name}`,
-            res_model: "rasci.help.request",
-            view_mode: "form",
-            views: [[false, "form"]],
-            context: {
-                default_task_id:    task.id,
-                default_project_id: this.projectId,
-                default_name:       `Help needed: ${task.name}`,
-            },
-            target: "new",
-        });
-        const refreshed = await this._loadTasks(this.projectId);
-        for (const t of refreshed) {
-            const existing = this.state.tasks.find(x => x.id === t.id);
-            if (existing) existing.openHelp = t.openHelp;
         }
     }
 }

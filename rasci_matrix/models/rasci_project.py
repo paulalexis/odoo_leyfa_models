@@ -313,26 +313,31 @@ class RasciProjectMember(models.Model):
     _order = 'sequence, id'
 
     project_id = fields.Many2one('rasci.project', required=True, ondelete='cascade')
-    employee_id = fields.Many2one('hr.employee', required=True, ondelete='cascade')
+    employee_id = fields.Many2one('hr.employee', required=False, ondelete='cascade')
+    is_external = fields.Boolean(string='Membre externe', default=False)
+    external_name = fields.Char(string='Nom externe')
     sequence = fields.Integer(default=10)
     department_id = fields.Many2one(
         related='employee_id.department_id',
         store=True, readonly=True
     )
+    can_edit = fields.Boolean(string='Peut modifier la matrice', default=False)
 
-    _sql_constraints = [(
-        'unique_project_employee',
-        'UNIQUE(project_id, employee_id)',
-        'Employé déjà présent dans ce projet.',
-    )]
+    @api.constrains('is_external', 'employee_id', 'external_name')
+    def _check_member_identity(self):
+        for rec in self:
+            if rec.is_external:
+                if not rec.external_name:
+                    raise UserError("Un membre externe doit avoir un nom.")
+            else:
+                if not rec.employee_id:
+                    raise UserError("Un membre interne doit avoir un employé associé.")
 
     def unlink(self):
-        """ When a member is removed, clean up all their roles in this project tasks """
         for member in self:
-            self.env['rasci.role.assignment'].search([
-                ('employee_id', '=', member.employee_id.id),
-                ('task_id.project_id', '=', member.project_id.id)
-            ]).unlink()
-        return super(RasciProjectMember, self).unlink()
-
-    can_edit = fields.Boolean(string='Peut modifier la matrice', default=False)  # ← add this
+            if not member.is_external and member.employee_id:
+                self.env['rasci.role.assignment'].search([
+                    ('employee_id', '=', member.employee_id.id),
+                    ('task_id.project_id', '=', member.project_id.id)
+                ]).unlink()
+        return super().unlink()
