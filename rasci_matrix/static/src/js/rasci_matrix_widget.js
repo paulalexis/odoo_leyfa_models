@@ -504,8 +504,12 @@ class RasciMatrixWidget extends Component {
 
     async openAddMenu(ev) {
         if (!this.state.currentUserCanEdit) return;
-        await this._ensureSaved();
+        
+        // Capture rect BEFORE any await — ev.currentTarget becomes null after async suspension
         const rect = ev.currentTarget.getBoundingClientRect();
+        
+        await this._ensureSaved();
+        
         const menuWidth = 280;
         const menuHeight = 320;
 
@@ -524,7 +528,6 @@ class RasciMatrixWidget extends Component {
         this.state.addSearch = "";
         this.state.showAddMenu = true;
 
-        // Autofocus the search input
         setTimeout(() => {
             const input = document.querySelector(".rasci-add-search-input");
             if (input) input.focus();
