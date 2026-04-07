@@ -82,8 +82,18 @@ class RasciMatrixWidget extends Component {
                     <tr class="rasci-employee-header">
                         <th class="rasci-task-col-header">Tâche / Etat</th>
                         <t t-foreach="state.members" t-as="emp" t-key="emp.id">
-                            <th>
+                            <th
+                                draggable="true"
+                                t-att-data-member-id="emp.id"
+                                t-att-class="'rasci-col-draggable' + (state.dragOverMemberId === emp.id ? ' rasci-col-drag-over' : '') + (state.dragSourceMemberId === emp.id ? ' rasci-col-dragging' : '')"
+                                t-on-dragstart="(ev) => this.onColDragStart(ev, emp)"
+                                t-on-dragover="(ev) => this.onColDragOver(ev, emp)"
+                                t-on-dragleave="(ev) => this.onColDragLeave(ev, emp)"
+                                t-on-drop="(ev) => this.onColDrop(ev, emp)"
+                                t-on-dragend="(ev) => this.onColDragEnd(ev)"
+                            >
                                 <div class="rasci-emp-header">
+                                    <i class="fa fa-grip-vertical rasci-drag-handle" title="Glisser pour réordonner"/>
                                     <span t-att-title="emp.name" t-esc="emp.shortName"/>
                                     <t t-if="emp.isExternal">
                                         <i class="fa fa-globe rasci-external-icon" title="Membre externe (hors entreprise)"/>
@@ -162,6 +172,7 @@ class RasciMatrixWidget extends Component {
                             <t t-foreach="state.members" t-as="emp" t-key="emp.id">
                                 <td
                                     class="rasci-cell rasci-cell-multi"
+                                    t-att-class="(state.dragSourceMemberId === emp.id ? ' rasci-col-dragging-cell' : '') + (state.dragOverMemberId === emp.id ? ' rasci-col-drag-over-cell' : '')"
                                     t-on-contextmenu="(ev) => ev.preventDefault()">
                                     <t t-foreach="ROLE_CYCLE" t-as="role" t-key="role">
                                         <t t-set="active" t-value="hasRole(task.id, emp.id, role)"/>
@@ -247,7 +258,7 @@ class RasciMatrixWidget extends Component {
             
             <!-- Help Icon with Tooltip -->
             <span class="ms-auto" 
-                title="Clic pour assigner les rôles. Clic droit pour éditer la description. Double-clic sur une tâche pour la renommer." 
+                title="Clic pour assigner les rôles. Clic droit pour éditer la description. Double-clic sur une tâche pour la renommer. Glisser les colonnes pour les réordonner." 
                 data-bs-toggle="tooltip">
                 <i class="fa fa-question-circle text-muted" style="cursor: help;"/>
             </span>
@@ -280,6 +291,9 @@ class RasciMatrixWidget extends Component {
             currentEmployeeId: false,
             allEmployees: [],
             allDepartments: [],
+            // drag-and-drop state
+            dragSourceMemberId: null,
+            dragOverMemberId: null,
         });
 
         onWillStart(() => this._load());
@@ -297,6 +311,8 @@ class RasciMatrixWidget extends Component {
                     currentEmployeeId: this.state.currentEmployeeId,
                     allEmployees: this.state.allEmployees,
                     allDepartments: this.state.allDepartments,
+                    dragSourceMemberId: null,
+                    dragOverMemberId: null,
                 });
                 return;
             }
@@ -353,23 +369,90 @@ class RasciMatrixWidget extends Component {
             ["id", "employee_id", "department_id", "sequence", "can_edit", "is_external", "external_name"],
             { order: "sequence asc, id asc" }
         );
+
+        // Build a full department tree so we can find the deepest/leaf department
+        // for each employee. We load all departments with their parent to resolve the chain.
+        const allDepts = await this._loadAllDepartmentsWithParent();
+        const deptMap = {};
+        for (const d of allDepts) deptMap[d.id] = d;
+
         return rows.map(r => {
             const isExternal = r.is_external;
             const name = isExternal ? (r.external_name || "?") : r.employee_id[1];
-            // External members use "ext_{memberId}" as their widget-side id
-            // so they never collide with real employee ids
             const empId = isExternal ? `ext_${r.id}` : r.employee_id[0];
+
+            // Resolve the deepest department name for this member.
+            // rasci.project.member has a department_id field that points to the
+            // top-level department. For a better label we walk the employee's own
+            // department chain (loaded separately below).
+            const rawDeptId   = r.department_id ? r.department_id[0] : false;
+            const rawDeptName = r.department_id ? r.department_id[1] : "";
+            const leafDeptName = this._leafDeptName(rawDeptId, deptMap) || rawDeptName;
+
             return {
                 id:         empId,
                 name:       name,
                 shortName:  this._toShortName(name),
-                deptId:     r.department_id ? r.department_id[0] : false,
-                deptName:   r.department_id ? r.department_id[1] : "",
+                deptId:     rawDeptId,
+                deptName:   leafDeptName,
                 memberId:   r.id,
                 canEdit:    !isExternal && (r.can_edit || r.employee_id?.[0] === this.props.record.data.pilot_id?.[0]),
                 isExternal: isExternal,
+                sequence:   r.sequence,
             };
         });
+    }
+
+    /**
+     * Returns the name of the deepest (leaf) department in the hierarchy
+     * rooted at deptId, using deptMap which maps id → { id, name, parent_id }.
+     *
+     * Strategy: walk DOWN — find any dept whose complete ancestor chain includes
+     * deptId, and that has no children in the map. If none found, use deptId's
+     * own name (it is already a leaf or unknown).
+     */
+    _leafDeptName(deptId, deptMap) {
+        if (!deptId || !deptMap[deptId]) return "";
+
+        // Build child map
+        const children = {};
+        for (const d of Object.values(deptMap)) {
+            const pid = d.parent_id ? d.parent_id[0] : null;
+            if (pid) {
+                if (!children[pid]) children[pid] = [];
+                children[pid].push(d.id);
+            }
+        }
+
+        // BFS/DFS to collect all descendants of deptId
+        const descendants = [];
+        const queue = [deptId];
+        while (queue.length) {
+            const cur = queue.shift();
+            const kids = children[cur] || [];
+            if (!kids.length && cur !== deptId) {
+                descendants.push(cur); // leaf node
+            }
+            queue.push(...kids);
+        }
+
+        // If the dept itself has no children it IS the leaf
+        if (!children[deptId] || !children[deptId].length) {
+            return deptMap[deptId].name;
+        }
+
+        // Return the name of the first leaf found (closest leaf in BFS order)
+        if (descendants.length) {
+            return deptMap[descendants[0]].name;
+        }
+
+        return deptMap[deptId].name;
+    }
+
+    async _loadAllDepartmentsWithParent() {
+        return await this.orm.searchRead(
+            "hr.department", [], ["id", "name", "parent_id"], { order: "name asc" }
+        );
     }
 
     async _loadAllEmployees() {
@@ -399,6 +482,72 @@ class RasciMatrixWidget extends Component {
 
     async _loadAssignments(projectId) {
         return await this.orm.call("rasci.role.assignment", "get_matrix_data", [projectId]);
+    }
+
+    // ── Drag-and-drop column reordering ───────────────────────────────────────
+
+    onColDragStart(ev, emp) {
+        if (!this.state.currentUserCanEdit) { ev.preventDefault(); return; }
+        this.state.dragSourceMemberId = emp.id;
+        ev.dataTransfer.effectAllowed = "move";
+        ev.dataTransfer.setData("text/plain", String(emp.id));
+        // Slight delay so the drag image renders before the opacity change
+        setTimeout(() => {}, 0);
+    }
+
+    onColDragOver(ev, emp) {
+        ev.preventDefault();
+        ev.dataTransfer.dropEffect = "move";
+        if (emp.id !== this.state.dragSourceMemberId) {
+            this.state.dragOverMemberId = emp.id;
+        }
+    }
+
+    onColDragLeave(ev, emp) {
+        if (this.state.dragOverMemberId === emp.id) {
+            this.state.dragOverMemberId = null;
+        }
+    }
+
+    async onColDrop(ev, targetEmp) {
+        ev.preventDefault();
+        const sourceId = this.state.dragSourceMemberId;
+        this.state.dragSourceMemberId = null;
+        this.state.dragOverMemberId   = null;
+
+        if (!sourceId || sourceId === targetEmp.id) return;
+
+        const members = this.state.members;
+        const fromIdx = members.findIndex(m => m.id === sourceId);
+        const toIdx   = members.findIndex(m => m.id === targetEmp.id);
+        if (fromIdx === -1 || toIdx === -1) return;
+
+        // Reorder locally
+        const [moved] = members.splice(fromIdx, 1);
+        members.splice(toIdx, 0, moved);
+
+        // Persist new sequences
+        await this._persistMemberSequences();
+    }
+
+    onColDragEnd(ev) {
+        this.state.dragSourceMemberId = null;
+        this.state.dragOverMemberId   = null;
+    }
+
+    async _persistMemberSequences() {
+        // Write each member's new sequence (10-based) to the database
+        const writes = this.state.members.map((m, idx) => {
+            const seq = (idx + 1) * 10;
+            m.sequence = seq;
+            return this.orm.write("rasci.project.member", [m.memberId], { sequence: seq });
+        });
+        try {
+            await Promise.all(writes);
+        } catch(e) {
+            console.error("Erreur lors de la sauvegarde de l'ordre des colonnes:", e);
+            this.notif.add("N'a pas pu sauvegarder l'ordre des colonnes.", { type: "danger" });
+        }
     }
 
     // ── Add member menu ───────────────────────────────────────────────────────
@@ -452,7 +601,6 @@ class RasciMatrixWidget extends Component {
 
     async openAddMenu(ev) {
         if (!this.state.currentUserCanEdit) return;
-        // Capture rect BEFORE any await — ev.currentTarget becomes null after async suspension
         const rect = ev.currentTarget.getBoundingClientRect();
         await this._ensureSaved();
 
@@ -504,6 +652,7 @@ class RasciMatrixWidget extends Component {
                     memberId:   memberId,
                     canEdit:    false,
                     isExternal: true,
+                    sequence:   (this.state.members.length) * 10,
                 });
             } catch(e) {
                 console.error("Erreur ajout externe:", e);
@@ -512,7 +661,7 @@ class RasciMatrixWidget extends Component {
             return;
         }
 
-        // ── Employee / Department (unchanged logic) ───────────────────────────
+        // ── Employee / Department ─────────────────────────────────────────────
         const toAdd = opt.type === "department"
             ? opt.employees
             : [{ id: opt.id, name: opt.name, department_id: [null, opt.deptName] }];
@@ -528,16 +677,17 @@ class RasciMatrixWidget extends Component {
                     employee_id: emp.id,
                     sequence:    (this.state.members.length + 1) * 10,
                 }]);
-                const memberId = Array.isArray(result) ? result[0] : memberId;
+                const memberId = Array.isArray(result) ? result[0] : result;
                 this.state.members.push({
                     id:         emp.id,
                     name:       emp.name,
                     shortName:  this._toShortName(emp.name),
                     deptId:     emp.department_id?.[0] || false,
                     deptName:   emp.department_id?.[1] || "",
-                    memberId:   Array.isArray(result) ? result[0] : result,
+                    memberId:   memberId,
                     canEdit:    false,
                     isExternal: false,
+                    sequence:   (this.state.members.length) * 10,
                 });
                 existingEmpIds.add(emp.id);
             } catch(e) {
@@ -551,7 +701,6 @@ class RasciMatrixWidget extends Component {
         if (!confirm(`Retirer ${emp.name} de la matrice ? Tous ses rôles sur ce projet seront définitivement supprimés.`)) return;
         try {
             await this.orm.unlink("rasci.project.member", [emp.memberId]);
-            // Clean local assignments — key uses emp.id (which is "ext_N" or integer)
             for (const key of Object.keys(this.state.assignments)) {
                 if (key.endsWith(`_${emp.id}`)) delete this.state.assignments[key];
             }
@@ -587,15 +736,8 @@ class RasciMatrixWidget extends Component {
 
     // ── Badge / role helpers ──────────────────────────────────────────────────
 
-    /**
-     * The "member key" passed to Python is:
-     *   - emp.id  (integer)  for internal employees
-     *   - "ext_{memberId}"   for external members
-     * This must match what get_matrix_data uses as the second part of the
-     * assignment dict key "{taskId}_{memberKey}".
-     */
     _memberKey(emp) {
-        return emp.isExternal ? emp.id : emp.id;  // emp.id is already "ext_N" or integer
+        return emp.isExternal ? emp.id : emp.id;
     }
 
     async onBadgeClick(ev, taskId, empId, role) {
@@ -616,8 +758,6 @@ class RasciMatrixWidget extends Component {
         }
 
         try {
-            // Pass empId directly — it is already the correct member key
-            // (integer for internal, "ext_N" string for external)
             await this.orm.call("rasci.role.assignment", "set_role", [taskId, empId, role, desc]);
         } catch(e) {
             this.state.assignments[key] = current;

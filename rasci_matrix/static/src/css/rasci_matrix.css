@@ -578,3 +578,53 @@ th:hover .rasci-remove-col-btn { opacity: 1; }
     margin-left: 3px;
     vertical-align: middle;
 }
+
+/* ── RASCI Matrix: Drag-and-drop column reordering ──────────────────────── */
+
+/* Make column headers draggable — show a grab cursor and grip icon */
+.rasci-col-draggable {
+    cursor: grab;
+    user-select: none;
+    transition: background 0.15s, opacity 0.15s;
+}
+
+.rasci-col-draggable:active {
+    cursor: grabbing;
+}
+
+/* Grip icon shown at the top of each employee header */
+.rasci-drag-handle {
+    display: block;
+    font-size: 10px;
+    color: rgba(255,255,255,0.35);
+    margin-bottom: 3px;
+    transition: color 0.15s;
+}
+
+.rasci-col-draggable:hover .rasci-drag-handle {
+    color: rgba(255,255,255,0.75);
+}
+
+/* The column being dragged — fade it out so the user sees the "ghost" */
+.rasci-col-dragging th,
+th.rasci-col-dragging {
+    opacity: 0.35;
+}
+
+/* Body cells in the dragging column */
+td.rasci-col-dragging-cell {
+    opacity: 0.35;
+    background: rgba(0,0,0,0.04);
+}
+
+/* The column the dragged item is hovering over — highlight it */
+th.rasci-col-drag-over {
+    background: rgba(255,255,255,0.18) !important;
+    box-shadow: inset 0 0 0 2px rgba(255,255,255,0.55);
+}
+
+td.rasci-col-drag-over-cell {
+    background: rgba(99,144,255,0.08) !important;
+    box-shadow: inset 2px 0 0 rgba(99,144,255,0.4),
+                inset -2px 0 0 rgba(99,144,255,0.4);
+}
