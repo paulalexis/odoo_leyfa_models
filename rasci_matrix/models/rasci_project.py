@@ -306,6 +306,33 @@ class RasciProject(models.Model):
         self._check_edit_rights()
         self.write({'state': 'draft'})
 
+    deadline_color_code = fields.Char(
+        compute="_compute_deadline_color_code",
+        store=False,
+    )
+    deadline_days_left = fields.Integer(
+        compute="_compute_deadline_color_code",
+        store=False,
+    )
+
+    @api.depends("deadline")
+    def _compute_deadline_color_code(self):
+        today = fields.Date.today()
+        for record in self:
+            if not record.deadline:
+                record.deadline_color_code = "none"
+                record.deadline_days_left = 0
+            else:
+                delta = (record.deadline - today).days
+                record.deadline_days_left = abs(delta)
+                if record.deadline == today:
+                    record.deadline_color_code = "danger"
+                elif delta < 0:
+                    record.deadline_color_code = "danger"
+                elif delta <= 15:
+                    record.deadline_color_code = "soon"
+                else:
+                    record.deadline_color_code = "muted"
 
 class RasciProjectMember(models.Model):
     _name = 'rasci.project.member'
@@ -341,3 +368,4 @@ class RasciProjectMember(models.Model):
                     ('task_id.project_id', '=', member.project_id.id)
                 ]).unlink()
         return super().unlink()
+    
