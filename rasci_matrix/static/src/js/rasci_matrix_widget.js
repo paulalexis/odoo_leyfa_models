@@ -9,6 +9,13 @@ const ROLE_CYCLE = ["R", "A", "S", "C", "I"];
 const ROLE_LABELS = {
     R: "Responsible", A: "Accountable", S: "Supportive", C: "Consulted", I: "Informed",
 };
+const ROLE_TOOLTIPS = {
+    R: "Responsible : Personne(s) qui exécute(nt) la tâche.",
+    A: "Accountable : Personne ultimement responsable du résultat. Doit être unique, et identifié à chaque tâche.",
+    S: "Supportive : Personne(s) qui apporte(nt) des ressources ou un soutien actif.",
+    C: "Consulted : Personne(s) consultée(s) avant la décision. Communication bidirectionnelle.",
+    I: "Informed : Personne(s) informée(s) après la décision. Communication unidirectionnelle.",
+};
 const STATE_OPTIONS = [
     { value: "not_started", label: "○ Non commencé" },
     { value: "in_progress", label: "◐ En cours" },
@@ -249,7 +256,7 @@ class RasciMatrixWidget extends Component {
         <div class="mt-3 p-2 bg-light border rounded d-flex flex-wrap gap-3 align-items-center small">
             <strong>Legende :</strong>
             <t t-foreach="roleEntries" t-as="entry" t-key="entry.key">
-                <span>
+                <span class="rasci-legend-item" t-att-title="ROLE_TOOLTIPS[entry.key]" style="cursor:help;">
                     <span t-attf-class="rasci-badge-#{entry.key}" t-esc="entry.key"/>
                     <span class="ms-1" t-esc="entry.label"/>
                 </span>
@@ -272,6 +279,7 @@ class RasciMatrixWidget extends Component {
         this.notif     = useService("notification");
 
         this.ROLE_LABELS  = ROLE_LABELS;
+        this.ROLE_TOOLTIPS = ROLE_TOOLTIPS;
         this.ROLE_CYCLE   = ROLE_CYCLE;
         this.stateOptions = STATE_OPTIONS;
         this.roleEntries  = Object.entries(ROLE_LABELS).map(([k, v]) => ({ key: k, label: v }));
