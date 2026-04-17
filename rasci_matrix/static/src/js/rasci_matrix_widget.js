@@ -157,24 +157,46 @@ class RasciMatrixWidget extends Component {
                                         t-att-title="state.currentUserCanEdit ? 'Double-click to rename' : ''"
                                     />
                                 </t>
-                                <select
-                                    class="rasci-state-select"
-                                    t-att-class="'rasci-state-' + task.state"
-                                    t-att-disabled="!state.currentUserCanEdit or this.props.record.data.state !== 'active'"
-                                    t-on-change="(ev) => this.onStateChange(ev, task)">
-                                    <t t-foreach="stateOptions" t-as="opt" t-key="opt.value">
-                                        <option
-                                            t-att-value="opt.value"
-                                            t-att-selected="opt.value === task.state"
-                                            t-esc="opt.label"/>
+
+                                <div class="rasci-task-controls">
+                                    <select
+                                        class="rasci-state-select"
+                                        t-att-class="'rasci-state-' + task.state"
+                                        t-att-disabled="!state.currentUserCanUpdateState"
+                                        t-on-change="(ev) => this.onStateChange(ev, task)">
+                                        <t t-foreach="stateOptions" t-as="opt" t-key="opt.value">
+                                            <option
+                                                t-att-value="opt.value"
+                                                t-att-selected="opt.value === task.state"
+                                                t-esc="opt.label"/>
+                                        </t>
+                                    </select>
+
+                                    <!-- Deadline badge — always visible, clickable only in draft -->
+                                    <t t-if="task.deadline or props.record.data.state === 'draft'">
+                                        <span
+                                            t-attf-class="rasci-deadline-chip rasci-deadline-#{task.deadline ? task.deadlineColor : 'empty'}"
+                                            t-att-title="task.deadline
+                                                ? 'Pour le ' + task.deadline + ' (' + task.deadlineDaysLeft + ' j)' + (state.currentUserCanEdit ? ' — cliquer pour modifier' : '')
+                                                : state.currentUserCanEdit ? 'Fixer une date limite' : ''"
+                                            t-on-click="(ev) => state.currentUserCanEdit and this.onDeadlineClick(ev, task)">
+                                            📅<t t-if="task.deadlineShort"> <t t-esc="task.deadlineShort"/></t>
+                                        </span>
                                     </t>
-                                </select>
-                                <t t-if="state.currentUserCanEdit">
-                                    <button
-                                        class="rasci-task-delete-btn"
-                                        t-on-click="() => this.onDeleteTask(task)"
-                                        title="Retirer de la matrice">✕</button>
-                                </t>
+                                    <input
+                                        type="date"
+                                        t-attf-id="deadline-picker-#{task.id}"
+                                        style="position:absolute;opacity:0;pointer-events:none;width:0;height:0;"
+                                        t-on-change="(ev) => this.onDeadlineChange(ev, task)"
+                                    />
+
+                                    <t t-if="state.currentUserCanEdit">
+                                        <button
+                                            class="rasci-task-delete-btn"
+                                            t-on-click="() => this.onDeleteTask(task)"
+                                            title="Retirer de la matrice">✕</button>
+                                    </t>
+                                </div>
                             </td>
                             <t t-foreach="state.members" t-as="emp" t-key="emp.id">
                                 <td
@@ -338,7 +360,7 @@ class RasciMatrixWidget extends Component {
         this.state.loading = true;
         if (!projectId) { this.state.loading = false; return; }
 
-        const [members, tasks, assignments, allEmployees, allDepartments, currentEmployeeId, serverCanEdit] = await Promise.all([
+        const [members, tasks, assignments, allEmployees, allDepartments, currentEmployeeId, serverCanEdit, serverCanUpdateState] = await Promise.all([
             this._loadMembers(projectId),
             this._loadTasks(projectId),
             this._loadAssignments(projectId),
@@ -346,6 +368,7 @@ class RasciMatrixWidget extends Component {
             this._loadAllDepartments(),
             this._loadCurrentEmployeeId(),
             this.orm.call("rasci.project", "get_current_user_can_edit", [projectId]),
+            this.orm.call("rasci.project", "get_current_user_can_update_task_state", [projectId]),
         ]);
 
         const pilotId = this.props.record.data.pilot_id?.[0];
@@ -356,6 +379,7 @@ class RasciMatrixWidget extends Component {
             loading: false, members, tasks, assignments,
             allEmployees, allDepartments, currentEmployeeId,
             currentUserCanEdit: editable,
+            currentUserCanUpdateState: serverCanUpdateState,
         });
     }
 
@@ -479,12 +503,22 @@ class RasciMatrixWidget extends Component {
         const rows = await this.orm.searchRead(
             "rasci.task",
             [["project_id", "=", projectId]],
-            ["id", "name", "state", "sequence", "open_help_request_count"],
+            ["id", "name", "state", "sequence", "open_help_request_count",
+            "deadline", "deadline_color_code", "deadline_days_left"],
             { order: "sequence asc, id asc" }
         );
         return rows.map(r => ({
-            id: r.id, name: r.name, state: r.state,
-            openHelp: r.open_help_request_count || 0, editing: false,
+            id:               r.id,
+            name:             r.name,
+            state:            r.state,
+            openHelp:         r.open_help_request_count || 0,
+            editing:          false,
+            deadline:         r.deadline || false,
+            deadlineColor:    r.deadline_color_code || 'none',
+            deadlineDaysLeft: r.deadline_days_left  || 0,
+            deadlineShort:    r.deadline
+                ? new Date(r.deadline).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })
+                : '',
         }));
     }
 
@@ -943,7 +977,7 @@ class RasciMatrixWidget extends Component {
     }
 
     async onStateChange(ev, task) {
-        if (!this.state.currentUserCanEdit) return;
+        if (!this.state.currentUserCanUpdateState) return;
         const newState = ev.target.value;
         const prev     = task.state;
         task.state     = newState;
@@ -957,6 +991,50 @@ class RasciMatrixWidget extends Component {
         } catch(e) {
             task.state = prev;
             this.notif.add("N'a pas pu mettre à jour l'état de la tâche.", { type: "danger" });
+        }
+    }
+
+    onDeadlineClick(ev, task) {
+        const input = document.getElementById(`deadline-picker-${task.id}`);
+        if (!input) return;
+        if (task.deadline) input.value = task.deadline;
+        input.showPicker?.() ?? input.click();
+    }
+
+    async onDeadlineChange(ev, task) {
+        const newDate = ev.target.value || false;
+        const prev = {
+            deadline:         task.deadline,
+            deadlineColor:    task.deadlineColor,
+            deadlineDaysLeft: task.deadlineDaysLeft,
+            deadlineShort:    task.deadlineShort,
+        };
+
+        // Optimistic update
+        task.deadline = newDate;
+        if (newDate) {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const d = new Date(newDate);
+            const delta = Math.round((d - today) / 86400000);
+            task.deadlineDaysLeft = Math.abs(delta);
+            task.deadlineColor    = delta < 0 ? 'danger' : delta <= 15 ? 'soon' : 'muted';
+            task.deadlineShort    = d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' });
+        } else {
+            task.deadlineColor    = 'none';
+            task.deadlineDaysLeft = 0;
+            task.deadlineShort    = '';
+        }
+
+        try {
+            await this.orm.write("rasci.task", [task.id], { deadline: newDate || false });
+            this.notif.add(
+                newDate ? `Deadline fixée au ${task.deadlineShort}.` : 'Deadline supprimée.',
+                { type: "success", sticky: false }
+            );
+        } catch(e) {
+            Object.assign(task, prev);
+            this.notif.add("N'a pas pu enregistrer la deadline.", { type: "danger" });
         }
     }
 }

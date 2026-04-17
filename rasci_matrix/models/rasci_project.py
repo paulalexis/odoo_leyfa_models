@@ -228,6 +228,27 @@ class RasciProject(models.Model):
     @api.model
     def get_current_user_can_edit(self, project_id):
         project = self.browse(project_id)
+        if project.state != 'draft':
+            return False
+        employee = self.env.user.employee_id
+        if project.pilot_id:
+            if employee and project.pilot_id == employee:
+                return True
+            if project.pilot_id.user_id == self.env.user:
+                return True
+        if not employee:
+            return False
+        member = self.env['rasci.project.member'].sudo().search([
+            ('project_id', '=', project_id),
+            ('employee_id', '=', employee.id),
+        ], limit=1)
+        return member.can_edit if member else False
+    
+    @api.model
+    def get_current_user_can_update_task_state(self, project_id):
+        project = self.browse(project_id)
+        if project.state not in ('draft', 'active'):
+            return False
         employee = self.env.user.employee_id
         if project.pilot_id:
             if employee and project.pilot_id == employee:
@@ -297,14 +318,17 @@ class RasciProject(models.Model):
     def action_active(self):
         self._check_edit_rights()
         self.write({'state': 'active'})
+        return {'type': 'ir.actions.client', 'tag': 'reload'}
 
     def action_done(self):
         self._check_edit_rights()
         self.write({'state': 'done'})
+        return {'type': 'ir.actions.client', 'tag': 'reload'}
 
     def action_reset_draft(self):
         self._check_edit_rights()
         self.write({'state': 'draft'})
+        return {'type': 'ir.actions.client', 'tag': 'reload'}
 
     deadline_color_code = fields.Char(
         compute="_compute_deadline_color_code",

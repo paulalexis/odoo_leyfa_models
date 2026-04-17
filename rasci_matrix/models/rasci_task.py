@@ -96,3 +96,41 @@ class RasciTask(models.Model):
             'domain': [('task_id', '=', self.id)],
             'context': {'default_task_id': self.id, 'default_project_id': self.project_id.id},
         }
+    
+    deadline = fields.Date(
+        string='Deadline intermédiaire',
+        default=lambda self: self.project_id.deadline,
+    )
+
+    @api.onchange('project_id')
+    def _onchange_project_id_deadline(self):
+        if self.project_id and not self.deadline:
+            self.deadline = self.project_id.deadline
+
+    deadline_color_code = fields.Char(
+        compute='_compute_deadline_color_code',
+        store=False,
+    )
+    deadline_days_left = fields.Integer(
+        compute='_compute_deadline_color_code',
+        store=False,
+    )
+
+    @api.depends('deadline')
+    def _compute_deadline_color_code(self):
+        today = fields.Date.today()
+        for task in self:
+            if not task.deadline:
+                task.deadline_color_code = 'none'
+                task.deadline_days_left  = 0
+            else:
+                delta = (task.deadline - today).days
+                task.deadline_days_left = abs(delta)
+                if delta < 0:
+                    task.deadline_color_code = 'danger'
+                elif delta == 0:
+                    task.deadline_color_code = 'danger'
+                elif delta <= 15:
+                    task.deadline_color_code = 'soon'
+                else:
+                    task.deadline_color_code = 'muted'

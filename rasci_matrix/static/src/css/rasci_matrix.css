@@ -647,3 +647,38 @@ td.rasci-cell.rasci-cell-multi {
     padding-left: 5px;
     padding-right: 5px;
 }
+
+.rasci-task-name {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.rasci-task-controls {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-left: auto;
+    flex-shrink: 0;
+}
+
+.rasci-deadline-chip {
+    display: inline-flex;
+    align-items: center;
+    font-size: 10px;
+    padding: 1px 6px;
+    border-radius: 10px;
+    white-space: nowrap;
+    font-weight: 600;
+    cursor: default;
+}
+.rasci-deadline-empty  { background: #e9ecef; color: #adb5bd; cursor: pointer; }
+.rasci-deadline-muted  { background: #e9ecef; color: #6c757d; }
+.rasci-deadline-soon   { background: #fff3cd; color: #856404; }
+.rasci-deadline-danger { background: #f8d7da; color: #842029; }
+
+/* clickable when in draft */
+.rasci-task-name:has(.rasci-deadline-empty),
+[style*="cursor:pointer"] {
+    cursor: pointer;
+}
